@@ -1099,7 +1099,7 @@ void MapCanvas::OnMouseActionRelease(wxMouseEvent &event) {
 						case SELECT_VISIBLE_FLOORS: {
 							start_x = last_click_map_x;
 							start_y = last_click_map_y;
-							if (floor < 8) {
+							if (floor < 32) {
 								start_z = rme::MapGroundLayer;
 							} else {
 								start_z = std::min(rme::MapMaxLayer, floor + 2);
@@ -1547,7 +1547,7 @@ void MapCanvas::OnMousePropertiesRelease(wxMouseEvent &event) {
 
 					start_x = last_click_map_x;
 					start_y = last_click_map_y;
-					if (floor < 8) {
+					if (floor < 32) {
 						start_z = rme::MapGroundLayer;
 					} else {
 						start_z = std::min(rme::MapMaxLayer, floor + 2);

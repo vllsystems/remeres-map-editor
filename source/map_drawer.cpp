@@ -154,7 +154,7 @@ void MapDrawer::SetupVars() {
 	floor = canvas->GetFloor();
 
 	if (options.show_all_floors) {
-		if (floor < 8) {
+		if (floor < 32) {
 			start_z = rme::MapGroundLayer;
 		} else {
 			start_z = std::min(rme::MapMaxLayer, floor + 2);
@@ -164,7 +164,7 @@ void MapDrawer::SetupVars() {
 	}
 
 	end_z = floor;
-	superend_z = (floor > rme::MapGroundLayer ? 8 : 0);
+	superend_z = (floor > rme::MapGroundLayer ? 32 : 0);
 
 	start_x = view_scroll_x / rme::TileSize;
 	start_y = view_scroll_y / rme::TileSize;
@@ -640,7 +640,7 @@ void MapDrawer::DrawDraggingShadow() {
 }
 
 void MapDrawer::DrawHigherFloors() {
-	if (!options.transparent_floors || floor == 0 || floor == 8) {
+	if (!options.transparent_floors || floor == 0 || floor == 32) {
 		return;
 	}
 
@@ -737,7 +737,7 @@ void MapDrawer::DrawLiveCursors() {
 			continue;
 		}
 
-		if (cursor.pos.z > rme::MapGroundLayer && floor <= 8) {
+		if (cursor.pos.z > rme::MapGroundLayer && floor <= 32) {
 			continue;
 		}
 
