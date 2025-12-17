@@ -633,7 +633,7 @@ void MemoryNodeFileWriteHandle::renewCache() {
 
 NodeFileWriteHandle::NodeFileWriteHandle() :
 	cache(nullptr),
-	cache_size(0x7FFF),
+	cache_size(g_settings.getInteger(Config::IO_BUFFER_SIZE)),
 	local_write_index(0) {
 	////
 }

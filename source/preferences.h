@@ -54,6 +54,7 @@ protected:
 	wxSpinCtrl* worker_threads_spin;
 	wxSpinCtrl* replace_size_spin;
 	wxSpinCtrl* delete_backup_days_spin;
+	wxSpinCtrl* io_buffer_size_spin;
 	wxRadioBox* position_format;
 	wxRadioBox* area_format;
 
