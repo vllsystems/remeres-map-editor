@@ -141,9 +141,9 @@ public:
 	}
 
 	void setVisible(bool overground, bool underground);
-	void setVisible(uint32_t client, bool underground, bool value);
-	bool isVisible(uint32_t client, bool underground);
-	void clearVisible(uint32_t client);
+	void setVisible(uint64_t client, bool underground, bool value);
+	bool isVisible(uint64_t client, bool underground);
+	void clearVisible(uint64_t client);
 
 	void setRequested(bool underground, bool r);
 	bool isVisible(bool underground);
@@ -151,7 +151,7 @@ public:
 
 protected:
 	BaseMap &map;
-	uint32_t visible;
+	uint64_t visible;
 
 	bool isLeaf;
 
