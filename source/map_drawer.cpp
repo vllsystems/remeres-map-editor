@@ -476,7 +476,7 @@ void MapDrawer::DrawSecondaryMap(int map_z) {
 				BlitItem(draw_x, draw_y, tile, tile->ground, true, r, g, b, 160);
 			}
 
-			bool hidden = options.hide_items_when_zoomed && zoom > 10.f;
+			bool hidden = options.hide_items_when_zoomed && zoom > 10.0f;
 
 			// Draw items
 			if (!hidden && !tile->items.empty()) {
@@ -680,7 +680,7 @@ void MapDrawer::DrawHigherFloors() {
 				}
 			}
 
-			bool hidden = options.hide_items_when_zoomed && zoom > 10.f;
+			bool hidden = options.hide_items_when_zoomed && zoom > 10.0f;
 			if (!hidden && !tile->items.empty()) {
 				for (const Item* item : tile->items) {
 					BlitItem(draw_x, draw_y, tile, item, false, 255, 255, 255, 96);
@@ -1577,7 +1577,7 @@ void MapDrawer::DrawTile(TileLocation* location) {
 		}
 	}
 
-	bool hidden = only_colors || (options.hide_items_when_zoomed && zoom > 10.f);
+	bool hidden = only_colors || (options.hide_items_when_zoomed && zoom > 10.0f);
 
 	if (!hidden && !tile->items.empty()) {
 		for (Item* item : tile->items) {
@@ -1959,7 +1959,7 @@ void MapDrawer::AddLight(TileLocation* location) {
 		}
 	}
 
-	bool hidden = options.hide_items_when_zoomed && zoom > 10.f;
+	bool hidden = options.hide_items_when_zoomed && zoom > 10.0f;
 	if (!hidden && !tile->items.empty()) {
 		for (auto item : tile->items) {
 			if (item->hasLight()) {
