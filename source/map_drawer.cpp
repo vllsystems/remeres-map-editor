@@ -164,7 +164,21 @@ void MapDrawer::SetupVars() {
 	}
 
 	end_z = floor;
-	superend_z = (floor > rme::MapGroundLayer ? 32 : 0);
+
+	if (zoom < 1.0f && !options.show_all_floors) {
+		const int surface_layer = rme::MapGroundLayer;
+		int layers_below = 0;
+
+		if (floor < surface_layer) {
+			layers_below = std::min(3, surface_layer - floor);
+		} else if (floor == surface_layer) {
+			layers_below = 0;
+		}
+
+		superend_z = std::max(0, floor - layers_below);
+	} else {
+		superend_z = (floor > rme::MapGroundLayer ? 32 : 0);
+	}
 
 	start_x = view_scroll_x / rme::TileSize;
 	start_y = view_scroll_y / rme::TileSize;
