@@ -259,6 +259,9 @@ void Map::cleanInvalidTiles(bool showdialog) {
 
 	uint64_t tiles_done = 0;
 
+	std::vector<Tile*> tiles_to_clean;
+	tiles_to_clean.reserve(getTileCount() / 10);
+
 	for (MapIterator miter = begin(); miter != end(); ++miter) {
 		Tile* tile = (*miter)->get();
 		ASSERT(tile);
@@ -267,6 +270,20 @@ void Map::cleanInvalidTiles(bool showdialog) {
 			continue;
 		}
 
+		bool has_invalid = false;
+		for (ItemVector::iterator item_iter = tile->items.begin(); item_iter != tile->items.end(); ++item_iter) {
+			if (!g_items.isValidID((*item_iter)->getID())) {
+				has_invalid = true;
+				break;
+			}
+		}
+
+		if (has_invalid) {
+			tiles_to_clean.push_back(tile);
+		}
+	}
+
+	for (Tile* tile : tiles_to_clean) {
 		for (ItemVector::iterator item_iter = tile->items.begin(); item_iter != tile->items.end();) {
 			if (g_items.isValidID((*item_iter)->getID())) {
 				++item_iter;
@@ -278,7 +295,7 @@ void Map::cleanInvalidTiles(bool showdialog) {
 
 		++tiles_done;
 		if (showdialog && tiles_done % 0x10000 == 0) {
-			g_gui.SetLoadDone(int(tiles_done / double(getTileCount()) * 100.0));
+			g_gui.SetLoadDone(int(tiles_done / double(tiles_to_clean.size()) * 100.0));
 		}
 	}
 
