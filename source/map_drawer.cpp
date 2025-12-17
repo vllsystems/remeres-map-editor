@@ -169,13 +169,28 @@ void MapDrawer::SetupVars() {
 	start_x = view_scroll_x / rme::TileSize;
 	start_y = view_scroll_y / rme::TileSize;
 
-	if (floor > rme::MapGroundLayer) {
-		start_x -= 2;
-		start_y -= 2;
-	}
+	if (zoom < 2.0f) {
+		float reduction_factor = zoom / 2.0f;
+		int reduced_width = int(screensize_x * reduction_factor / tile_size);
+		int reduced_height = int(screensize_y * reduction_factor / tile_size);
 
-	end_x = start_x + screensize_x / tile_size + 2;
-	end_y = start_y + screensize_y / tile_size + 2;
+		int center_offset_x = (screensize_x / tile_size - reduced_width) / 2;
+		int center_offset_y = (screensize_y / tile_size - reduced_height) / 2;
+
+		start_x += center_offset_x;
+		start_y += center_offset_y;
+
+		end_x = start_x + reduced_width;
+		end_y = start_y + reduced_height;
+	} else {
+		if (floor > rme::MapGroundLayer) {
+			start_x -= 2;
+			start_y -= 2;
+		}
+
+		end_x = start_x + screensize_x / tile_size + 2;
+		end_y = start_y + screensize_y / tile_size + 2;
+	}
 }
 
 void MapDrawer::SetupGL() {
