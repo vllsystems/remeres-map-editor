@@ -1119,7 +1119,7 @@ void MapCanvas::OnMouseActionRelease(wxMouseEvent &event) {
 						}
 					}
 
-					if (numtiles < 500) {
+					if (numtiles < 1000) {
 						// No point in threading for such a small set.
 						threadcount = 1;
 					}
