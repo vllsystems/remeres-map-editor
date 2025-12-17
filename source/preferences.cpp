@@ -134,6 +134,11 @@ wxNotebookPage* PreferencesWindow::CreateGeneralPage() {
 	grid_sizer->Add(io_buffer_size_spin, 0);  
 	SetWindowToolTip(tmptext, io_buffer_size_spin, "Size of the I/O buffer for saving/loading maps. Larger values improve performance but use more memory.");
 
+	grid_sizer->Add(tmptext = newd wxStaticText(general_page, wxID_ANY, "Sprite Cache Size (MB): "), 0);  
+	sprite_cache_size_spin = newd wxSpinCtrl(general_page, wxID_ANY, i2ws(g_settings.getInteger(Config::SPRITE_CACHE_SIZE)), wxDefaultPosition, wxDefaultSize, wxSP_ARROW_KEYS, 64, 1024);  
+	grid_sizer->Add(sprite_cache_size_spin, 0);  
+	SetWindowToolTip(tmptext, sprite_cache_size_spin, "Size of the sprite cache in megabytes. Larger values improve performance but use more memory.");	
+
 	wxString position_choices[] = { "  {x = 0, y = 0, z = 0}",
 									R"(  {"x":0,"y":0,"z":0})",
 									"  x, y, z",
@@ -616,6 +621,7 @@ void PreferencesWindow::Apply() {
 	g_settings.setInteger(Config::REPLACE_SIZE, replace_size_spin->GetValue());
 	g_settings.setInteger(Config::DELETE_BACKUP_DAYS, delete_backup_days_spin->GetValue());
 	g_settings.setInteger(Config::IO_BUFFER_SIZE, io_buffer_size_spin->GetValue() * 1024);
+	g_settings.setInteger(Config::SPRITE_CACHE_SIZE, sprite_cache_size_spin->GetValue());
 	g_settings.setInteger(Config::COPY_POSITION_FORMAT, position_format->GetSelection());
 	g_settings.setInteger(Config::COPY_AREA_FORMAT, area_format->GetSelection());
 	if (g_settings.getBoolean(Config::SHOW_TILESET_EDITOR) != enable_tileset_editing_chkbox->GetValue()) {

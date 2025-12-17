@@ -976,7 +976,8 @@ void GraphicManager::addSpriteToCleanup(GameSprite* spr) {
 void GraphicManager::garbageCollection() {
 	if (g_settings.getInteger(Config::TEXTURE_MANAGEMENT)) {
 		int t = time(nullptr);
-		if (loaded_textures > g_settings.getInteger(Config::TEXTURE_CLEAN_THRESHOLD) && t - lastclean > g_settings.getInteger(Config::TEXTURE_CLEAN_PULSE)) {
+		size_t cache_size = g_settings.getInteger(Config::SPRITE_CACHE_SIZE) * 1024 * 1024;
+		if (loaded_textures > cache_size && t - lastclean > g_settings.getInteger(Config::TEXTURE_CLEAN_PULSE)) {
 			ImageMap::iterator iit = image_space.begin();
 			while (iit != image_space.end()) {
 				iit->second->clean(t);
