@@ -1982,11 +1982,6 @@ void MapDrawer::DrawPerformanceStats() {
         last_cpu_time = user;
         last_sys_time = sys;
         last_now_time = now;
-
-        unsigned int num_cores = std::thread::hardware_concurrency();
-        if (num_cores > 0) {
-            current_cpu = current_cpu / num_cores;
-        }
 #else
         FILE* file = fopen("/proc/self/statm", "r");
         if (file) {
