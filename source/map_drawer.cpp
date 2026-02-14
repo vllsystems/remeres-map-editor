@@ -2004,10 +2004,10 @@ void MapDrawer::DrawPerformanceStats() {
                         unsigned long long process_time = utime + stime;
                         FILE* stat_file = fopen("/proc/stat", "r");
                         if (stat_file) {
-                            unsigned long long user, nice, system, idle;
-                            if (fscanf(stat_file, "cpu %llu %llu %llu %llu", &user, &nice, &system, &idle) == 4) {
-                                unsigned long long total_time = user + nice + system + idle;
-
+                            unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
+                            if (fscanf(stat_file, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+                                       &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) == 8) {
+                                unsigned long long total_time = user + nice + system + idle + iowait + irq + softirq + steal;
                                 if (last_total_time != 0) {
                                     unsigned long long total_diff = total_time - last_total_time;
                                     unsigned long long process_diff = process_time - last_process_time;
