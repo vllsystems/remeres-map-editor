@@ -21,6 +21,16 @@
 	#include <GL/glut.h>
 #endif
 
+#ifdef __WINDOWS__
+    #include <windows.h>
+    #include <psapi.h>
+#else
+    #include <unistd.h>
+	#include <cstring>
+#endif
+
+#include <thread>
+
 #include "editor.h"
 #include "gui.h"
 #include "sprites.h"
@@ -107,6 +117,7 @@ void DrawingOptions::SetIngame() {
 	highlight_items = false;
 	show_blocking = false;
 	show_tooltips = false;
+	show_performance_stats = false;
 	show_as_minimap = false;
 	show_only_colors = false;
 	show_only_modified = false;
@@ -134,8 +145,22 @@ bool DrawingOptions::isTooltips() const noexcept {
 }
 
 MapDrawer::MapDrawer(MapCanvas* canvas) :
-	canvas(canvas), editor(canvas->editor) {
-	light_drawer = std::make_shared<LightDrawer>();
+    canvas(canvas), editor(canvas->editor) {
+    light_drawer = std::make_shared<LightDrawer>();
+    frame_count = 0;
+    current_fps = 0.0;
+    current_cpu = 0.0;
+    current_ram = 0;
+    perf_update_timer.Start();
+
+#ifdef __WINDOWS__
+    last_cpu_time.QuadPart = 0;
+    last_sys_time.QuadPart = 0;
+	last_now_time.QuadPart = 0;
+#else
+    last_total_time = 0;
+    last_process_time = 0;
+#endif
 }
 
 MapDrawer::~MapDrawer() {
@@ -235,6 +260,9 @@ void MapDrawer::Draw() {
 	}
 	if (options.isTooltips()) {
 		DrawTooltips();
+	}
+    if (options.show_performance_stats) {
+        DrawPerformanceStats();
 	}
 }
 
@@ -1909,6 +1937,136 @@ void MapDrawer::DrawTooltips() {
 
 	glEnable(GL_TEXTURE_2D);
 #endif
+}
+
+void MapDrawer::DrawPerformanceStats() {
+    frame_count++;
+
+    long elapsed = perf_update_timer.Time();
+    if (elapsed >= 500) {
+        current_fps = (frame_count * 1000.0) / elapsed;
+        frame_count = 0;
+
+#ifdef __WINDOWS__
+        PROCESS_MEMORY_COUNTERS pmc;
+        if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+            current_ram = pmc.WorkingSetSize / (1024 * 1024);
+        }
+
+        FILETIME ftime, fsys, fuser;
+        ULARGE_INTEGER now, sys, user;
+
+        GetSystemTimeAsFileTime(&ftime);
+        memcpy(&now, &ftime, sizeof(FILETIME));
+
+        GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fsys, &fuser);
+        memcpy(&sys, &fsys, sizeof(FILETIME));
+        memcpy(&user, &fuser, sizeof(FILETIME));
+
+        if (last_now_time.QuadPart != 0) {
+            double process_diff = (double)((sys.QuadPart - last_sys_time.QuadPart) + (user.QuadPart - last_cpu_time.QuadPart));
+            double system_diff = (double)(now.QuadPart - last_now_time.QuadPart);
+
+            if (system_diff > 0) {
+                current_cpu = (process_diff / system_diff) * 100.0;
+                if (current_cpu > 100.0) {
+                    current_cpu = 100.0;
+                }
+            }
+        }
+
+        last_cpu_time = user;
+        last_sys_time = sys;
+        last_now_time = now;
+
+        unsigned int num_cores = std::thread::hardware_concurrency();
+        if (num_cores > 0) {
+            current_cpu = current_cpu / num_cores;
+        }
+#else
+        FILE* file = fopen("/proc/self/statm", "r");
+        if (file) {
+            unsigned long size;
+            if (fscanf(file, "%lu", &size) == 1) {
+                current_ram = (size * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
+            }
+            fclose(file);
+        }
+
+        file = fopen("/proc/self/stat", "r");
+        if (file) {
+            unsigned long long utime, stime;
+            char buffer[1024];
+            if (fgets(buffer, sizeof(buffer), file)) {
+                char* ptr = strchr(buffer, ')');
+                if (ptr) {
+                    int fields = sscanf(ptr + 2, "%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu", &utime, &stime);
+                    if (fields == 2) {
+                        unsigned long long process_time = utime + stime;
+                        FILE* stat_file = fopen("/proc/stat", "r");
+                        if (stat_file) {
+                            unsigned long long user, nice, system, idle;
+                            if (fscanf(stat_file, "cpu %llu %llu %llu %llu", &user, &nice, &system, &idle) == 4) {
+                                unsigned long long total_time = user + nice + system + idle;
+
+                                if (last_total_time != 0) {
+                                    unsigned long long total_diff = total_time - last_total_time;
+                                    unsigned long long process_diff = process_time - last_process_time;
+
+                                    if (total_diff > 0) {
+                                        current_cpu = (100.0 * process_diff) / total_diff;
+                                    }
+                                }
+
+                                last_total_time = total_time;
+                                last_process_time = process_time;
+                            }
+                            fclose(stat_file);
+                        }
+                    }
+                }
+            }
+            fclose(file);
+        }
+
+        unsigned int num_cores = std::thread::hardware_concurrency();
+        if (num_cores > 0) {
+            current_cpu = current_cpu / num_cores;
+        }
+#endif
+        perf_update_timer.Start();
+    }
+
+    char buffer[256];
+    snprintf(buffer, sizeof(buffer), "FPS: %.1f | CPU: %.1f%% | RAM: %zu MB",
+             current_fps, current_cpu, current_ram);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, screensize_x, screensize_y, 0, -1, 1);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_TEXTURE_2D);
+    glColor3f(1.0f, 1.0f, 0.0f);
+
+    int x = 10;
+    int y = 20;
+
+    glRasterPos2i(x, y);
+    for (const char* c = buffer; *c != '\0'; c++) {
+        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, *c);
+    }
+
+    glEnable(GL_TEXTURE_2D);
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
 }
 
 void MapDrawer::DrawLight() const {

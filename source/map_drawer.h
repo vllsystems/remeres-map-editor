@@ -77,6 +77,7 @@ public:
 	bool highlight_items;
 	bool show_blocking;
 	bool show_tooltips;
+	bool show_performance_stats;
 	bool show_as_minimap;
 	bool show_only_colors;
 	bool show_only_modified;
@@ -116,6 +117,23 @@ protected:
 	wxStopWatch pos_indicator_timer;
 	Position pos_indicator;
 
+    // Performance monitoring
+    wxStopWatch fps_timer;
+    int frame_count;
+    double current_fps;
+    wxStopWatch perf_update_timer;
+    double current_cpu;
+    size_t current_ram;
+
+#ifdef __WINDOWS__
+    ULARGE_INTEGER last_cpu_time;
+    ULARGE_INTEGER last_sys_time;
+	ULARGE_INTEGER last_now_time;
+#else
+    unsigned long long last_total_time;
+    unsigned long long last_process_time;
+#endif
+
 public:
 	MapDrawer(MapCanvas* canvas);
 	~MapDrawer();
@@ -140,6 +158,7 @@ public:
 	void DrawIngameBox();
 	void DrawGrid();
 	void DrawTooltips();
+	void DrawPerformanceStats();
 
 	void TakeScreenshot(uint8_t* screenshot_buffer);
 
