@@ -1969,6 +1969,10 @@ void MapDrawer::DrawPerformanceStats() {
 
             if (system_diff > 0) {
                 current_cpu = (process_diff / system_diff) * 100.0;
+                unsigned int num_cores = std::thread::hardware_concurrency();
+                if (num_cores > 0) {
+                    current_cpu = current_cpu / num_cores;
+                }
                 if (current_cpu > 100.0) {
                     current_cpu = 100.0;
                 }
@@ -1986,9 +1990,9 @@ void MapDrawer::DrawPerformanceStats() {
 #else
         FILE* file = fopen("/proc/self/statm", "r");
         if (file) {
-            unsigned long size;
-            if (fscanf(file, "%lu", &size) == 1) {
-                current_ram = (size * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
+            unsigned long size, rss;
+            if (fscanf(file, "%lu %lu", &size, &rss) == 2) {
+                current_ram = (rss * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
             }
             fclose(file);
         }
@@ -2027,11 +2031,6 @@ void MapDrawer::DrawPerformanceStats() {
                 }
             }
             fclose(file);
-        }
-
-        unsigned int num_cores = std::thread::hardware_concurrency();
-        if (num_cores > 0) {
-            current_cpu = current_cpu / num_cores;
         }
 #endif
         perf_update_timer.Start();
