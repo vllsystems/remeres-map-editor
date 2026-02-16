@@ -30,6 +30,8 @@
 #endif
 
 #include <thread>
+#include <sstream>
+#include <iomanip>
 
 #include "editor.h"
 #include "gui.h"
@@ -145,12 +147,13 @@ bool DrawingOptions::isTooltips() const noexcept {
 }
 
 MapDrawer::MapDrawer(MapCanvas* canvas) :
-    canvas(canvas), editor(canvas->editor) {
+    canvas(canvas),
+    editor(canvas->editor),
+    frame_count(0),
+    current_fps(0.0),
+    current_cpu(0.0),
+    current_ram(0) {
     light_drawer = std::make_shared<LightDrawer>();
-    frame_count = 0;
-    current_fps = 0.0;
-    current_cpu = 0.0;
-    current_ram = 0;
     perf_update_timer.Start();
 
 #ifdef __WINDOWS__
@@ -1939,6 +1942,109 @@ void MapDrawer::DrawTooltips() {
 #endif
 }
 
+void MapDrawer::UpdateRAMUsage() {
+#ifdef __WINDOWS__
+    PROCESS_MEMORY_COUNTERS pmc;
+    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+        current_ram = pmc.WorkingSetSize / (1024 * 1024);
+    }
+#else
+    FILE* file = fopen("/proc/self/statm", "r");
+    if (file) {
+        unsigned long size, rss;
+        if (fscanf(file, "%lu %lu", &size, &rss) == 2) {
+            current_ram = (rss * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
+        }
+        fclose(file);
+    }
+#endif
+}
+
+void MapDrawer::UpdateCPUUsage() {
+#ifdef __WINDOWS__
+    FILETIME ftime, fsys, fuser;
+    ULARGE_INTEGER now, sys, user;
+
+    GetSystemTimeAsFileTime(&ftime);
+    memcpy(&now, &ftime, sizeof(FILETIME));
+
+    GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fsys, &fuser);
+    memcpy(&sys, &fsys, sizeof(FILETIME));
+    memcpy(&user, &fuser, sizeof(FILETIME));
+
+    if (last_now_time.QuadPart != 0) {
+        double process_diff = (double)((sys.QuadPart - last_sys_time.QuadPart) + (user.QuadPart - last_cpu_time.QuadPart));
+        double system_diff = (double)(now.QuadPart - last_now_time.QuadPart);
+
+        if (system_diff > 0) {
+            current_cpu = (process_diff / system_diff) * 100.0;
+            unsigned int num_cores = std::thread::hardware_concurrency();
+            if (num_cores > 0) {
+                current_cpu = current_cpu / num_cores;
+            }
+            if (current_cpu > 100.0) {
+                current_cpu = 100.0;
+            }
+        }
+    }
+
+    last_cpu_time = user;
+    last_sys_time = sys;
+    last_now_time = now;
+#else
+    FILE* file = fopen("/proc/self/stat", "r");
+    if (!file) return;
+
+    unsigned long long utime, stime;
+    char buffer[1024];
+    if (!fgets(buffer, sizeof(buffer), file)) {
+        fclose(file);
+        return;
+    }
+
+    char* ptr = strchr(buffer, ')');
+    if (!ptr) {
+        fclose(file);
+        return;
+    }
+
+    int fields = sscanf(ptr + 2, "%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu", &utime, &stime);
+    fclose(file);
+
+    if (fields != 2) return;
+
+    unsigned long long process_time = utime + stime;
+    FILE* stat_file = fopen("/proc/stat", "r");
+    if (!stat_file) return;
+
+    unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
+    if (fscanf(stat_file, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
+               &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) == 8) {
+        unsigned long long total_time = user + nice + system + idle + iowait + irq + softirq + steal;
+        if (last_total_time != 0) {
+            unsigned long long total_diff = total_time - last_total_time;
+            unsigned long long process_diff = process_time - last_process_time;
+
+            if (total_diff > 0) {
+                current_cpu = (100.0 * process_diff) / total_diff;
+            }
+        }
+
+        last_total_time = total_time;
+        last_process_time = process_time;
+    }
+    fclose(stat_file);
+#endif
+}
+
+std::string MapDrawer::FormatPerformanceStats() const {
+    std::ostringstream oss;
+    oss << "FPS: " << std::fixed << std::setprecision(1) << current_fps
+        << " | CPU: " << std::fixed << std::setprecision(1) << current_cpu << "%"
+        << " | RAM: " << current_ram << " MB";
+    return oss.str();
+}
+
 void MapDrawer::DrawPerformanceStats() {
     frame_count++;
 
@@ -1947,93 +2053,13 @@ void MapDrawer::DrawPerformanceStats() {
         current_fps = (frame_count * 1000.0) / elapsed;
         frame_count = 0;
 
-#ifdef __WINDOWS__
-        PROCESS_MEMORY_COUNTERS pmc;
-        if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-            current_ram = pmc.WorkingSetSize / (1024 * 1024);
-        }
+        UpdateRAMUsage();
+        UpdateCPUUsage();
 
-        FILETIME ftime, fsys, fuser;
-        ULARGE_INTEGER now, sys, user;
-
-        GetSystemTimeAsFileTime(&ftime);
-        memcpy(&now, &ftime, sizeof(FILETIME));
-
-        GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fsys, &fuser);
-        memcpy(&sys, &fsys, sizeof(FILETIME));
-        memcpy(&user, &fuser, sizeof(FILETIME));
-
-        if (last_now_time.QuadPart != 0) {
-            double process_diff = (double)((sys.QuadPart - last_sys_time.QuadPart) + (user.QuadPart - last_cpu_time.QuadPart));
-            double system_diff = (double)(now.QuadPart - last_now_time.QuadPart);
-
-            if (system_diff > 0) {
-                current_cpu = (process_diff / system_diff) * 100.0;
-                unsigned int num_cores = std::thread::hardware_concurrency();
-                if (num_cores > 0) {
-                    current_cpu = current_cpu / num_cores;
-                }
-                if (current_cpu > 100.0) {
-                    current_cpu = 100.0;
-                }
-            }
-        }
-
-        last_cpu_time = user;
-        last_sys_time = sys;
-        last_now_time = now;
-#else
-        FILE* file = fopen("/proc/self/statm", "r");
-        if (file) {
-            unsigned long size, rss;
-            if (fscanf(file, "%lu %lu", &size, &rss) == 2) {
-                current_ram = (rss * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
-            }
-            fclose(file);
-        }
-
-        file = fopen("/proc/self/stat", "r");
-        if (file) {
-            unsigned long long utime, stime;
-            char buffer[1024];
-            if (fgets(buffer, sizeof(buffer), file)) {
-                char* ptr = strrchr(buffer, ')');
-                if (ptr) {
-                    int fields = sscanf(ptr + 2, "%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu", &utime, &stime);
-                    if (fields == 2) {
-                        unsigned long long process_time = utime + stime;
-                        FILE* stat_file = fopen("/proc/stat", "r");
-                        if (stat_file) {
-                            unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
-                            if (fscanf(stat_file, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-                                       &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) == 8) {
-                                unsigned long long total_time = user + nice + system + idle + iowait + irq + softirq + steal;
-                                if (last_total_time != 0) {
-                                    unsigned long long total_diff = total_time - last_total_time;
-                                    unsigned long long process_diff = process_time - last_process_time;
-
-                                    if (total_diff > 0) {
-                                        current_cpu = (100.0 * process_diff) / total_diff;
-                                    }
-                                }
-
-                                last_total_time = total_time;
-                                last_process_time = process_time;
-                            }
-                            fclose(stat_file);
-                        }
-                    }
-                }
-            }
-            fclose(file);
-        }
-#endif
         perf_update_timer.Start();
     }
 
-    char buffer[256];
-    snprintf(buffer, sizeof(buffer), "FPS: %.1f | CPU: %.1f%% | RAM: %zu MB",
-             current_fps, current_cpu, current_ram);
+    std::string stats_text = FormatPerformanceStats();
 
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -2051,8 +2077,8 @@ void MapDrawer::DrawPerformanceStats() {
     int y = 20;
 
     glRasterPos2i(x, y);
-    for (const char* c = buffer; *c != '\0'; c++) {
-        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, *c);
+    for (const char& c : stats_text) {
+        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, c);
     }
 
     glEnable(GL_TEXTURE_2D);

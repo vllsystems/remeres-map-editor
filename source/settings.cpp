@@ -400,34 +400,34 @@ void Settings::save(bool endoftheworld) {
 	IO(SAVE);
 #ifdef __WINDOWS__
 	if (use_file_cfg) {
-		wxFileConfig* conf = dynamic_cast<wxFileConfig*>(wxConfig::Get());
-		if (!conf) {
+		wxFileConfig* file_conf = dynamic_cast<wxFileConfig*>(wxConfig::Get());
+		if (!file_conf) {
 			return;
 		}
 		FileName filename("rme.cfg");
 		wxFileOutputStream file(filename.GetFullPath());
-		conf->Save(file);
+		file_conf->Save(file);
 	}
 #else
-	wxFileConfig* conf = dynamic_cast<wxFileConfig*>(wxConfig::Get());
-	if (!conf) {
+	wxFileConfig* file_conf = dynamic_cast<wxFileConfig*>(wxConfig::Get());
+	if (!file_conf) {
 		return;
 	}
 	FileName filename("./rme.cfg");
 	if (filename.FileExists()) { // Use local file if it exists
 		wxFileOutputStream file(filename.GetFullPath());
-		conf->Save(file);
+		file_conf->Save(file);
 	} else { // Else use global (user-specific) conf
 		wxString path = wxStandardPaths::Get().GetUserConfigDir() + "/.rme/rme.cfg";
 		filename.Assign(path);
 		filename.Mkdir(0755, wxPATH_MKDIR_FULL);
 		wxFileOutputStream file(filename.GetFullPath());
-		conf->Save(file);
+		file_conf->Save(file);
 	}
 #endif
 	if (endoftheworld) {
-		wxConfigBase* conf = dynamic_cast<wxConfigBase*>(wxConfig::Get());
+		wxConfigBase* base_conf = dynamic_cast<wxConfigBase*>(wxConfig::Get());
 		wxConfig::Set(nullptr);
-		delete conf;
+		delete base_conf;
 	}
 }
