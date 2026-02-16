@@ -1997,7 +1997,7 @@ void MapDrawer::DrawPerformanceStats() {
             unsigned long long utime, stime;
             char buffer[1024];
             if (fgets(buffer, sizeof(buffer), file)) {
-                char* ptr = strchr(buffer, ')');
+                char* ptr = strrchr(buffer, ')');
                 if (ptr) {
                     int fields = sscanf(ptr + 2, "%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu", &utime, &stime);
                     if (fields == 2) {
