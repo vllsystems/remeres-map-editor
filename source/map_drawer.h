@@ -117,21 +117,21 @@ protected:
 	wxStopWatch pos_indicator_timer;
 	Position pos_indicator;
 
-    // Performance monitoring
-    wxStopWatch fps_timer;
-    int frame_count = 0;
-    double current_fps = 0.0;
-    wxStopWatch perf_update_timer;
-    double current_cpu = 0.0;
-    size_t current_ram = 0;
+	// Performance monitoring
+	wxStopWatch fps_timer;
+	int frame_count = 0;
+	double current_fps = 0.0;
+	wxStopWatch perf_update_timer;
+	double current_cpu = 0.0;
+	size_t current_ram = 0;
 
 #ifdef __WINDOWS__
-    ULARGE_INTEGER last_cpu_time;
-    ULARGE_INTEGER last_sys_time;
+	ULARGE_INTEGER last_cpu_time;
+	ULARGE_INTEGER last_sys_time;
 	ULARGE_INTEGER last_now_time;
 #else
-    unsigned long long last_total_time;
-    unsigned long long last_process_time;
+	unsigned long long last_total_time = 0;
+	unsigned long long last_process_time = 0;
 #endif
 
 public:

@@ -22,10 +22,10 @@
 #endif
 
 #ifdef __WINDOWS__
-    #include <windows.h>
-    #include <psapi.h>
+	#include <windows.h>
+	#include <psapi.h>
 #else
-    #include <unistd.h>
+	#include <unistd.h>
 	#include <cstring>
 #endif
 
@@ -148,19 +148,17 @@ bool DrawingOptions::isTooltips() const noexcept {
 }
 
 MapDrawer::MapDrawer(MapCanvas* canvas) :
-    canvas(canvas),
-    editor(canvas->editor),
+	canvas(canvas),
+	editor(canvas->editor)
 #ifdef __WINDOWS__
-    last_cpu_time{},
-    last_sys_time{},
-    last_now_time{}
-#else
-    last_total_time(0),
-    last_process_time(0)
+	,
+	last_cpu_time {},
+	last_sys_time {},
+	last_now_time {}
 #endif
 {
-    light_drawer = std::make_shared<LightDrawer>();
-    perf_update_timer.Start();
+	light_drawer = std::make_shared<LightDrawer>();
+	perf_update_timer.Start();
 }
 
 MapDrawer::~MapDrawer() {
@@ -261,8 +259,8 @@ void MapDrawer::Draw() {
 	if (options.isTooltips()) {
 		DrawTooltips();
 	}
-    if (options.show_performance_stats) {
-        DrawPerformanceStats();
+	if (options.show_performance_stats) {
+		DrawPerformanceStats();
 	}
 }
 
@@ -1941,151 +1939,166 @@ void MapDrawer::DrawTooltips() {
 
 void MapDrawer::UpdateRAMUsage() {
 #ifdef __WINDOWS__
-    PROCESS_MEMORY_COUNTERS pmc;
-    if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
-        current_ram = pmc.WorkingSetSize / (1024 * 1024);
-    }
+	PROCESS_MEMORY_COUNTERS pmc;
+	if (GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc))) {
+		current_ram = pmc.WorkingSetSize / (1024 * 1024);
+	}
 #else
-    std::ifstream file("/proc/self/statm");
-    if (file.is_open()) {
-        unsigned long size;
-        unsigned long rss;
-        file >> size >> rss;
-        current_ram = (rss * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
-    }
+	std::ifstream file("/proc/self/statm");
+	if (file.is_open()) {
+		unsigned long size;
+		unsigned long rss;
+		file >> size >> rss;
+		current_ram = (rss * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
+	}
 #endif
 }
 
 void MapDrawer::UpdateCPUUsage() {
 #ifdef __WINDOWS__
-    FILETIME ftime, fsys, fuser;
-    ULARGE_INTEGER now, sys, user;
+	FILETIME ftime, fsys, fuser;
+	ULARGE_INTEGER now, sys, user;
 
-    GetSystemTimeAsFileTime(&ftime);
-    memcpy(&now, &ftime, sizeof(FILETIME));
+	GetSystemTimeAsFileTime(&ftime);
+	memcpy(&now, &ftime, sizeof(FILETIME));
 
-    GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fsys, &fuser);
-    memcpy(&sys, &fsys, sizeof(FILETIME));
-    memcpy(&user, &fuser, sizeof(FILETIME));
+	GetProcessTimes(GetCurrentProcess(), &ftime, &ftime, &fsys, &fuser);
+	memcpy(&sys, &fsys, sizeof(FILETIME));
+	memcpy(&user, &fuser, sizeof(FILETIME));
 
-    if (last_now_time.QuadPart != 0) {
-        double process_diff = (double)((sys.QuadPart - last_sys_time.QuadPart) + (user.QuadPart - last_cpu_time.QuadPart));
-        double system_diff = (double)(now.QuadPart - last_now_time.QuadPart);
+	if (last_now_time.QuadPart != 0) {
+		double process_diff = (double)((sys.QuadPart - last_sys_time.QuadPart) + (user.QuadPart - last_cpu_time.QuadPart));
+		double system_diff = (double)(now.QuadPart - last_now_time.QuadPart);
 
-        if (system_diff > 0) {
-            current_cpu = (process_diff / system_diff) * 100.0;
-            unsigned int num_cores = std::thread::hardware_concurrency();
-            if (num_cores > 0) {
-                current_cpu = current_cpu / num_cores;
-            }
-            if (current_cpu > 100.0) {
-                current_cpu = 100.0;
-            }
-        }
-    }
+		if (system_diff > 0) {
+			current_cpu = (process_diff / system_diff) * 100.0;
+			unsigned int num_cores = std::thread::hardware_concurrency();
+			if (num_cores > 0) {
+				current_cpu = current_cpu / num_cores;
+			}
+			if (current_cpu > 100.0) {
+				current_cpu = 100.0;
+			}
+		}
+	}
 
-    last_cpu_time = user;
-    last_sys_time = sys;
-    last_now_time = now;
+	last_cpu_time = user;
+	last_sys_time = sys;
+	last_now_time = now;
 #else
-    std::ifstream file("/proc/self/stat");
-    if (!file.is_open()) return;
+	std::ifstream file("/proc/self/stat");
+	if (!file.is_open()) {
+		return;
+	}
 
-    std::string buffer;
-    if (!std::getline(file, buffer)) return;
+	std::string buffer;
+	if (!std::getline(file, buffer)) {
+		return;
+	}
 
-    const char* ptr = std::strchr(buffer.c_str(), ')');
-    if (!ptr) return;
+	size_t pos = buffer.find(')');
+	if (pos == std::string::npos) {
+		return;
+	}
 
-    unsigned long long utime;
-    unsigned long long stime;
-    int fields = sscanf(ptr + 2, "%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu", &utime, &stime);
+	unsigned long long utime;
+	unsigned long long stime;
+	std::istringstream iss(buffer.substr(pos + 2));
+	std::string dummy;
+	char state;
+	int pid, ppid, pgrp, session, tty_nr, tpgid;
+	unsigned int flags, minflt, cminflt, majflt, cmajflt;
 
-    if (fields != 2) return;
+	if (!(iss >> state >> pid >> ppid >> pgrp >> session >> tty_nr >> tpgid
+		  >> flags >> minflt >> cminflt >> majflt >> cmajflt >> utime >> stime)) {
+		return;
+	}
 
-    unsigned long long process_time = utime + stime;
-    std::ifstream stat_file("/proc/stat");
-    if (!stat_file.is_open()) return;
+	unsigned long long process_time = utime + stime;
+	std::ifstream stat_file("/proc/stat");
+	if (!stat_file.is_open()) {
+		return;
+	}
 
-    unsigned long long user;
-    unsigned long long nice;
-    unsigned long long system;
-    unsigned long long idle;
-    unsigned long long iowait;
-    unsigned long long irq;
-    unsigned long long softirq;
-    unsigned long long steal;
+	unsigned long long user;
+	unsigned long long nice;
+	unsigned long long system;
+	unsigned long long idle;
+	unsigned long long iowait;
+	unsigned long long irq;
+	unsigned long long softirq;
+	unsigned long long steal;
 
-    std::string cpu_label;
-    stat_file >> cpu_label >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal;
+	std::string cpu_label;
+	stat_file >> cpu_label >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal;
 
-    if (cpu_label == "cpu") {
-        unsigned long long total_time = user + nice + system + idle + iowait + irq + softirq + steal;
-        if (last_total_time != 0) {
-            unsigned long long total_diff = total_time - last_total_time;
-            unsigned long long process_diff = process_time - last_process_time;
+	if (cpu_label == "cpu") {
+		unsigned long long total_time = user + nice + system + idle + iowait + irq + softirq + steal;
+		if (last_total_time != 0) {
+			unsigned long long total_diff = total_time - last_total_time;
+			unsigned long long process_diff = process_time - last_process_time;
 
-            if (total_diff > 0) {
-                current_cpu = (100.0 * process_diff) / total_diff;
-            }
-        }
+			if (total_diff > 0) {
+				current_cpu = (100.0 * process_diff) / total_diff;
+			}
+		}
 
-        last_total_time = total_time;
-        last_process_time = process_time;
-    }
+		last_total_time = total_time;
+		last_process_time = process_time;
+	}
 #endif
 }
 
 std::string MapDrawer::FormatPerformanceStats() const {
-    std::ostringstream oss;
-    oss << "FPS: " << std::fixed << std::setprecision(1) << current_fps
-        << " | CPU: " << std::fixed << std::setprecision(1) << current_cpu << "%"
-        << " | RAM: " << current_ram << " MB";
-    return oss.str();
+	std::ostringstream oss;
+	oss << "FPS: " << std::fixed << std::setprecision(1) << current_fps
+		<< " | CPU: " << std::fixed << std::setprecision(1) << current_cpu << "%"
+		<< " | RAM: " << current_ram << " MB";
+	return oss.str();
 }
 
 void MapDrawer::DrawPerformanceStats() {
-    frame_count++;
+	frame_count++;
 
-    long elapsed = perf_update_timer.Time();
-    if (elapsed >= 500) {
-        current_fps = (frame_count * 1000.0) / elapsed;
-        frame_count = 0;
+	long elapsed = perf_update_timer.Time();
+	if (elapsed >= 500) {
+		current_fps = (frame_count * 1000.0) / elapsed;
+		frame_count = 0;
 
-        UpdateRAMUsage();
-        UpdateCPUUsage();
+		UpdateRAMUsage();
+		UpdateCPUUsage();
 
-        perf_update_timer.Start();
-    }
+		perf_update_timer.Start();
+	}
 
-    std::string stats_text = FormatPerformanceStats();
+	std::string stats_text = FormatPerformanceStats();
 
-    glMatrixMode(GL_PROJECTION);
-    glPushMatrix();
-    glLoadIdentity();
-    glOrtho(0, screensize_x, screensize_y, 0, -1, 1);
+	glMatrixMode(GL_PROJECTION);
+	glPushMatrix();
+	glLoadIdentity();
+	glOrtho(0, screensize_x, screensize_y, 0, -1, 1);
 
-    glMatrixMode(GL_MODELVIEW);
-    glPushMatrix();
-    glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);
+	glPushMatrix();
+	glLoadIdentity();
 
-    glDisable(GL_TEXTURE_2D);
-    glColor3f(1.0f, 1.0f, 0.0f);
+	glDisable(GL_TEXTURE_2D);
+	glColor3f(1.0f, 1.0f, 0.0f);
 
-    int x = 10;
-    int y = 20;
+	int x = 10;
+	int y = 20;
 
-    glRasterPos2i(x, y);
-    for (const char& c : stats_text) {
-        glutBitmapCharacter(GLUT_BITMAP_9_BY_15, c);
-    }
+	glRasterPos2i(x, y);
+	for (const char &c : stats_text) {
+		glutBitmapCharacter(GLUT_BITMAP_9_BY_15, c);
+	}
 
-    glEnable(GL_TEXTURE_2D);
+	glEnable(GL_TEXTURE_2D);
 
-    glPopMatrix();
-    glMatrixMode(GL_PROJECTION);
-    glPopMatrix();
-    glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+	glMatrixMode(GL_PROJECTION);
+	glPopMatrix();
+	glMatrixMode(GL_MODELVIEW);
 }
 
 void MapDrawer::DrawLight() const {
