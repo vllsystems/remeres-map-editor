@@ -426,8 +426,7 @@ void Settings::save(bool endoftheworld) {
 	}
 #endif
 	if (endoftheworld) {
-		wxConfigBase* base_conf = dynamic_cast<wxConfigBase*>(wxConfig::Get());
+		auto base_conf = std::unique_ptr<wxConfigBase>(dynamic_cast<wxConfigBase*>(wxConfig::Get()));
 		wxConfig::Set(nullptr);
-		delete base_conf;
 	}
 }

@@ -32,6 +32,7 @@
 #include <thread>
 #include <sstream>
 #include <iomanip>
+#include <fstream>
 
 #include "editor.h"
 #include "gui.h"
@@ -149,21 +150,17 @@ bool DrawingOptions::isTooltips() const noexcept {
 MapDrawer::MapDrawer(MapCanvas* canvas) :
     canvas(canvas),
     editor(canvas->editor),
-    frame_count(0),
-    current_fps(0.0),
-    current_cpu(0.0),
-    current_ram(0) {
+#ifdef __WINDOWS__
+    last_cpu_time{},
+    last_sys_time{},
+    last_now_time{}
+#else
+    last_total_time(0),
+    last_process_time(0)
+#endif
+{
     light_drawer = std::make_shared<LightDrawer>();
     perf_update_timer.Start();
-
-#ifdef __WINDOWS__
-    last_cpu_time.QuadPart = 0;
-    last_sys_time.QuadPart = 0;
-	last_now_time.QuadPart = 0;
-#else
-    last_total_time = 0;
-    last_process_time = 0;
-#endif
 }
 
 MapDrawer::~MapDrawer() {
@@ -1949,13 +1946,12 @@ void MapDrawer::UpdateRAMUsage() {
         current_ram = pmc.WorkingSetSize / (1024 * 1024);
     }
 #else
-    FILE* file = fopen("/proc/self/statm", "r");
-    if (file) {
-        unsigned long size, rss;
-        if (fscanf(file, "%lu %lu", &size, &rss) == 2) {
-            current_ram = (rss * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
-        }
-        fclose(file);
+    std::ifstream file("/proc/self/statm");
+    if (file.is_open()) {
+        unsigned long size;
+        unsigned long rss;
+        file >> size >> rss;
+        current_ram = (rss * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
     }
 #endif
 }
@@ -1992,34 +1988,38 @@ void MapDrawer::UpdateCPUUsage() {
     last_sys_time = sys;
     last_now_time = now;
 #else
-    FILE* file = fopen("/proc/self/stat", "r");
-    if (!file) return;
+    std::ifstream file("/proc/self/stat");
+    if (!file.is_open()) return;
 
-    unsigned long long utime, stime;
-    char buffer[1024];
-    if (!fgets(buffer, sizeof(buffer), file)) {
-        fclose(file);
-        return;
-    }
+    std::string buffer;
+    if (!std::getline(file, buffer)) return;
 
-    char* ptr = strchr(buffer, ')');
-    if (!ptr) {
-        fclose(file);
-        return;
-    }
+    const char* ptr = std::strchr(buffer.c_str(), ')');
+    if (!ptr) return;
 
+    unsigned long long utime;
+    unsigned long long stime;
     int fields = sscanf(ptr + 2, "%*c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu", &utime, &stime);
-    fclose(file);
 
     if (fields != 2) return;
 
     unsigned long long process_time = utime + stime;
-    FILE* stat_file = fopen("/proc/stat", "r");
-    if (!stat_file) return;
+    std::ifstream stat_file("/proc/stat");
+    if (!stat_file.is_open()) return;
 
-    unsigned long long user, nice, system, idle, iowait, irq, softirq, steal;
-    if (fscanf(stat_file, "cpu %llu %llu %llu %llu %llu %llu %llu %llu",
-               &user, &nice, &system, &idle, &iowait, &irq, &softirq, &steal) == 8) {
+    unsigned long long user;
+    unsigned long long nice;
+    unsigned long long system;
+    unsigned long long idle;
+    unsigned long long iowait;
+    unsigned long long irq;
+    unsigned long long softirq;
+    unsigned long long steal;
+
+    std::string cpu_label;
+    stat_file >> cpu_label >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal;
+
+    if (cpu_label == "cpu") {
         unsigned long long total_time = user + nice + system + idle + iowait + irq + softirq + steal;
         if (last_total_time != 0) {
             unsigned long long total_diff = total_time - last_total_time;
@@ -2033,7 +2033,6 @@ void MapDrawer::UpdateCPUUsage() {
         last_total_time = total_time;
         last_process_time = process_time;
     }
-    fclose(stat_file);
 #endif
 }
 

@@ -119,11 +119,11 @@ protected:
 
     // Performance monitoring
     wxStopWatch fps_timer;
-    int frame_count;
-    double current_fps;
+    int frame_count = 0;
+    double current_fps = 0.0;
     wxStopWatch perf_update_timer;
-    double current_cpu;
-    size_t current_ram;
+    double current_cpu = 0.0;
+    size_t current_ram = 0;
 
 #ifdef __WINDOWS__
     ULARGE_INTEGER last_cpu_time;
