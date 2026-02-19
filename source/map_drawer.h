@@ -18,6 +18,8 @@
 #ifndef RME_MAP_DRAWER_H_
 #define RME_MAP_DRAWER_H_
 
+#include <cstdint>
+
 class GameSprite;
 
 struct MapTooltip {
@@ -130,8 +132,8 @@ protected:
 	ULARGE_INTEGER last_sys_time;
 	ULARGE_INTEGER last_now_time;
 #else
-	unsigned long long last_total_time = 0;
-	unsigned long long last_process_time = 0;
+	uint64_t last_total_time = 0;
+	uint64_t last_process_time = 0;
 #endif
 
 public:

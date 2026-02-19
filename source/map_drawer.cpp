@@ -29,10 +29,12 @@
 	#include <cstring>
 #endif
 
+#include <cstdint>
 #include <thread>
 #include <sstream>
 #include <iomanip>
 #include <fstream>
+#include <format>
 
 #include "editor.h"
 #include "gui.h"
@@ -1946,8 +1948,8 @@ void MapDrawer::UpdateRAMUsage() {
 #else
 	std::ifstream file("/proc/self/statm");
 	if (file.is_open()) {
-		unsigned long size;
-		unsigned long rss;
+		uint32_t size = 0;
+		uint32_t rss = 0;
 		file >> size >> rss;
 		current_ram = (rss * sysconf(_SC_PAGESIZE)) / (1024 * 1024);
 	}
@@ -2001,42 +2003,51 @@ void MapDrawer::UpdateCPUUsage() {
 		return;
 	}
 
-	unsigned long long utime;
-	unsigned long long stime;
+	uint64_t utime = 0;
+	uint64_t stime = 0;
 	std::istringstream iss(buffer.substr(pos + 2));
 	std::string dummy;
 	char state;
-	int pid, ppid, pgrp, session, tty_nr, tpgid;
-	unsigned int flags, minflt, cminflt, majflt, cmajflt;
+	int pid;
+	int ppid;
+	int pgrp;
+	int session;
+	int tty_nr;
+	int tpgid;
+	unsigned int flags;
+	unsigned int minflt;
+	unsigned int cminflt;
+	unsigned int majflt;
+	unsigned int cmajflt;
 
 	if (!(iss >> state >> pid >> ppid >> pgrp >> session >> tty_nr >> tpgid
 		  >> flags >> minflt >> cminflt >> majflt >> cmajflt >> utime >> stime)) {
 		return;
 	}
 
-	unsigned long long process_time = utime + stime;
+	uint64_t process_time = utime + stime;
 	std::ifstream stat_file("/proc/stat");
 	if (!stat_file.is_open()) {
 		return;
 	}
 
-	unsigned long long user;
-	unsigned long long nice;
-	unsigned long long system;
-	unsigned long long idle;
-	unsigned long long iowait;
-	unsigned long long irq;
-	unsigned long long softirq;
-	unsigned long long steal;
+	uint64_t user = 0;
+	uint64_t nice = 0;
+	uint64_t system = 0;
+	uint64_t idle = 0;
+	uint64_t iowait = 0;
+	uint64_t irq = 0;
+	uint64_t softirq = 0;
+	uint64_t steal = 0;
 
 	std::string cpu_label;
 	stat_file >> cpu_label >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal;
 
 	if (cpu_label == "cpu") {
-		unsigned long long total_time = user + nice + system + idle + iowait + irq + softirq + steal;
+		uint64_t total_time = user + nice + system + idle + iowait + irq + softirq + steal;
 		if (last_total_time != 0) {
-			unsigned long long total_diff = total_time - last_total_time;
-			unsigned long long process_diff = process_time - last_process_time;
+			uint64_t total_diff = total_time - last_total_time;
+			uint64_t process_diff = process_time - last_process_time;
 
 			if (total_diff > 0) {
 				current_cpu = (100.0 * process_diff) / total_diff;
@@ -2050,11 +2061,7 @@ void MapDrawer::UpdateCPUUsage() {
 }
 
 std::string MapDrawer::FormatPerformanceStats() const {
-	std::ostringstream oss;
-	oss << "FPS: " << std::fixed << std::setprecision(1) << current_fps
-		<< " | CPU: " << std::fixed << std::setprecision(1) << current_cpu << "%"
-		<< " | RAM: " << current_ram << " MB";
-	return oss.str();
+	return std::format("FPS: {:.1f} | CPU: {:.1f}% | RAM: {} MB", current_fps, current_cpu, current_ram);
 }
 
 void MapDrawer::DrawPerformanceStats() {
