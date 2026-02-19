@@ -151,6 +151,8 @@ target_sources(${PROJECT_NAME}
 	live_server.cpp
 	live_socket.cpp
 	live_tab.cpp
+	lua/lua_engine.cpp
+	lua/lua_script_manager.cpp
 	main_menubar.cpp
 	main_toolbar.cpp
 	map.cpp
@@ -231,8 +233,11 @@ target_link_libraries(${PROJECT_NAME}
 	liblzma::liblzma
 	OpenGL::GL
 	protobuf
+	${LUA_LIB_TARGET}
+	sol2::sol2
 
 	$<$<PLATFORM_ID:Linux>:xcb>
+	$<$<PLATFORM_ID:Windows>:psapi>
 )
 
 ## Link compilation files to build/bin folder, else link to the main dir
