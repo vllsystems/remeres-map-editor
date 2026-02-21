@@ -85,13 +85,6 @@ else()
 	message(FATAL_ERROR "Lua target not found!")
 endif()
 
-get_target_property(VCPKG_LUA_INCLUDES ${LUA_LIB_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
-if(VCPKG_LUA_INCLUDES)
-	include_directories(${VCPKG_LUA_INCLUDES})
-endif()
-
-add_compile_definitions(SOL_USING_CXX_LUA_HPP=1)
-
 # *****************************************************************************
 # Append cmake search path
 # *****************************************************************************

@@ -40,7 +40,7 @@ bool LuaScriptManager::initialize() {
 
 	initialized = true;
 
-	// Descobrir e executar scripts automaticamente
+	// Discover and execute scripts automatically
 	discoverScripts();
 
 	return true;
@@ -74,11 +74,7 @@ void LuaScriptManager::scanDirectory(const std::string &directory) {
 		return;
 	}
 
-#ifdef _WIN32
-	const std::string sep = "\\";
-#else
-	const std::string sep = "/";
-#endif
+	const std::string sep(1, wxFileName::GetPathSeparator());
 
 	wxString name;
 	bool cont = dir.GetFirst(&name, "*.lua", wxDIR_FILES);
@@ -97,7 +93,7 @@ void LuaScriptManager::scanDirectory(const std::string &directory) {
 void LuaScriptManager::runAutoScripts() {
 	for (const auto &scriptPath : scripts) {
 		if (!executeScript(scriptPath)) {
-			// Log error se necessário
+			wxLogWarning("Failed to execute script '%s': %s", scriptPath.c_str(), lastError.c_str());
 		}
 	}
 }

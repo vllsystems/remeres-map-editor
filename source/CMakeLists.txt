@@ -89,6 +89,20 @@ else()
 	message(WARNING "IPO is not supported: ${output}")
 endif()
 
+# Lua includes (target-specific)
+if(TARGET lua::lua)
+	set(LUA_LIB_TARGET lua::lua)
+elseif(TARGET lua)
+	set(LUA_LIB_TARGET lua)
+endif()
+
+if(LUA_LIB_TARGET)
+	get_target_property(VCPKG_LUA_INCLUDES ${LUA_LIB_TARGET} INTERFACE_INCLUDE_DIRECTORIES)
+	if(VCPKG_LUA_INCLUDES)
+		target_include_directories(${PROJECT_NAME} PRIVATE ${VCPKG_LUA_INCLUDES})
+	endif()
+	target_compile_definitions(${PROJECT_NAME} PRIVATE SOL_USING_CXX_LUA_HPP=1)
+endif()
 
 # === UNITY BUILD (compile time reducer) ===
 if(SPEED_UP_BUILD_UNITY)

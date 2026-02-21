@@ -24,10 +24,9 @@
 #include <string>
 #include <functional>
 
-using PrintCallback = std::function<void(const std::string &)>;
-
 class LuaEngine {
 public:
+	using PrintCallback = std::function<void(const std::string &)>;
 	LuaEngine();
 	~LuaEngine();
 
@@ -37,8 +36,6 @@ public:
 		return initialized;
 	}
 
-	void setupSandbox();
-	void registerBaseLibraries();
 	void setPrintCallback(PrintCallback callback);
 
 	bool executeFile(const std::string &filepath);
@@ -56,6 +53,10 @@ private:
 	bool initialized;
 	std::string lastError;
 	PrintCallback printCallback;
+
+	void handlePrint(sol::variadic_args va);
+	void setupSandbox();
+	void registerBaseLibraries();
 };
 
 #endif // RME_LUA_ENGINE_H

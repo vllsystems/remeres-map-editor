@@ -43,7 +43,6 @@ bool LuaEngine::initialize() {
 			sol::lib::table,
 			sol::lib::math,
 			sol::lib::utf8,
-			sol::lib::io,
 			sol::lib::os
 		);
 
@@ -118,43 +117,82 @@ void LuaEngine::setupSandbox() {
 		return this->executeFile(fullPath);
 	};
 
+	lua["loadfile"] = [this](const std::string &filename, sol::this_state s) -> sol::object {
+		sol::state_view lua(s);
+
+		sol::object scriptDirObj = lua["SCRIPT_DIR"];
+		if (!scriptDirObj.is<std::string>()) {
+			throw sol::error("loadfile: SCRIPT_DIR not set. Cannot resolve relative path.");
+		}
+		std::string scriptDir = scriptDirObj.as<std::string>();
+
+		if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
+			throw sol::error("loadfile: Absolute paths are not allowed. Use paths relative to the script.");
+		}
+		if (filename.find("..") != std::string::npos) {
+			throw sol::error("loadfile: Directory traversal ('..') is not allowed.");
+		}
+
+		std::string cleanFilename = filename;
+		if (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\") {
+			cleanFilename = cleanFilename.substr(2);
+		}
+
+		std::string fullPath = scriptDir + "/" + cleanFilename;
+		sol::load_result loaded = lua.load_file(fullPath);
+		if (!loaded.valid()) {
+			sol::error err = loaded;
+			throw err;
+		}
+		return loaded;
+	};
+
 	try {
-		lua.script(R"(  
-			local old_load = load  
-			_G.load = function(chunk, chunkname, mode, env)  
-				if mode and mode ~= "t" then  
-					error("Secure Mode: Binary chunks are disabled.")  
-				end  
-				return old_load(chunk, chunkname, "t", env)  
-			end  
+		lua.script(R"(
+			local old_load = load
+			_G.load = function(chunk, chunkname, mode, env)
+				if mode and mode ~= "t" then
+					error("Secure Mode: Binary chunks are disabled.")
+				end
+				return old_load(chunk, chunkname, "t", env)
+			end
 		)");
+	} catch (const std::exception &e) {
+		lastError = std::string("Failed to install secure load patch: ") + e.what();
+		throw;
 	} catch (...) {
+		lastError = "Failed to install secure load patch: Unknown error";
+		throw;
+	}
+}
+
+void LuaEngine::handlePrint(sol::variadic_args va) {
+	std::ostringstream oss;
+	bool first = true;
+	for (auto v : va) {
+		if (!first) {
+			oss << "\t";
+		}
+		first = false;
+
+		sol::state_view lua(v.lua_state());
+		sol::function tostring = lua["tostring"];
+		std::string str = tostring(v);
+		oss << str;
+	}
+
+	std::string output = oss.str();
+
+	if (printCallback) {
+		printCallback(output);
+	} else {
+		std::cout << "[Lua] " << output << std::endl;
 	}
 }
 
 void LuaEngine::registerBaseLibraries() {
 	lua["print"] = [this](sol::variadic_args va) {
-		std::ostringstream oss;
-		bool first = true;
-		for (auto v : va) {
-			if (!first) {
-				oss << "\t";
-			}
-			first = false;
-
-			sol::state_view lua(v.lua_state());
-			sol::function tostring = lua["tostring"];
-			std::string str = tostring(v);
-			oss << str;
-		}
-
-		std::string output = oss.str();
-
-		if (printCallback) {
-			printCallback(output);
-		} else {
-			std::cout << "[Lua] " << output << std::endl;
-		}
+		handlePrint(va);
 	};
 }
 
@@ -162,27 +200,7 @@ void LuaEngine::setPrintCallback(PrintCallback callback) {
 	printCallback = callback;
 
 	lua["print"] = [this](sol::variadic_args va) {
-		std::ostringstream oss;
-		bool first = true;
-		for (auto v : va) {
-			if (!first) {
-				oss << "\t";
-			}
-			first = false;
-
-			sol::state_view lua(v.lua_state());
-			sol::function tostring = lua["tostring"];
-			std::string str = tostring(v);
-			oss << str;
-		}
-
-		std::string output = oss.str();
-
-		if (printCallback) {
-			printCallback(output);
-		} else {
-			std::cout << "[Lua] " << output << std::endl;
-		}
+		handlePrint(va);
 	};
 }
 
