@@ -84,22 +84,22 @@ void LuaEngine::setupSandbox() {
 
 	if (lua["package"].valid()) {
 		lua["package"]["loadlib"] = sol::nil;
+		lua["package"]["path"] = sol::nil;
+		lua["package"]["cpath"] = sol::nil;
+		lua["package"]["searchpath"] = sol::nil;
 
 		if (lua["package"]["searchers"].valid()) {
 			sol::table searchers = lua["package"]["searchers"];
+			searchers[2] = sol::nil; // Disable Lua file searcher
 			searchers[3] = sol::nil;
 			searchers[4] = sol::nil;
 		}
 	}
 
 	lua["dofile"] = [this](const std::string &filename, sol::this_state s) -> bool {
-		sol::state_view lua(s);
-
-		sol::object scriptDirObj = lua["SCRIPT_DIR"];
-		if (!scriptDirObj.is<std::string>()) {
-			throw sol::error("dofile: SCRIPT_DIR not set. Cannot resolve relative path.");
+		if (this->currentScriptDir.empty()) {
+			throw sol::error("dofile: Script directory not set. Cannot resolve relative path.");
 		}
-		std::string scriptDir = scriptDirObj.as<std::string>();
 
 		if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
 			throw sol::error("dofile: Absolute paths are not allowed. Use paths relative to the script.");
@@ -113,18 +113,16 @@ void LuaEngine::setupSandbox() {
 			cleanFilename = cleanFilename.substr(2);
 		}
 
-		std::string fullPath = scriptDir + "/" + cleanFilename;
+		std::string fullPath = this->currentScriptDir + "/" + cleanFilename;
 		return this->executeFile(fullPath);
 	};
 
 	lua["loadfile"] = [this](const std::string &filename, sol::this_state s) -> sol::object {
 		sol::state_view lua(s);
 
-		sol::object scriptDirObj = lua["SCRIPT_DIR"];
-		if (!scriptDirObj.is<std::string>()) {
-			throw sol::error("loadfile: SCRIPT_DIR not set. Cannot resolve relative path.");
+		if (this->currentScriptDir.empty()) {
+			throw sol::error("loadfile: Script directory not set. Cannot resolve relative path.");
 		}
-		std::string scriptDir = scriptDirObj.as<std::string>();
 
 		if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
 			throw sol::error("loadfile: Absolute paths are not allowed. Use paths relative to the script.");
@@ -138,7 +136,7 @@ void LuaEngine::setupSandbox() {
 			cleanFilename = cleanFilename.substr(2);
 		}
 
-		std::string fullPath = scriptDir + "/" + cleanFilename;
+		std::string fullPath = this->currentScriptDir + "/" + cleanFilename;
 		sol::load_result loaded = lua.load_file(fullPath);
 		if (!loaded.valid()) {
 			sol::error err = loaded;
@@ -210,6 +208,12 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 		return false;
 	}
 
+	// Save current script directory for RAII restoration
+	std::string savedScriptDir = currentScriptDir;
+	auto restoreScriptDir = [this, savedScriptDir]() {
+		this->currentScriptDir = savedScriptDir;
+	};
+
 	try {
 		std::string scriptDir;
 		size_t lastSlash = filepath.find_last_of("/\\");
@@ -218,12 +222,13 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 		} else {
 			scriptDir = ".";
 		}
-		lua["SCRIPT_DIR"] = scriptDir;
+		currentScriptDir = scriptDir;
 
 		sol::load_result loaded = lua.load_file(filepath);
 		if (!loaded.valid()) {
 			sol::error err = loaded;
 			lastError = std::string("Failed to load script '") + filepath + "': " + err.what();
+			restoreScriptDir();
 			return false;
 		}
 
@@ -233,15 +238,19 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 		if (!result.valid()) {
 			sol::error err = result;
 			lastError = std::string("Error executing script '") + filepath + "': " + err.what();
+			restoreScriptDir();
 			return false;
 		}
 
+		restoreScriptDir();
 		return true;
 	} catch (const sol::error &e) {
 		lastError = std::string("Exception executing script '") + filepath + "': " + e.what();
+		restoreScriptDir();
 		return false;
 	} catch (const std::exception &e) {
 		lastError = std::string("Exception executing script '") + filepath + "': " + e.what();
+		restoreScriptDir();
 		return false;
 	}
 }

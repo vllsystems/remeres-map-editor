@@ -53,6 +53,7 @@ private:
 	bool initialized;
 	std::string lastError;
 	PrintCallback printCallback;
+	std::string currentScriptDir;
 
 	void handlePrint(sol::variadic_args va);
 	void setupSandbox();

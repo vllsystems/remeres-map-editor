@@ -65,6 +65,7 @@ void LuaScriptManager::discoverScripts() {
 	scripts.clear();
 	std::string scriptsDir = getScriptsDirectory();
 	scanDirectory(scriptsDir);
+	std::sort(scripts.begin(), scripts.end());
 	runAutoScripts();
 }
 
@@ -79,7 +80,8 @@ void LuaScriptManager::scanDirectory(const std::string &directory) {
 	wxString name;
 	bool cont = dir.GetFirst(&name, "*.lua", wxDIR_FILES);
 	while (cont) {
-		if (name == "linter.lua") {
+		// Skip files starting with underscore (convention for tool scripts)
+		if (!name.IsEmpty() && name[0] == '_') {
 			cont = dir.GetNext(&name);
 			continue;
 		}
