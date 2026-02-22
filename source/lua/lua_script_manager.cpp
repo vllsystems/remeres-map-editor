@@ -21,12 +21,10 @@
 #include <wx/dir.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
-#include <algorithm>
 
-LuaScriptManager &LuaScriptManager::getInstance() {
-	static LuaScriptManager instance;
-	return instance;
-}
+#include <wx/stdpaths.h>
+#include <algorithm>
+#include <ranges>
 
 bool LuaScriptManager::initialize() {
 	if (initialized) {
@@ -65,7 +63,7 @@ void LuaScriptManager::discoverScripts() {
 	scripts.clear();
 	std::string scriptsDir = getScriptsDirectory();
 	scanDirectory(scriptsDir);
-	std::sort(scripts.begin(), scripts.end());
+	std::ranges::sort(scripts);
 	runAutoScripts();
 }
 

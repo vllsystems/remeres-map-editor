@@ -18,7 +18,7 @@
 #ifndef RME_LUA_ENGINE_H
 #define RME_LUA_ENGINE_H
 
-#define SOL_ALL_SAFETIES_ON 1
+inline constexpr int SOL_ALL_SAFETIES_ON = 1;
 #include <sol/sol.hpp>
 
 #include <string>
@@ -50,7 +50,7 @@ public:
 
 private:
 	sol::state lua;
-	bool initialized;
+	bool initialized = false;
 	std::string lastError;
 	PrintCallback printCallback;
 	std::string currentScriptDir;

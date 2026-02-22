@@ -12,7 +12,10 @@
 
 class LuaScriptManager {
 public:
-	static LuaScriptManager &getInstance();
+	static LuaScriptManager &getInstance() {
+		static LuaScriptManager instance;
+		return instance;
+	}
 
 	bool initialize();
 	void shutdown();
@@ -46,7 +49,7 @@ private:
 };
 
 inline LuaScriptManager &g_luaScripts() {
-    return LuaScriptManager::getInstance();
+	return LuaScriptManager::getInstance();
 }
 
 #endif // RME_LUA_SCRIPT_MANAGER_H

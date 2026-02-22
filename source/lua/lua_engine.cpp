@@ -21,8 +21,7 @@
 #include <fstream>
 #include <sstream>
 
-LuaEngine::LuaEngine() :
-	initialized(false) {
+LuaEngine::LuaEngine() {
 }
 
 LuaEngine::~LuaEngine() {
@@ -54,12 +53,6 @@ bool LuaEngine::initialize() {
 	} catch (const sol::error &e) {
 		lastError = std::string("Failed to initialize Lua engine: ") + e.what();
 		return false;
-	} catch (const std::exception &e) {
-		lastError = std::string("Failed to initialize Lua engine: ") + e.what();
-		return false;
-	} catch (...) {
-		lastError = "Failed to initialize Lua engine: Unknown error";
-		return false;
 	}
 }
 
@@ -83,7 +76,7 @@ std::string LuaEngine::sanitizeScriptPath(const std::string &filename) {
 	}
 
 	std::string cleanFilename = filename;
-	if (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\") {
+	if (cleanFilename.size() >= 2 && (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\")) {
 		cleanFilename = cleanFilename.substr(2);
 	}
 
@@ -131,7 +124,7 @@ void LuaEngine::setupSandbox() {
 		}
 	}
 
-	lua["dofile"] = [this](const std::string &filename, sol::this_state s) -> bool {
+	lua["dofile"] = [this](const std::string &filename, sol::this_state s) {
 		std::string cleanFilename = this->sanitizeScriptPath(filename);
 		std::string fullPath = this->currentScriptDir + "/" + cleanFilename;
 		return this->executeFile(fullPath);
@@ -261,6 +254,14 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 	struct ScopeGuard {
 		LuaEngine* engine;
 		std::string savedDir;
+
+		ScopeGuard(LuaEngine* e, std::string dir) : engine(e), savedDir(std::move(dir)) { }
+
+		ScopeGuard(const ScopeGuard &) = delete;
+		ScopeGuard &operator=(const ScopeGuard &) = delete;
+		ScopeGuard(ScopeGuard &&) = delete;
+		ScopeGuard &operator=(ScopeGuard &&) = delete;
+
 		~ScopeGuard() noexcept {
 			engine->currentScriptDir = savedDir;
 		}
@@ -297,9 +298,6 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 	} catch (const sol::error &e) {
 		lastError = std::string("Exception executing script '") + filepath + "': " + e.what();
 		return false;
-	} catch (const std::exception &e) {
-		lastError = std::string("Exception executing script '") + filepath + "': " + e.what();
-		return false;
 	}
 }
 
@@ -328,9 +326,6 @@ bool LuaEngine::executeString(const std::string &code, const std::string &chunkN
 
 		return true;
 	} catch (const sol::error &e) {
-		lastError = std::string("Exception executing code: ") + e.what();
-		return false;
-	} catch (const std::exception &e) {
 		lastError = std::string("Exception executing code: ") + e.what();
 		return false;
 	}
