@@ -65,6 +65,7 @@ void LuaEngine::shutdown() {
 		return;
 	}
 
+	printCallback = nullptr;
 	lua = sol::state();
 	initialized = false;
 }
@@ -104,13 +105,24 @@ void LuaEngine::setupSandbox() {
 		if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
 			throw sol::error("dofile: Absolute paths are not allowed. Use paths relative to the script.");
 		}
-		if (filename.find("..") != std::string::npos) {
-			throw sol::error("dofile: Directory traversal ('..') is not allowed.");
-		}
 
 		std::string cleanFilename = filename;
 		if (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\") {
 			cleanFilename = cleanFilename.substr(2);
+		}
+
+		// Validate '..' per path segment
+		size_t pos = 0;
+		size_t lastSep = 0;
+		while (pos <= cleanFilename.length()) {
+			if (pos == cleanFilename.length() || cleanFilename[pos] == '/' || cleanFilename[pos] == '\\') {
+				std::string segment = cleanFilename.substr(lastSep, pos - lastSep);
+				if (segment == "..") {
+					throw sol::error("dofile: Directory traversal ('..') is not allowed.");
+				}
+				lastSep = pos + 1;
+			}
+			pos++;
 		}
 
 		std::string fullPath = this->currentScriptDir + "/" + cleanFilename;
@@ -127,13 +139,24 @@ void LuaEngine::setupSandbox() {
 		if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
 			throw sol::error("loadfile: Absolute paths are not allowed. Use paths relative to the script.");
 		}
-		if (filename.find("..") != std::string::npos) {
-			throw sol::error("loadfile: Directory traversal ('..') is not allowed.");
-		}
 
 		std::string cleanFilename = filename;
 		if (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\") {
 			cleanFilename = cleanFilename.substr(2);
+		}
+
+		// Validate '..' per path segment
+		size_t pos = 0;
+		size_t lastSep = 0;
+		while (pos <= cleanFilename.length()) {
+			if (pos == cleanFilename.length() || cleanFilename[pos] == '/' || cleanFilename[pos] == '\\') {
+				std::string segment = cleanFilename.substr(lastSep, pos - lastSep);
+				if (segment == "..") {
+					throw sol::error("loadfile: Directory traversal ('..') is not allowed.");
+				}
+				lastSep = pos + 1;
+			}
+			pos++;
 		}
 
 		std::string fullPath = this->currentScriptDir + "/" + cleanFilename;
@@ -154,28 +177,37 @@ void LuaEngine::setupSandbox() {
 			throw err;
 		}
 
-		// Create a wrapper function in Lua that manages currentScriptDir
-		sol::function wrapperFactory = lua.script(R"(
-			return function(chunk, dir, engine)
-				return function(...)
-					local saved = engine.currentScriptDir
-					engine.currentScriptDir = dir
-					local results = {pcall(chunk, ...)}
-					engine.currentScriptDir = saved
-					if not results[1] then
-						error(results[2])
-					end
-					return select(2, table.unpack(results))
-				end
-			end
-		)");
+		// C++ wrapper managing currentScriptDir without exposing LuaEngine
+		sol::protected_function chunk = loaded;
+		std::string capturedDir = chunkDir;
 
-		// Call the factory to create the wrapped chunk
-		return wrapperFactory(loaded, chunkDir, this);
+		auto wrapper = [this, chunk, capturedDir](sol::variadic_args va) -> sol::object {
+			std::string savedDir = this->currentScriptDir;
+			this->currentScriptDir = capturedDir;
+
+			struct Guard {
+				LuaEngine* e;
+				std::string d;
+				~Guard() noexcept {
+					e->currentScriptDir = d;
+				}
+			} g { this, savedDir };
+
+			sol::protected_function_result result = chunk(va);
+			if (!result.valid()) {
+				sol::error err = result;
+				throw err;
+			}
+
+			// Return first value (compatible with standard loadfile)
+			if (result.return_count() > 0) {
+				return result[0];
+			}
+			return sol::nil;
+		};
+
+		return sol::make_object(this->lua, wrapper);
 	};
-
-	// **ADIÇÃO CRUCIAL: Expor LuaEngine para Lua**
-	lua.new_usertype<LuaEngine>("LuaEngine", "currentScriptDir", &LuaEngine::currentScriptDir);
 
 	try {
 		lua.script(R"(
