@@ -58,6 +58,7 @@ private:
 	void handlePrint(sol::variadic_args va);
 	void setupSandbox();
 	void registerBaseLibraries();
+	std::string sanitizeScriptPath(const std::string &filename);
 };
 
 #endif // RME_LUA_ENGINE_H

@@ -57,6 +57,9 @@ bool LuaEngine::initialize() {
 	} catch (const std::exception &e) {
 		lastError = std::string("Failed to initialize Lua engine: ") + e.what();
 		return false;
+	} catch (...) {
+		lastError = "Failed to initialize Lua engine: Unknown error";
+		return false;
 	}
 }
 
@@ -68,6 +71,37 @@ void LuaEngine::shutdown() {
 	printCallback = nullptr;
 	lua = sol::state();
 	initialized = false;
+}
+
+std::string LuaEngine::sanitizeScriptPath(const std::string &filename) {
+	if (currentScriptDir.empty()) {
+		throw sol::error("Script directory not set. Cannot resolve relative path.");
+	}
+
+	if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
+		throw sol::error("Absolute paths are not allowed. Use paths relative to the script.");
+	}
+
+	std::string cleanFilename = filename;
+	if (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\") {
+		cleanFilename = cleanFilename.substr(2);
+	}
+
+	// Validate '..' per path segment
+	size_t pos = 0;
+	size_t lastSep = 0;
+	while (pos <= cleanFilename.length()) {
+		if (pos == cleanFilename.length() || cleanFilename[pos] == '/' || cleanFilename[pos] == '\\') {
+			std::string segment = cleanFilename.substr(lastSep, pos - lastSep);
+			if (segment == "..") {
+				throw sol::error("Directory traversal ('..') is not allowed.");
+			}
+			lastSep = pos + 1;
+		}
+		pos++;
+	}
+
+	return cleanFilename;
 }
 
 void LuaEngine::setupSandbox() {
@@ -98,33 +132,7 @@ void LuaEngine::setupSandbox() {
 	}
 
 	lua["dofile"] = [this](const std::string &filename, sol::this_state s) -> bool {
-		if (this->currentScriptDir.empty()) {
-			throw sol::error("dofile: Script directory not set. Cannot resolve relative path.");
-		}
-
-		if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
-			throw sol::error("dofile: Absolute paths are not allowed. Use paths relative to the script.");
-		}
-
-		std::string cleanFilename = filename;
-		if (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\") {
-			cleanFilename = cleanFilename.substr(2);
-		}
-
-		// Validate '..' per path segment
-		size_t pos = 0;
-		size_t lastSep = 0;
-		while (pos <= cleanFilename.length()) {
-			if (pos == cleanFilename.length() || cleanFilename[pos] == '/' || cleanFilename[pos] == '\\') {
-				std::string segment = cleanFilename.substr(lastSep, pos - lastSep);
-				if (segment == "..") {
-					throw sol::error("dofile: Directory traversal ('..') is not allowed.");
-				}
-				lastSep = pos + 1;
-			}
-			pos++;
-		}
-
+		std::string cleanFilename = this->sanitizeScriptPath(filename);
 		std::string fullPath = this->currentScriptDir + "/" + cleanFilename;
 		return this->executeFile(fullPath);
 	};
@@ -132,33 +140,7 @@ void LuaEngine::setupSandbox() {
 	lua["loadfile"] = [this](const std::string &filename, sol::this_state s) -> sol::object {
 		sol::state_view lua(s);
 
-		if (this->currentScriptDir.empty()) {
-			throw sol::error("loadfile: Script directory not set. Cannot resolve relative path.");
-		}
-
-		if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
-			throw sol::error("loadfile: Absolute paths are not allowed. Use paths relative to the script.");
-		}
-
-		std::string cleanFilename = filename;
-		if (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\") {
-			cleanFilename = cleanFilename.substr(2);
-		}
-
-		// Validate '..' per path segment
-		size_t pos = 0;
-		size_t lastSep = 0;
-		while (pos <= cleanFilename.length()) {
-			if (pos == cleanFilename.length() || cleanFilename[pos] == '/' || cleanFilename[pos] == '\\') {
-				std::string segment = cleanFilename.substr(lastSep, pos - lastSep);
-				if (segment == "..") {
-					throw sol::error("loadfile: Directory traversal ('..') is not allowed.");
-				}
-				lastSep = pos + 1;
-			}
-			pos++;
-		}
-
+		std::string cleanFilename = this->sanitizeScriptPath(filename);
 		std::string fullPath = this->currentScriptDir + "/" + cleanFilename;
 
 		// Extract directory for the chunk
@@ -328,7 +310,7 @@ bool LuaEngine::executeString(const std::string &code, const std::string &chunkN
 	}
 
 	try {
-		sol::load_result loaded = lua.load(code, chunkName);
+		sol::load_result loaded = lua.load(code, chunkName, sol::load_mode::text);
 		if (!loaded.valid()) {
 			sol::error err = loaded;
 			lastError = std::string("Failed to load code: ") + err.what();
