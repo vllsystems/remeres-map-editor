@@ -137,13 +137,45 @@ void LuaEngine::setupSandbox() {
 		}
 
 		std::string fullPath = this->currentScriptDir + "/" + cleanFilename;
+
+		// Extract directory for the chunk
+		std::string chunkDir;
+		size_t lastSlash = fullPath.find_last_of("/\\");
+		if (lastSlash != std::string::npos) {
+			chunkDir = fullPath.substr(0, lastSlash);
+		} else {
+			chunkDir = ".";
+		}
+
+		// Load the file
 		sol::load_result loaded = lua.load_file(fullPath);
 		if (!loaded.valid()) {
 			sol::error err = loaded;
 			throw err;
 		}
-		return loaded;
+
+		// Create a wrapper function in Lua that manages currentScriptDir
+		sol::function wrapperFactory = lua.script(R"(
+			return function(chunk, dir, engine)
+				return function(...)
+					local saved = engine.currentScriptDir
+					engine.currentScriptDir = dir
+					local results = {pcall(chunk, ...)}
+					engine.currentScriptDir = saved
+					if not results[1] then
+						error(results[2])
+					end
+					return select(2, table.unpack(results))
+				end
+			end
+		)");
+
+		// Call the factory to create the wrapped chunk
+		return wrapperFactory(loaded, chunkDir, this);
 	};
+
+	// **ADIÇÃO CRUCIAL: Expor LuaEngine para Lua**
+	lua.new_usertype<LuaEngine>("LuaEngine", "currentScriptDir", &LuaEngine::currentScriptDir);
 
 	try {
 		lua.script(R"(
@@ -210,9 +242,16 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 
 	// Save current script directory for RAII restoration
 	std::string savedScriptDir = currentScriptDir;
-	auto restoreScriptDir = [this, savedScriptDir]() {
-		this->currentScriptDir = savedScriptDir;
+
+	// RAII guard to restore currentScriptDir on all exit paths
+	struct ScopeGuard {
+		LuaEngine* engine;
+		std::string savedDir;
+		~ScopeGuard() noexcept {
+			engine->currentScriptDir = savedDir;
+		}
 	};
+	ScopeGuard guard { this, savedScriptDir };
 
 	try {
 		std::string scriptDir;
@@ -228,7 +267,6 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 		if (!loaded.valid()) {
 			sol::error err = loaded;
 			lastError = std::string("Failed to load script '") + filepath + "': " + err.what();
-			restoreScriptDir();
 			return false;
 		}
 
@@ -238,19 +276,15 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 		if (!result.valid()) {
 			sol::error err = result;
 			lastError = std::string("Error executing script '") + filepath + "': " + err.what();
-			restoreScriptDir();
 			return false;
 		}
 
-		restoreScriptDir();
 		return true;
 	} catch (const sol::error &e) {
 		lastError = std::string("Exception executing script '") + filepath + "': " + e.what();
-		restoreScriptDir();
 		return false;
 	} catch (const std::exception &e) {
 		lastError = std::string("Exception executing script '") + filepath + "': " + e.what();
-		restoreScriptDir();
 		return false;
 	}
 }
@@ -280,6 +314,9 @@ bool LuaEngine::executeString(const std::string &code, const std::string &chunkN
 
 		return true;
 	} catch (const sol::error &e) {
+		lastError = std::string("Exception executing code: ") + e.what();
+		return false;
+	} catch (const std::exception &e) {
 		lastError = std::string("Exception executing code: ") + e.what();
 		return false;
 	}
