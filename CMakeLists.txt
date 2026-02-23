@@ -29,7 +29,7 @@ set(VCPKG_BUILD_TYPE "release")
 # Set Configs
 # *****************************************************************************
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(GNUCXX_MINIMUM_VERSION 11)
 set(MSVC_MINIMUM_VERSION "19.32")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
