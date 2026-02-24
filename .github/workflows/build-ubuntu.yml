@@ -37,10 +37,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-22.04 ]
+        os: [ ubuntu-24.04 ]
         buildtype: [ linux-release ]
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             triplet: x64-linux
 
     steps:
@@ -55,8 +55,11 @@ jobs:
         uses: actions/checkout@main
 
       - name: Install Linux Dependencies
-        run: >
-          sudo apt-get update && sudo apt-get install ccache linux-headers-$(uname -r)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-13 g++-13 ccache linux-headers-$(uname -r)
+          sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 --slave /usr/bin/g++ g++ /usr/bin/g++-13
+          sudo update-alternatives --set gcc /usr/bin/gcc-13
 
       - name: CCache
         uses: hendrikmuhs/ccache-action@main
@@ -83,7 +86,15 @@ jobs:
         uses: lukka/get-cmake@main
 
       - name: Install additional libraries
-        run: sudo apt-get install libasio-dev nlohmann-json3-dev libfmt-dev bison libxi-dev libgl1-mesa-dev libegl1-mesa-dev libglu1-mesa-dev mesa-common-dev libxrandr-dev libxxf86vm-dev libx11-dev libxft-dev libxext-dev libwayland-dev libxkbcommon-dev libibus-1.0-dev libasound2-dev libxmu-dev libdbus-1-dev libxtst-dev linux-libc-dev libarchive-dev libwxgtk3.0-gtk3-dev python3-distutils libxrender-dev
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasio-dev nlohmann-json3-dev libfmt-dev bison libxi-dev \
+            libgl1-mesa-dev libegl1-mesa-dev libglu1-mesa-dev mesa-common-dev \
+            libxrandr-dev libxxf86vm-dev libx11-dev libxft-dev libxext-dev \
+            libwayland-dev libxkbcommon-dev libibus-1.0-dev libasound2-dev \
+            libxmu-dev libdbus-1-dev libxtst-dev linux-libc-dev libarchive-dev \
+            libwxgtk3.2-dev libxrender-dev libltdl-dev pkg-config autoconf automake
 
       - name: Run CMake Cache and Build
         uses: lukka/run-cmake@main
