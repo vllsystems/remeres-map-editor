@@ -2018,7 +2018,7 @@ void MapDrawer::UpdateCPUUsage() {
 	unsigned int minflt;
 	unsigned int cminflt;
 	unsigned int majflt;
-//
+
 	if (unsigned int cmajflt = 0; !(iss >> state >> pid >> ppid >> pgrp >> session >> tty_nr >> tpgid
 		  >> flags >> minflt >> cminflt >> majflt >> cmajflt >> utime >> stime)) {
 		return;
