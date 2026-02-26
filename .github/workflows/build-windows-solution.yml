@@ -58,14 +58,6 @@ jobs:
           ./bootstrap-vcpkg.bat
           ./vcpkg integrate install
 
-      - name: Cache vcpkg packages
-        uses: actions/cache@v4
-        with:
-          path: vcpkg/installed
-          key: vcpkg-${{ matrix.triplet }}-${{ hashFiles('vcpkg.json') }}
-          restore-keys: |
-            vcpkg-${{ matrix.triplet }}-
-
       - name: Print useful paths
         run: |
           Write-Host "Workspace: $env:GITHUB_WORKSPACE"
