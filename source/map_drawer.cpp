@@ -24,6 +24,7 @@
 #ifdef __WINDOWS__
 	#include <windows.h>
 	#include <psapi.h>
+	#pragma comment(lib, "psapi.lib")
 #else
 	#include <unistd.h>
 	#include <cstring>
