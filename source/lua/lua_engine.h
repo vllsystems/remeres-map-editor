@@ -18,16 +18,16 @@
 #ifndef RME_LUA_ENGINE_H
 #define RME_LUA_ENGINE_H
 
-inline constexpr int SOL_ALL_SAFETIES_ON = 1;
-#include <sol/sol.hpp>
-
 #include <string>
 #include <functional>
+#include <sol/sol.hpp>
+
+inline constexpr int SOL_ALL_SAFETIES_ON = 1;
 
 class LuaEngine {
 public:
 	using PrintCallback = std::function<void(const std::string &)>;
-	LuaEngine();
+	LuaEngine() = default;
 	~LuaEngine();
 
 	bool initialize();

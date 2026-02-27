@@ -21,11 +21,11 @@
 #include <fstream>
 #include <sstream>
 
-LuaEngine::LuaEngine() {
-}
-
 LuaEngine::~LuaEngine() {
-	shutdown();
+	try {
+		shutdown();
+	} catch (...) {
+	}
 }
 
 bool LuaEngine::initialize() {
@@ -71,12 +71,12 @@ std::string LuaEngine::sanitizeScriptPath(const std::string &filename) {
 		throw sol::error("Script directory not set. Cannot resolve relative path.");
 	}
 
-	if (filename.find(":") != std::string::npos || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
+	if (filename.contains(":") || (filename.size() > 0 && (filename[0] == '/' || filename[0] == '\\'))) {
 		throw sol::error("Absolute paths are not allowed. Use paths relative to the script.");
 	}
 
 	std::string cleanFilename = filename;
-	if (cleanFilename.size() >= 2 && (cleanFilename.substr(0, 2) == "./" || cleanFilename.substr(0, 2) == ".\\")) {
+	if (cleanFilename.starts_with("./") || cleanFilename.starts_with(".\\")) {
 		cleanFilename = cleanFilename.substr(2);
 	}
 
