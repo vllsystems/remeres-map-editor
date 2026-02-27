@@ -255,7 +255,8 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 		LuaEngine* engine;
 		std::string savedDir;
 
-		ScopeGuard(LuaEngine* e, std::string dir) : engine(e), savedDir(std::move(dir)) { }
+		ScopeGuard(LuaEngine* e, std::string dir) :
+			engine(e), savedDir(std::move(dir)) { }
 
 		ScopeGuard(const ScopeGuard &) = delete;
 		ScopeGuard &operator=(const ScopeGuard &) = delete;
