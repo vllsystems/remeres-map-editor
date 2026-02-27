@@ -255,10 +255,10 @@ wxNotebookPage* PreferencesWindow::CreateGraphicsPage() {
 	sizer->Add(hide_items_when_zoomed_chkbox, 0, wxLEFT | wxTOP, 5);
 	SetWindowToolTip(hide_items_when_zoomed_chkbox, "When this option is checked, \"loose\" items will be hidden when you zoom very far out.");
 
-    show_performance_stats_chkbox = newd wxCheckBox(graphics_page, wxID_ANY, "Show performance statistics (FPS, CPU, RAM)");
-    show_performance_stats_chkbox->SetValue(g_settings.getBoolean(Config::SHOW_PERFORMANCE_STATS));
-    sizer->Add(show_performance_stats_chkbox, 0, wxLEFT | wxTOP, 5);
-    SetWindowToolTip(show_performance_stats_chkbox, "Display real-time FPS, CPU and RAM usage on screen.");
+	show_performance_stats_chkbox = newd wxCheckBox(graphics_page, wxID_ANY, "Show performance statistics (FPS, CPU, RAM)");
+	show_performance_stats_chkbox->SetValue(g_settings.getBoolean(Config::SHOW_PERFORMANCE_STATS));
+	sizer->Add(show_performance_stats_chkbox, 0, wxLEFT | wxTOP, 5);
+	SetWindowToolTip(show_performance_stats_chkbox, "Display real-time FPS, CPU and RAM usage on screen.");
 
 	icon_selection_shadow_chkbox = newd wxCheckBox(graphics_page, wxID_ANY, "Use icon selection shadow");
 	icon_selection_shadow_chkbox->SetValue(g_settings.getBoolean(Config::USE_GUI_SELECTION_SHADOW));
