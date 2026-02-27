@@ -164,7 +164,11 @@ void LuaEngine::setupSandbox() {
 				LuaEngine* e;
 				std::string d;
 				~Guard() noexcept {
-					e->currentScriptDir = d;
+					try {
+						e->currentScriptDir = d;
+					} catch (...) {
+						// Suppressed: must not throw from destructor.
+					}
 				}
 			} g { this, savedDir };
 
@@ -264,7 +268,11 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 		ScopeGuard &operator=(ScopeGuard &&) = delete;
 
 		~ScopeGuard() noexcept {
-			engine->currentScriptDir = savedDir;
+			try {
+				engine->currentScriptDir = savedDir;
+			} catch (...) {
+				// Suppressed: must not throw from destructor.
+			}
 		}
 	};
 	ScopeGuard guard { this, savedScriptDir };

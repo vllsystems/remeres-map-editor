@@ -272,6 +272,8 @@
     <ClCompile Include="..\..\source\welcome_dialog.cpp" />
     <ClCompile Include="..\..\source\zones.cpp" />
     <ClCompile Include="..\..\source\zone_brush.cpp" />
+    <ClCompile Include="..\..\source\lua\lua_engine.cpp" />
+    <ClCompile Include="..\..\source\lua\lua_script_manager.cpp" />
     <ClInclude Include="..\..\source\actions_history_window.h" />
     <ClInclude Include="..\..\source\add_item_window.h" />
     <ClInclude Include="..\..\source\add_tileset_window.h" />
