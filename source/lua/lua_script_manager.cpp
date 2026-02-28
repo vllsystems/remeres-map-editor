@@ -25,8 +25,6 @@
 #include <algorithm>
 #include <ranges>
 
-LuaScriptManager &g_luaScripts = LuaScriptManager::getInstance();
-
 bool LuaScriptManager::initialize() {
 	if (initialized) {
 		return true;
