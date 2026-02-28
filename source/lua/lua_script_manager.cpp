@@ -22,7 +22,6 @@
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
 
-#include <wx/stdpaths.h>
 #include <algorithm>
 #include <ranges>
 
