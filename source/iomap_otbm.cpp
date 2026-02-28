@@ -32,8 +32,272 @@
 #include "complexitem.h"
 #include "town.h"
 
+#include <staticdata.pb.h>
+
 typedef uint8_t attribute_t;
 typedef uint32_t flags_t;
+
+namespace {
+	constexpr int HousePreviewContextMargin = 2;
+	constexpr size_t HousePreviewMaxItemsPerTile = 5;
+
+	struct HousePreviewItemData {
+		uint32_t clientId = 0;
+		uint8_t xPattern = 0;
+		uint8_t yPattern = 0;
+		uint8_t zPattern = 0;
+	};
+
+	struct HousePreviewTileData {
+		uint32_t x = 0;
+		uint32_t y = 0;
+		uint8_t color = 0;
+		bool isHouseTile = false;
+		std::vector<HousePreviewItemData> items;
+	};
+
+	struct HousePreviewData {
+		uint32_t width = 0;
+		uint32_t height = 0;
+		uint32_t floor = 0;
+		std::vector<uint8_t> colors;
+		std::vector<HousePreviewTileData> tiles;
+	};
+
+	bool isShopHouseName(const std::string &name) {
+		return name.find("(Shop)") != std::string::npos || name.find("(shop)") != std::string::npos;
+	}
+
+	bool getHousePreviewFloor(const House &house, int &floor) {
+		if (house.getTiles().empty()) {
+			return false;
+		}
+
+		std::unordered_map<int, uint32_t> floorCount;
+		floorCount.reserve(4);
+		for (const auto &position : house.getTiles()) {
+			++floorCount[position.z];
+		}
+
+		const auto exit = house.getExit();
+		if (auto it = floorCount.find(exit.z); it != floorCount.end()) {
+			floor = exit.z;
+			return true;
+		}
+
+		uint32_t maxCount = 0;
+		int selectedFloor = rme::MapGroundLayer;
+		for (const auto &[z, count] : floorCount) {
+			if (count > maxCount) {
+				maxCount = count;
+				selectedFloor = z;
+			}
+		}
+
+		floor = selectedFloor;
+		return maxCount > 0;
+	}
+
+	bool isHousePreviewTopItem(const Item* item) {
+		return item && item->isAlwaysOnBottom() && item->getTopOrder() >= 3;
+	}
+
+	bool isHousePreviewBottomItem(const Item* item) {
+		return item && (item->isBorder() || (item->isAlwaysOnBottom() && item->getTopOrder() < 3));
+	}
+
+	bool fillHousePreviewItemData(const Position &position, const Tile* tile, const Item* item, HousePreviewItemData &itemData) {
+		if (!tile || !item) {
+			return false;
+		}
+
+		const ItemType &type = item->getItemType();
+		if (type.clientID == 0 || !type.sprite) {
+			return false;
+		}
+
+		GameSprite* sprite = type.sprite;
+		const int patternWidth = std::max<int>(1, static_cast<int>(sprite->pattern_x));
+		const int patternHeight = std::max<int>(1, static_cast<int>(sprite->pattern_y));
+		const int patternDepth = std::max<int>(1, static_cast<int>(sprite->pattern_z));
+
+		int patternX = position.x % patternWidth;
+		int patternY = position.y % patternHeight;
+		int patternZ = position.z % patternDepth;
+
+		if (type.stackable && patternWidth == 4 && patternHeight == 2) {
+			const auto subtype = static_cast<int>(item->getSubtype());
+			if (subtype <= 0) {
+				patternX = 0;
+				patternY = 0;
+			} else if (subtype < 5) {
+				patternX = subtype - 1;
+				patternY = 0;
+			} else if (subtype < 10) {
+				patternX = 0;
+				patternY = 1;
+			} else if (subtype < 25) {
+				patternX = 1;
+				patternY = 1;
+			} else if (subtype < 50) {
+				patternX = 2;
+				patternY = 1;
+			} else {
+				patternX = 3;
+				patternY = 1;
+			}
+			patternZ = 0;
+		} else if (type.isHangable) {
+			patternY = 0;
+			patternZ = 0;
+			if (tile->hasProperty(HOOK_SOUTH)) {
+				patternX = patternWidth >= 2 ? 1 : 0;
+			} else if (tile->hasProperty(HOOK_EAST)) {
+				patternX = patternWidth >= 3 ? 2 : 0;
+			} else {
+				patternX = 0;
+			}
+		} else if (type.isSplash() || type.isFluidContainer()) {
+			const auto subtype = static_cast<int>(Item::liquidSubTypeToSpriteSubType(static_cast<uint8_t>(item->getSubtype())));
+			patternX = (subtype % 4) % patternWidth;
+			patternY = (subtype / 4) % patternHeight;
+			patternZ = 0;
+		}
+
+		itemData.clientId = type.clientID;
+		itemData.xPattern = static_cast<uint8_t>(std::max(0, patternX));
+		itemData.yPattern = static_cast<uint8_t>(std::max(0, patternY));
+		itemData.zPattern = static_cast<uint8_t>(std::max(0, patternZ));
+		return true;
+	}
+
+	bool buildHousePreviewData(Map &map, const House &house, HousePreviewData &previewData) {
+		int floor = rme::MapGroundLayer;
+		if (!getHousePreviewFloor(house, floor)) {
+			return false;
+		}
+
+		int minX = std::numeric_limits<int>::max();
+		int minY = std::numeric_limits<int>::max();
+		int maxX = std::numeric_limits<int>::min();
+		int maxY = std::numeric_limits<int>::min();
+
+		for (const auto &position : house.getTiles()) {
+			if (position.z != floor) {
+				continue;
+			}
+
+			if (position.x < minX) {
+				minX = position.x;
+			}
+			if (position.y < minY) {
+				minY = position.y;
+			}
+			if (position.x > maxX) {
+				maxX = position.x;
+			}
+			if (position.y > maxY) {
+				maxY = position.y;
+			}
+		}
+
+		if (minX > maxX || minY > maxY) {
+			return false;
+		}
+
+		minX -= HousePreviewContextMargin;
+		minY -= HousePreviewContextMargin;
+		maxX += HousePreviewContextMargin;
+		maxY += HousePreviewContextMargin;
+
+		const int width = maxX - minX + 1;
+		const int height = maxY - minY + 1;
+		if (width <= 0 || height <= 0) {
+			return false;
+		}
+
+		const size_t colorsSize = static_cast<size_t>(width) * static_cast<size_t>(height);
+		if (colorsSize == 0) {
+			return false;
+		}
+
+		std::vector<uint8_t> colors(colorsSize, 0);
+		std::vector<HousePreviewTileData> tiles;
+		tiles.reserve(colorsSize);
+
+		bool hasData = false;
+		for (int y = 0; y < height; ++y) {
+			for (int x = 0; x < width; ++x) {
+				const Position position(minX + x, minY + y, floor);
+				Tile* tile = map.getTile(position);
+				if (!tile || (!tile->ground && tile->items.empty())) {
+					continue;
+				}
+
+				const size_t index = static_cast<size_t>(y * width + x);
+				colors[index] = tile->getMiniMapColor();
+
+				HousePreviewTileData tileData;
+				tileData.x = static_cast<uint32_t>(x);
+				tileData.y = static_cast<uint32_t>(y);
+				tileData.color = colors[index];
+				tileData.isHouseTile = tile->getHouseID() == house.id;
+				tileData.items.reserve(HousePreviewMaxItemsPerTile);
+
+				const auto addPreviewItem = [&](const Item* item) {
+					if (!item || tileData.items.size() >= HousePreviewMaxItemsPerTile) {
+						return;
+					}
+
+					HousePreviewItemData itemData;
+					if (!fillHousePreviewItemData(position, tile, item, itemData)) {
+						return;
+					}
+
+					tileData.items.emplace_back(itemData);
+				};
+
+				addPreviewItem(tile->ground);
+
+				for (const Item* item : tile->items) {
+					if (!isHousePreviewBottomItem(item)) {
+						continue;
+					}
+					addPreviewItem(item);
+				}
+
+				for (auto it = tile->items.rbegin(); it != tile->items.rend(); ++it) {
+					const Item* item = *it;
+					if (isHousePreviewBottomItem(item) || isHousePreviewTopItem(item)) {
+						continue;
+					}
+					addPreviewItem(item);
+				}
+
+				for (const Item* item : tile->items) {
+					if (!isHousePreviewTopItem(item)) {
+						continue;
+					}
+					addPreviewItem(item);
+				}
+
+				tiles.emplace_back(std::move(tileData));
+				hasData = true;
+			}
+		}
+
+		if (!hasData) {
+			return false;
+		}
+
+		previewData.width = static_cast<uint32_t>(width);
+		previewData.height = static_cast<uint32_t>(height);
+		previewData.floor = static_cast<uint32_t>(floor);
+		previewData.colors = std::move(colors);
+		previewData.tiles = std::move(tiles);
+		return true;
+	}
+}
 
 // H4X
 void reform(Map* map, Tile* tile, Item* item) {
@@ -1439,6 +1703,24 @@ bool IOMapOTBM::saveMap(Map &map, const FileName &identifier) {
 			streamData.str("");
 		}
 
+		g_gui.SetLoadDone(0, "Saving staticdata...");
+		std::string staticDataBuffer;
+		if (serializeStaticDataHouses(map, staticDataBuffer)) {
+			const std::string staticDataFilename = getStaticDataFilename(map);
+
+			entry = archive_entry_new();
+			archive_entry_set_pathname(entry, ("world/" + staticDataFilename).c_str());
+			archive_entry_set_size(entry, staticDataBuffer.size());
+			archive_entry_set_filetype(entry, AE_IFREG);
+			archive_entry_set_perm(entry, 0644);
+
+			archive_write_header(a, entry);
+			archive_write_data(a, staticDataBuffer.data(), staticDataBuffer.size());
+			archive_entry_free(entry);
+		} else {
+			warning("Failed to generate staticdata protobuf with houses.");
+		}
+
 		g_gui.SetLoadDone(0, "Saving npcs...");
 
 		pugi::xml_document npcDoc;
@@ -1514,6 +1796,9 @@ bool IOMapOTBM::saveMap(Map &map, const FileName &identifier) {
 
 	g_gui.SetLoadDone(99, "Saving houses...");
 	saveHouses(map, identifier);
+
+	g_gui.SetLoadDone(99, "Saving staticdata...");
+	saveStaticData(map, identifier);
 
 	g_gui.SetLoadDone(99, "Saving zones...");
 	saveZones(map, identifier);
@@ -1842,6 +2127,95 @@ bool IOMapOTBM::saveHouses(Map &map, pugi::xml_document &doc) {
 		houseNode.append_attribute("clientid") = house->clientid;
 		houseNode.append_attribute("beds") = house->beds;
 	}
+	return true;
+}
+
+std::string IOMapOTBM::getStaticDataFilename(const Map &map) const {
+	return "staticdatahouse.dat";
+}
+
+bool IOMapOTBM::serializeStaticDataHouses(Map &map, std::string &buffer) {
+	canary::protobuf::staticdata::Staticdata staticData;
+	for (const auto &houseEntry : map.houses) {
+		const House* house = houseEntry.second;
+		if (!house) {
+			continue;
+		}
+
+		const uint32_t houseId = house->id;
+		if (houseId == 0) {
+			continue;
+		}
+
+		auto* houseNode = staticData.add_houses();
+		houseNode->set_id(houseId);
+		houseNode->set_name(house->name);
+		houseNode->set_description("");
+		houseNode->set_rent(house->rent > 0 ? static_cast<uint32_t>(house->rent) : 0);
+		houseNode->set_beds(house->beds > 0 ? static_cast<uint32_t>(house->beds) : 0);
+
+		const Position &exitPosition = house->getExit();
+		auto* position = houseNode->mutable_position();
+		position->set_x(exitPosition.x > 0 ? static_cast<uint32_t>(exitPosition.x) : 0);
+		position->set_y(exitPosition.y > 0 ? static_cast<uint32_t>(exitPosition.y) : 0);
+		position->set_z(exitPosition.z > 0 ? static_cast<uint32_t>(exitPosition.z) : 0);
+
+		houseNode->set_sqms(static_cast<uint32_t>(house->size()));
+		houseNode->set_isguildhall(house->guildhall);
+
+		const Town* town = map.towns.getTown(house->townid);
+		houseNode->set_city(town ? town->getName() : "");
+		houseNode->set_isshop(isShopHouseName(house->name));
+
+		HousePreviewData previewData;
+		if (buildHousePreviewData(map, *house, previewData) && (!previewData.colors.empty() || !previewData.tiles.empty())) {
+			auto* previewNode = houseNode->mutable_preview();
+			previewNode->set_width(previewData.width);
+			previewNode->set_height(previewData.height);
+			previewNode->set_floor(previewData.floor);
+			if (!previewData.colors.empty()) {
+				previewNode->set_colors(reinterpret_cast<const char*>(previewData.colors.data()), static_cast<int>(previewData.colors.size()));
+			}
+
+			for (const auto &tileData : previewData.tiles) {
+				auto* tileNode = previewNode->add_tiles();
+				tileNode->set_x(tileData.x);
+				tileNode->set_y(tileData.y);
+				tileNode->set_color(tileData.color);
+				tileNode->set_ishousetile(tileData.isHouseTile);
+
+				for (const auto &itemData : tileData.items) {
+					auto* itemNode = tileNode->add_items();
+					itemNode->set_clientid(itemData.clientId);
+					itemNode->set_xpattern(itemData.xPattern);
+					itemNode->set_ypattern(itemData.yPattern);
+					itemNode->set_zpattern(itemData.zPattern);
+				}
+			}
+		}
+	}
+
+	return staticData.SerializeToString(&buffer);
+}
+
+bool IOMapOTBM::saveStaticData(Map &map, const FileName &dir) {
+	std::string buffer;
+	if (!serializeStaticDataHouses(map, buffer)) {
+		warning("Failed to serialize staticdata protobuf.");
+		return false;
+	}
+
+	wxString filepath = dir.GetPath(wxPATH_GET_SEPARATOR | wxPATH_GET_VOLUME);
+	filepath += wxString(getStaticDataFilename(map).c_str(), wxConvUTF8);
+
+	std::ofstream output(nstr(filepath), std::ios::binary | std::ios::trunc);
+	if (!output.is_open()) {
+		warning("Failed to save staticdata protobuf file.");
+		return false;
+	}
+
+	output.write(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+	output.close();
 	return true;
 }
 

@@ -1,0 +1,50 @@
+syntax = "proto2";
+
+package canary.protobuf.staticdata;
+
+message Staticdata {
+	repeated House houses = 3;
+}
+
+message Position {
+	optional uint32 x = 1;
+	optional uint32 y = 2;
+	optional uint32 z = 3;
+}
+
+message House {
+	optional uint32 id = 1;
+	optional string name = 2;
+	optional string description = 3;
+	optional uint32 rent = 4;
+	optional uint32 beds = 5;
+	optional Position position = 6;
+	optional uint32 SQMs = 7;
+	optional bool isGuildHall = 8;
+	optional string city = 9;
+	optional bool isShop = 10;
+	optional HousePreview preview = 11;
+}
+
+message HousePreview {
+	optional uint32 width = 1;
+	optional uint32 height = 2;
+	optional uint32 floor = 3;
+	optional bytes colors = 4;
+	repeated HousePreviewTile tiles = 5;
+}
+
+message HousePreviewTile {
+	optional uint32 x = 1;
+	optional uint32 y = 2;
+	optional uint32 color = 3;
+	repeated HousePreviewItem items = 4;
+	optional bool isHouseTile = 5;
+}
+
+message HousePreviewItem {
+	optional uint32 clientId = 1;
+	optional uint32 xPattern = 2;
+	optional uint32 yPattern = 3;
+	optional uint32 zPattern = 4;
+}

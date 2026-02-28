@@ -145,6 +145,9 @@ protected:
 	bool saveSpawnsNpc(Map &map, pugi::xml_document &doc);
 	bool saveZones(Map &map, const FileName &dir);
 	bool saveZones(Map &map, pugi::xml_document &doc);
+	bool saveStaticData(Map &map, const FileName &dir);
+	bool serializeStaticDataHouses(Map &map, std::string &buffer);
+	std::string getStaticDataFilename(const Map &map) const;
 };
 
 #endif
