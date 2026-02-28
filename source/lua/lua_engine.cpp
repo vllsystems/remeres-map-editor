@@ -278,8 +278,17 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 		~ScopeGuard() noexcept {
 			try {
 				engine->currentScriptDir = savedDir;
+			} catch (const std::exception &err) {
+				std::cerr << "[LuaEngine] ScopeGuard failed to restore script directory: "
+						  << err.what() << std::endl;
+				try {
+					engine->currentScriptDir.clear();
+				} catch (...) { }
 			} catch (...) {
-				// Suppressed: must not throw from destructor.
+				std::cerr << "[LuaEngine] ScopeGuard failed to restore script directory: Unknown error" << std::endl;
+				try {
+					engine->currentScriptDir.clear();
+				} catch (...) { }
 			}
 		}
 	};
