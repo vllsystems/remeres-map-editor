@@ -48,6 +48,6 @@ private:
 	bool executeScript(const std::string &filepath);
 };
 
-inline LuaScriptManager &g_luaScripts = LuaScriptManager::getInstance();
+extern LuaScriptManager &g_luaScripts;
 
 #endif // RME_LUA_SCRIPT_MANAGER_H

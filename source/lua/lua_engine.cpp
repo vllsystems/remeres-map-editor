@@ -173,9 +173,7 @@ void LuaEngine::setupSandbox() {
 					} catch (const std::exception &err) {
 						std::cerr << "[LuaEngine] Guard failed to restore script directory: "
 								  << err.what() << std::endl;
-						try {
-							e->currentScriptDir.clear();
-						} catch (...) { }
+						e->currentScriptDir.clear();
 					}
 				}
 			} g { this, savedDir };
@@ -281,14 +279,10 @@ bool LuaEngine::executeFile(const std::string &filepath) {
 			} catch (const std::exception &err) {
 				std::cerr << "[LuaEngine] ScopeGuard failed to restore script directory: "
 						  << err.what() << std::endl;
-				try {
-					engine->currentScriptDir.clear();
-				} catch (...) { }
+				engine->currentScriptDir.clear();
 			} catch (...) {
-				std::cerr << "[LuaEngine] ScopeGuard failed to restore script directory: Unknown error" << std::endl;
-				try {
-					engine->currentScriptDir.clear();
-				} catch (...) { }
+				std::cerr << "[LuaEngine] ScopeGuard failed to restore script directory: Unknown fatal error" << std::endl;
+				engine->currentScriptDir.clear();
 			}
 		}
 	};
