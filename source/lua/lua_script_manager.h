@@ -48,9 +48,6 @@ private:
 	bool executeScript(const std::string &filepath);
 };
 
-// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-inline LuaScriptManager &g_luaScripts() {
-	return LuaScriptManager::getInstance();
-}
+inline LuaScriptManager &g_luaScripts = LuaScriptManager::getInstance();
 
 #endif // RME_LUA_SCRIPT_MANAGER_H

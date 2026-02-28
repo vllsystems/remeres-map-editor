@@ -24,7 +24,11 @@
 LuaEngine::~LuaEngine() {
 	try {
 		shutdown();
+	} catch (const std::exception &e) {
+		std::cerr << "[LuaEngine] Critical exception during destructor shutdown: "
+				  << e.what() << std::endl;
 	} catch (...) {
+		std::cerr << "[LuaEngine] Unknown critical exception during destructor shutdown." << std::endl;
 	}
 }
 
@@ -166,8 +170,12 @@ void LuaEngine::setupSandbox() {
 				~Guard() noexcept {
 					try {
 						e->currentScriptDir = d;
-					} catch (...) {
-						// Suppressed: must not throw from destructor.
+					} catch (const std::exception &err) {
+						std::cerr << "[LuaEngine] Guard failed to restore script directory: "
+								  << err.what() << std::endl;
+						try {
+							e->currentScriptDir.clear();
+						} catch (...) { }
 					}
 				}
 			} g { this, savedDir };
