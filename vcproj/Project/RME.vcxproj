@@ -145,7 +145,7 @@
       <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;Rpcrt4.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wxmsw32ud_core.lib;wxbase32ud.lib;wxmsw32ud_adv.lib;wxmsw32ud_html.lib;wxmsw32ud_aui.lib;wxmsw32ud_gl.lib;wxbase32ud_net.lib;comctl32.lib;Rpcrt4.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\dependencies\vs\lib\</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -177,7 +177,7 @@
       <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;Rpcrt4.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wxbase32ud.lib;wxmsw32ud_core.lib;wxmsw32ud_html.lib;wxbase32ud_xml.lib;wxmsw32ud_adv.lib;wxmsw32ud_aui.lib;wxmsw32ud_gl.lib;wxbase32ud_net.lib;comctl32.lib;Rpcrt4.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\dependencies\vs\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <GenerateMapFile>true</GenerateMapFile>
@@ -210,7 +210,7 @@
       <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wxbase32u.lib;wxmsw32u_core.lib;wxmsw32u_html.lib;wxbase32u_xml.lib;wxmsw32u_adv.lib;wxmsw32u_aui.lib;wxmsw32u_gl.lib;wxbase32u_net.lib;comctl32.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <LargeAddressAware>true</LargeAddressAware>
@@ -247,7 +247,7 @@
       <LanguageStandard>stdcpp23</LanguageStandard>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>comctl32.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>wxmsw32u_core.lib;wxbase32u.lib;wxmsw32u_adv.lib;wxmsw32u_html.lib;wxmsw32u_aui.lib;wxmsw32u_gl.lib;wxbase32u_net.lib;comctl32.lib;WS2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
       <LargeAddressAware>true</LargeAddressAware>
