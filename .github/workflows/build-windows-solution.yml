@@ -51,19 +51,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@main
 
-      - name: Restore artifacts and install vcpkg
-        id: vcpkg-step
+      - name: Install vcpkg
         run: |
-          $json=Get-Content vcpkg.json -Raw | ConvertFrom-Json  
-          $vcpkgCommitId=$json.'builtin-baseline'  
-          Write-Host "vcpkg commit ID: $vcpkgCommitId"  
-          echo "VCPKG_GIT_COMMIT_ID=$vcpkgCommitId" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Get vcpkg commit id from vcpkg.json
-        uses: lukka/run-vcpkg@main
-        with:
-          vcpkgGitURL: "https://github.com/microsoft/vcpkg.git"
-          vcpkgGitCommitId: ${{ env.VCPKG_GIT_COMMIT_ID }}
+          git clone https://github.com/Microsoft/vcpkg.git
+          cd vcpkg
+          ./bootstrap-vcpkg.bat
+          ./vcpkg integrate install
 
       - name: Print useful paths
         run: |
@@ -74,16 +67,7 @@ jobs:
       - name: Build project
         env:
           GITHUB_WORKSPACE: ${{ github.workspace }}
-        run: |
-          msbuild.exe vcproj/RME.sln `
-            /p:Configuration=${{ matrix.buildtype }} `
-            /p:Platform=x64 `
-            /p:PlatformToolset=v145 `
-            /p:VcpkgEnableManifest=true `
-            /p:VcpkgTriplet=${{ matrix.triplet }} `
-            /p:VcpkgConfiguration=${{ matrix.buildtype }} `
-            /p:GITHUB_WORKSPACE="$env:GITHUB_WORKSPACE" `
-            /m
+        run: msbuild.exe /p:VcpkgEnableManifest=true /p:Configuration=Debug /p:Platform=x64 /p:GITHUB_WORKSPACE="$env:GITHUB_WORKSPACE" vcproj/RME.sln
 
       - name: Upload artifacts
         uses: actions/upload-artifact@main
