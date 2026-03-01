@@ -57,6 +57,12 @@ bool LuaEngine::initialize() {
 	} catch (const sol::error &e) {
 		lastError = std::string("Failed to initialize Lua engine: ") + e.what();
 		return false;
+	} catch (const std::exception &e) {
+		lastError = std::string("Failed to initialize Lua engine: ") + e.what();
+		return false;
+	} catch (...) {
+		lastError = "Failed to initialize Lua engine: Unknown error";
+		return false;
 	}
 }
 
