@@ -71,6 +71,21 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 # *****************************************************************************
+# Lua Scripting Support
+# *****************************************************************************
+
+find_package(lua CONFIG REQUIRED)
+find_package(sol2 CONFIG REQUIRED)
+
+if(TARGET lua::lua)
+	set(LUA_LIB_TARGET lua::lua)
+elseif(TARGET lua)
+	set(LUA_LIB_TARGET lua)
+else()
+	message(FATAL_ERROR "Lua target not found!")
+endif()
+
+# *****************************************************************************
 # Append cmake search path
 # *****************************************************************************
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
