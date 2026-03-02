@@ -177,6 +177,8 @@ bool Application::OnInit() {
 	// Initialize Lua scripting system
 	if (!g_luaScripts.initialize()) {
 		wxLogWarning("Failed to initialize Lua scripting: %s", g_luaScripts.getLastError().c_str());
+	} else if (g_gui.root && g_gui.root->menu_bar) {
+		g_gui.root->menu_bar->LoadScriptsMenu();
 	}
 
 	wxIcon icon(rme_icon);

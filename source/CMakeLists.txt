@@ -166,7 +166,21 @@ target_sources(${PROJECT_NAME}
 	live_socket.cpp
 	live_tab.cpp
 	lua/lua_engine.cpp
+	lua/lua_script.cpp
 	lua/lua_script_manager.cpp
+	lua/lua_api.cpp
+	lua/lua_api_app.cpp
+	lua/lua_api_position.cpp
+	lua/lua_api_item.cpp
+	lua/lua_api_tile.cpp
+	lua/lua_api_map.cpp
+	lua/lua_api_selection.cpp
+	lua/lua_dialog.cpp
+	lua/lua_api_color.cpp
+	lua/lua_api_creature.cpp
+	lua/lua_api_brush.cpp
+	lua/lua_api_image.cpp
+	lua/lua_scripts_window.cpp
 	main_menubar.cpp
 	main_toolbar.cpp
 	map.cpp
