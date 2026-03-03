@@ -48,7 +48,7 @@ namespace LuaAPI {
 
 			// Read-only properties
 			"id", sol::property(&Item::getID),
-			"clientId", sol::property(&Item::getClientID),
+			"clientId", sol::property([](const Item &item) { return g_items[item.getID()].clientID; }),
 			"name", sol::property(&Item::getName),
 			"fullName", sol::property(&Item::getFullName),
 
@@ -56,7 +56,7 @@ namespace LuaAPI {
 			"count", sol::property(&Item::getCount, [](Item &item, int count) {
 				item.setSubtype(static_cast<uint16_t>(count));
 			}),
-			"subtype", sol::property([](const Item &item) -> int { return item.getSubtype(); }, [](Item &item, int subtype) { item.setSubtype(static_cast<uint16_t>(subtype)); }), "actionId", sol::property([](const Item &item) -> int { return item.getActionID(); }, [](Item &item, int aid) { item.setActionID(static_cast<uint16_t>(aid)); }), "uniqueId", sol::property([](const Item &item) -> int { return item.getUniqueID(); }, [](Item &item, int uid) { item.setUniqueID(static_cast<uint16_t>(uid)); }), "tier", sol::property([](const Item &item) -> int { return item.getTier(); }, [](Item &item, int tier) { item.setTier(static_cast<uint16_t>(tier)); }), "text", sol::property(&Item::getText, &Item::setText), "description", sol::property(&Item::getDescription, &Item::setDescription),
+			"subtype", sol::property([](const Item &item) -> int { return item.getSubtype(); }, [](Item &item, int subtype) { item.setSubtype(static_cast<uint16_t>(subtype)); }), "actionId", sol::property([](const Item &item) -> int { return item.getActionID(); }, [](Item &item, int aid) { item.setActionID(static_cast<uint16_t>(aid)); }), "uniqueId", sol::property([](const Item &item) -> int { return item.getUniqueID(); }, [](Item &item, int uid) { item.setUniqueID(static_cast<uint16_t>(uid)); }), "text", sol::property(&Item::getText, &Item::setText), "description", sol::property(&Item::getDescription, &Item::setDescription),
 
 			// Selection
 			"isSelected", sol::property(&Item::isSelected), "select", &Item::select, "deselect", &Item::deselect,
@@ -71,12 +71,12 @@ namespace LuaAPI {
 			"clone", [](const Item &item) -> Item* { return item.deepCopy(); }, "rotate", &Item::doRotate,
 
 			"getName", [](int id) -> std::string {
-			if (g_items.typeExists(id)) {
-				return g_items.getItemType(id).name;
+			if (g_items[id].id != 0) {
+				return g_items[id].name;
 			}
 			return ""; }, "getDescription", [](int id) -> std::string {
-			if (g_items.typeExists(id)) {
-				return g_items.getItemType(id).description;
+			if (g_items[id].id != 0) {
+				return g_items[id].description;
 			}
 			return ""; },
 
@@ -89,7 +89,7 @@ namespace LuaAPI {
 
 		// Get item type info by ID
 		items["get"] = [](int id) -> sol::optional<sol::table> {
-			if (!g_items.typeExists(id)) {
+			if (g_items[id].id == 0) {
 				return sol::nullopt;
 			}
 			// Return item info as table (not the actual ItemType pointer)
@@ -99,10 +99,10 @@ namespace LuaAPI {
 		// Get item info by ID - returns a table with item properties
 		items["getInfo"] = [](sol::this_state ts, int id) -> sol::object {
 			sol::state_view lua(ts);
-			if (!g_items.typeExists(id)) {
+			if (g_items[id].id == 0) {
 				return sol::nil;
 			}
-			ItemType &it = g_items.getItemType(id);
+			ItemType &it = g_items[id];
 			sol::table info = lua.create_table();
 			info["id"] = it.id;
 			info["clientId"] = it.clientID;
@@ -123,7 +123,7 @@ namespace LuaAPI {
 
 		// Check if item ID exists
 		items["exists"] = [](int id) -> bool {
-			return g_items.typeExists(id);
+			return g_items[id].id != 0;
 		};
 
 		// Get max item ID
@@ -144,11 +144,11 @@ namespace LuaAPI {
 			std::string searchLower = toLower(searchName);
 
 			for (int id = 1; id <= maxId && count < limit; ++id) {
-				if (!g_items.typeExists(id)) {
+				if (g_items[id].id == 0) {
 					continue;
 				}
 
-				ItemType &it = g_items.getItemType(id);
+				ItemType &it = g_items[id];
 				if (it.name.empty()) {
 					continue;
 				}
@@ -173,11 +173,11 @@ namespace LuaAPI {
 
 			// First pass: exact match
 			for (int id = 1; id <= maxId; ++id) {
-				if (!g_items.typeExists(id)) {
+				if (g_items[id].id == 0) {
 					continue;
 				}
 
-				ItemType &it = g_items.getItemType(id);
+				ItemType &it = g_items[id];
 				if (it.name.empty()) {
 					continue;
 				}
@@ -189,11 +189,11 @@ namespace LuaAPI {
 
 			// Second pass: contains match (return first)
 			for (int id = 1; id <= maxId; ++id) {
-				if (!g_items.typeExists(id)) {
+				if (g_items[id].id == 0) {
 					continue;
 				}
 
-				ItemType &it = g_items.getItemType(id);
+				ItemType &it = g_items[id];
 				if (it.name.empty()) {
 					continue;
 				}
@@ -208,8 +208,8 @@ namespace LuaAPI {
 
 		// Get item name by ID
 		items["getName"] = [](int id) -> std::string {
-			if (g_items.typeExists(id)) {
-				return g_items.getItemType(id).name;
+			if (g_items[id].id != 0) {
+				return g_items[id].name;
 			}
 			return "";
 		};

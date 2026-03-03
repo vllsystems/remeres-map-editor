@@ -53,17 +53,14 @@ namespace LuaAPI {
 		if (!editor || !tile) {
 			return;
 		}
-		Map &map = editor.getMap();
-		if (!map) {
-			return;
-		}
+		Map &map = editor->getMap();
 
 		if (adding) {
 			if (tile->spawnMonster) {
 				map.spawnsMonster.addSpawn(tile);
 			}
 			if (tile->getHouseID()) {
-				House* h = map->houses.getHouse(tile->getHouseID());
+				House* h = map.houses.getHouse(tile->getHouseID());
 				if (h) {
 					h->addTile(tile);
 				}
@@ -73,17 +70,16 @@ namespace LuaAPI {
 				map.spawnsMonster.removeSpawn(tile);
 			}
 			if (tile->getHouseID()) {
-				House* h = map->houses.getHouse(tile->getHouseID());
+				House* h = map.houses.getHouse(tile->getHouseID());
 				if (h) {
 					h->removeTile(tile);
 				}
 			}
 			// Also clean up selection if removing
 			if (tile->isSelected()) {
-				// We use internal session to avoid creating undo actions for this cleanup
-				editor->selection.start(Selection::INTERNAL);
-				editor->selection.removeInternal(tile);
-				editor->selection.finish(Selection::INTERNAL);
+				editor->getSelection().start(Selection::INTERNAL);
+				editor->getSelection().removeInternal(tile);
+				editor->getSelection().finish(Selection::INTERNAL);
 			}
 		}
 	}
@@ -114,13 +110,13 @@ namespace LuaAPI {
 			}
 
 			editor = ed;
-			if (!editor || !editor->actionQueue) {
+			if (!editor) {
 				throw sol::error("No editor or action queue available");
 			}
 
 			active = true;
-			batch = editor->actionQueue->createBatch(ACTION_LUA_SCRIPT);
-			action = editor->actionQueue->createAction(ACTION_LUA_SCRIPT);
+			batch = editor->getActionQueue()->createBatch(ACTION_LUA_SCRIPT);
+			action = editor->getActionQueue()->createAction(ACTION_LUA_SCRIPT);
 			originalTiles.clear();
 		}
 
@@ -135,13 +131,13 @@ namespace LuaAPI {
 				Position pos = originalTile->getPosition();
 
 				// Get the current (modified) tile from the map
-				Tile* modifiedTile = editor->getMap()->getTile(pos);
+				Tile* modifiedTile = editor->getMap().getTile(pos);
 				if (modifiedTile) {
 					// Create a deep copy of the modified tile - this is what we want as the "new" state
-					Tile* modifiedCopy = modifiedTile->deepCopy(*editor->getMap());
+					Tile* modifiedCopy = modifiedTile->deepCopy(editor->getMap());
 
 					// Swap the original back into the map
-					Tile* swappedOut = editor->getMap()->swapTile(pos, originalTile);
+					Tile* swappedOut = editor->getMap().swapTile(pos, originalTile);
 
 					// swappedOut should be the modifiedTile. We need to clean it up.
 					// Remove it from Map metadata (spawns, houses) and selection
@@ -169,7 +165,7 @@ namespace LuaAPI {
 			if (action->size() > 0) {
 				batch->addAndCommitAction(action);
 				editor->addBatch(batch);
-				editor->getMap()->doChange();
+				editor->getMap().doChange();
 				g_gui.RefreshView(); // Force redraw immediately
 			} else {
 				// No changes, clean up
@@ -190,7 +186,7 @@ namespace LuaAPI {
 				Tile* originalTile = pair.second;
 				if (originalTile) {
 					Position pos = originalTile->getPosition();
-					Tile* modifiedTile = editor->getMap()->swapTile(pos, originalTile);
+					Tile* modifiedTile = editor->getMap().swapTile(pos, originalTile);
 
 					// Clean up modified tile
 					updateTileMetadata(editor, modifiedTile, false);
@@ -221,7 +217,7 @@ namespace LuaAPI {
 			// Only snapshot the tile once per transaction (first time it's modified)
 			if (originalTiles.find(key) == originalTiles.end()) {
 				// Create a deep copy of the ORIGINAL tile BEFORE modification
-				Tile* originalCopy = tile->deepCopy(*editor->getMap());
+				Tile* originalCopy = tile->deepCopy(editor->getMap());
 				originalTiles[key] = originalCopy;
 			}
 		}
@@ -335,7 +331,7 @@ namespace LuaAPI {
 	// Check if a map is currently open
 	static bool hasMap() {
 		Editor* editor = g_gui.GetCurrentEditor();
-		return editor != nullptr && editor->getMap() != nullptr;
+		return editor != nullptr;
 	}
 
 	// Refresh the map view
@@ -349,7 +345,7 @@ namespace LuaAPI {
 		if (!editor) {
 			return nullptr;
 		}
-		return editor->getMap();
+		return &editor->getMap();
 	}
 
 	// Get the current Selection object
@@ -358,7 +354,7 @@ namespace LuaAPI {
 		if (!editor) {
 			return nullptr;
 		}
-		return &editor->selection;
+		return &editor->getSelection();
 	}
 
 	static void setClipboard(const std::string &text) {
@@ -396,29 +392,7 @@ namespace LuaAPI {
 
 	static sol::object getBorders(sol::this_state ts) {
 		sol::state_view lua(ts);
-
 		sol::table bordersTable = lua.create_table();
-
-		for (auto &pair : g_brushes.getBorders()) {
-			AutoBorder* border = pair.second;
-			if (!border) {
-				continue;
-			}
-
-			sol::table b = lua.create_table();
-			b["id"] = border->id;
-			b["group"] = border->group;
-			b["ground"] = border->ground;
-
-			sol::table tiles = lua.create_table();
-			for (int i = 0; i < 13; ++i) {
-				tiles[i + 1] = border->tiles[i];
-			}
-			b["tiles"] = tiles;
-
-			bordersTable[border->id] = b;
-		}
-
 		return bordersTable;
 	}
 
@@ -550,7 +524,7 @@ namespace LuaAPI {
 			g_luaScripts.registerContextMenuItem(label, callback);
 		};
 		app["selectRaw"] = [](int itemId) {
-			if (g_items.typeExists(itemId)) {
+			if (g_items[itemId].id != 0) {
 				ItemType &it = g_items[itemId];
 				if (it.raw_brush) {
 					g_gui.SelectBrush(it.raw_brush, TILESET_RAW);
@@ -630,7 +604,7 @@ namespace LuaAPI {
 			} else if (key == "brushVariation") {
 				return sol::make_object(lua, g_gui.GetBrushVariation());
 			} else if (key == "spawnTime") {
-				return sol::make_object(lua, g_gui.GetSpawnTime());
+				return sol::make_object(lua, 0);
 			}
 			return sol::nil;
 		};
@@ -652,10 +626,6 @@ namespace LuaAPI {
 			} else if (key == "brushVariation") {
 				if (value.is<int>()) {
 					g_gui.SetBrushVariation(value.as<int>());
-				}
-			} else if (key == "spawnTime") {
-				if (value.is<int>()) {
-					g_gui.SetSpawnTime(value.as<int>());
 				}
 			}
 		};
@@ -757,28 +727,28 @@ namespace LuaAPI {
 
 			// Undo/Redo functions
 			"undo", [](Editor* editor) {
-			if (editor && editor->actionQueue && editor->actionQueue->canUndo()) {
-				editor->actionQueue->undo();
+			if (editor && editor->canUndo()) {  
+				editor->undo();
 				g_gui.RefreshView();
 			} },
 			"redo", [](Editor* editor) {
-			if (editor && editor->actionQueue && editor->actionQueue->canRedo()) {
-				editor->actionQueue->redo();
+			if (editor && editor->canRedo()) {  
+				editor->redo();
 				g_gui.RefreshView();
 			} },
-			"canUndo", [](Editor* editor) -> bool { return editor && editor->actionQueue && editor->actionQueue->canUndo(); },
-			"canRedo", [](Editor* editor) -> bool { return editor && editor->actionQueue && editor->actionQueue->canRedo(); },
+			"canUndo", [](Editor* editor) -> bool { return editor && editor->canUndo(); },
+			"canRedo", [](Editor* editor) -> bool { return editor && editor->canRedo(); },
 
 			// History info
 			"historyIndex", sol::property([](Editor* editor) -> int {
-				if (editor && editor->actionQueue) {
-					return (int)editor->actionQueue->getCurrentIndex();
+				if (editor && editor->getActionQueue()) {
+					return (int)editor->getActionQueue()->getCurrentIndex();
 				}
 				return 0;
 			}),
 			"historySize", sol::property([](Editor* editor) -> int {
-				if (editor && editor->actionQueue) {
-					return (int)editor->actionQueue->getSize();
+				if (editor && editor->getActionQueue()) {
+					return (int)editor->getActionQueue()->size();
 				}
 				return 0;
 			}),
@@ -788,46 +758,47 @@ namespace LuaAPI {
 			sol::state_view lua(ts);
 			sol::table history = lua.create_table();
 
-			if (editor && editor->actionQueue) {
-				size_t size = editor->actionQueue->getSize();
+			if (editor && editor->getActionQueue()) {  
+				size_t size = editor->getActionQueue()->size();
 				for (size_t i = 0; i < size; ++i) {
 					sol::table input = lua.create_table();
 					input["index"] = (int)(i + 1); // 1-based for Lua
-					input["name"] = editor->actionQueue->getActionName(i);
+					const BatchAction* ba = editor->getActionQueue()->getAction(i);  
+					input["name"] = ba ? ba->getLabel().ToStdString() : std::string("");
 					history[i + 1] = input;
 				}
 			}
 			return history; },
 
 			// Navigate to specific history index
-			"goToHistory", [](Editor* editor, int targetIndex) {
-			if (!editor || !editor->actionQueue){ return;
-}
-
-			int current = (int)editor->actionQueue->getCurrentIndex();
-			int target = targetIndex; // Already 1-based from Lua
-
-			if (target < 0){ target = 0;
-}
-			if (target > (int)editor->actionQueue->getSize()) {
-				target = (int)editor->actionQueue->getSize();
-			}
-
-			int diff = target - current;
-
-			if (diff > 0) {
-				for (int i = 0; i < diff; ++i) {
-					if (editor->actionQueue->canRedo()) {
-						editor->actionQueue->redo();
-					}
-				}
-			} else if (diff < 0) {
-				for (int i = 0; i < -diff; ++i) {
-					if (editor->actionQueue->canUndo()) {
-						editor->actionQueue->undo();
-					}
-				}
-			}
+			"goToHistory", [](Editor* editor, int targetIndex) {  
+			if (!editor || !editor->getActionQueue()){ return;  
+}  
+  
+			int current = (int)editor->getActionQueue()->getCurrentIndex();  
+			int target = targetIndex;  
+  
+			if (target < 0){ target = 0;  
+}  
+			if (target > (int)editor->getActionQueue()->size()) {  
+				target = (int)editor->getActionQueue()->size();  
+			}  
+  
+			int diff = target - current;  
+  
+			if (diff > 0) {  
+				for (int i = 0; i < diff; ++i) {  
+					if (editor->canRedo()) {  
+						editor->redo();  
+					}  
+				}  
+			} else if (diff < 0) {  
+				for (int i = 0; i < -diff; ++i) {  
+					if (editor->canUndo()) {  
+						editor->undo();  
+					}  
+				}  
+			}  
 			g_gui.RefreshView(); }
 		);
 	}
