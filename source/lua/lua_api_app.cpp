@@ -53,14 +53,14 @@ namespace LuaAPI {
 		if (!editor || !tile) {
 			return;
 		}
-		Map* map = editor->getMap();
+		Map &map = editor.getMap();
 		if (!map) {
 			return;
 		}
 
 		if (adding) {
-			if (tile->spawn) {
-				map->addSpawn(tile);
+			if (tile->spawnMonster) {
+				map.spawnsMonster.addSpawn(tile);
 			}
 			if (tile->getHouseID()) {
 				House* h = map->houses.getHouse(tile->getHouseID());
@@ -69,8 +69,8 @@ namespace LuaAPI {
 				}
 			}
 		} else {
-			if (tile->spawn) {
-				map->removeSpawn(tile);
+			if (tile->spawnMonster) {
+				map.spawnsMonster.removeSpawn(tile);
 			}
 			if (tile->getHouseID()) {
 				House* h = map->houses.getHouse(tile->getHouseID());
