@@ -530,11 +530,13 @@ void MainMenuBar::LoadScriptsMenu() {
 		const auto &script = scripts[i];
 		wxString label = wxString::FromUTF8(script->getDisplayName());
 		wxMenuItem* item = scriptsMenu->Append(wxID_ANY, label);
-		frame->Bind(wxEVT_MENU, [i](wxCommandEvent &) {  
+		frame->Bind(
+			wxEVT_MENU, [i](wxCommandEvent &) {  
 			std::string error;  
 			if (!g_luaScripts.executeScript(i, error)) {  
 				wxMessageBox(wxString::FromUTF8(error), "Script Error", wxOK | wxICON_ERROR);  
-			} }, item->GetId());
+			} }, item->GetId()
+		);
 	}
 
 	// Add separator + "Reload Scripts" at the bottom
@@ -542,9 +544,11 @@ void MainMenuBar::LoadScriptsMenu() {
 		scriptsMenu->AppendSeparator();
 	}
 	wxMenuItem* reloadItem = scriptsMenu->Append(wxID_ANY, "Reload Scripts");
-	frame->Bind(wxEVT_MENU, [this](wxCommandEvent &) {  
+	frame->Bind(
+		wxEVT_MENU, [this](wxCommandEvent &) {  
 		g_luaScripts.reloadScripts();  
-		LoadScriptsMenu(); }, reloadItem->GetId());
+		LoadScriptsMenu(); }, reloadItem->GetId()
+	);
 }
 
 void MainMenuBar::AddRecentFile(FileName file) {
