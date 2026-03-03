@@ -55,10 +55,10 @@ namespace LuaAPI {
 		if (brush->isOptionalBorder()) {
 			return "optional_border";
 		}
-		if (brush->isCreature()) {
+		if (brush->isMonster()) {
 			return "creature";
 		}
-		if (brush->isSpawn()) {
+		if (brush->isSpawnMonster()) {
 			return "spawn";
 		}
 		if (brush->isHouse()) {
@@ -122,7 +122,7 @@ namespace LuaAPI {
 								}),
 
 								// Type checks
-								"isRaw", sol::property([](Brush* b) { return b && b->isRaw(); }), "isDoodad", sol::property([](Brush* b) { return b && b->isDoodad(); }), "isTerrain", sol::property([](Brush* b) { return b && b->isTerrain(); }), "isGround", sol::property([](Brush* b) { return b && b->isGround(); }), "isWall", sol::property([](Brush* b) { return b && b->isWall(); }), "isTable", sol::property([](Brush* b) { return b && b->isTable(); }), "isCarpet", sol::property([](Brush* b) { return b && b->isCarpet(); }), "isDoor", sol::property([](Brush* b) { return b && b->isDoor(); }), "isCreature", sol::property([](Brush* b) { return b && b->isCreature(); }), "isSpawn", sol::property([](Brush* b) { return b && b->isSpawn(); }), "isHouse", sol::property([](Brush* b) { return b && b->isHouse(); }), "isEraser", sol::property([](Brush* b) { return b && b->isEraser(); }),
+								"isRaw", sol::property([](Brush* b) { return b && b->isRaw(); }), "isDoodad", sol::property([](Brush* b) { return b && b->isDoodad(); }), "isTerrain", sol::property([](Brush* b) { return b && b->isTerrain(); }), "isGround", sol::property([](Brush* b) { return b && b->isGround(); }), "isWall", sol::property([](Brush* b) { return b && b->isWall(); }), "isTable", sol::property([](Brush* b) { return b && b->isTable(); }), "isCarpet", sol::property([](Brush* b) { return b && b->isCarpet(); }), "isDoor", sol::property([](Brush* b) { return b && b->isDoor(); }), "isCreature", sol::property([](Brush* b) { return b && b->isMonster(); }), "isSpawn", sol::property([](Brush* b) { return b && b->isSpawnMonster(); }), "isHouse", sol::property([](Brush* b) { return b && b->isHouse(); }), "isEraser", sol::property([](Brush* b) { return b && b->isEraser(); }),
 
 								// String representation
 								sol::meta_function::to_string, [](Brush* b) -> std::string {

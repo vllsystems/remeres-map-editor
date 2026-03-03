@@ -26,7 +26,7 @@
 #include "result_window.h"
 #include "find_item_window.h"
 #include "settings.h"
-
+#include "lua/lua_script_manager.h"
 #include "gui.h"
 
 #include <wx/chartype.h>
@@ -502,6 +502,49 @@ void MainMenuBar::LoadRecentFiles() {
 
 void MainMenuBar::SaveRecentFiles() {
 	recentFiles.Save(g_settings.getConfigObject());
+}
+
+void MainMenuBar::LoadScriptsMenu() {
+	if (!g_luaScripts.isInitialized()) {
+		return;
+	}
+
+	// Find the "Scripts" menu in the menubar (must exist in menubar.xml)
+	int scriptsMenuIdx = menubar->FindMenu("Scripts");
+	if (scriptsMenuIdx == wxNOT_FOUND) {
+		return;
+	}
+	wxMenu* scriptsMenu = menubar->GetMenu(scriptsMenuIdx);
+	if (!scriptsMenu) {
+		return;
+	}
+
+	// Remove old dynamic items (keep only static items added via menubar.xml)
+	while (scriptsMenu->GetMenuItemCount() > 0) {
+		scriptsMenu->Delete(scriptsMenu->FindItemByPosition(0));
+	}
+
+	// Add one menu item per discovered script
+	const auto &scripts = g_luaScripts.getScripts();
+	for (size_t i = 0; i < scripts.size(); ++i) {
+		const auto &script = scripts[i];
+		wxString label = wxString::FromUTF8(script->getDisplayName());
+		wxMenuItem* item = scriptsMenu->Append(wxID_ANY, label);
+		frame->Bind(wxEVT_MENU, [i](wxCommandEvent &) {  
+			std::string error;  
+			if (!g_luaScripts.executeScript(i, error)) {  
+				wxMessageBox(wxString::FromUTF8(error), "Script Error", wxOK | wxICON_ERROR);  
+			} }, item->GetId());
+	}
+
+	// Add separator + "Reload Scripts" at the bottom
+	if (!scripts.empty()) {
+		scriptsMenu->AppendSeparator();
+	}
+	wxMenuItem* reloadItem = scriptsMenu->Append(wxID_ANY, "Reload Scripts");
+	frame->Bind(wxEVT_MENU, [this](wxCommandEvent &) {  
+		g_luaScripts.reloadScripts();  
+		LoadScriptsMenu(); }, reloadItem->GetId());
 }
 
 void MainMenuBar::AddRecentFile(FileName file) {

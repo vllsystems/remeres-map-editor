@@ -179,34 +179,30 @@ END_EVENT_TABLE()
 class MapPreviewCanvas : public MapCanvas {
 public:
 	MapPreviewCanvas(wxWindow* parent, Editor &editor) :
-		MapCanvas(parent, editor, nullptr),
+		MapCanvas(nullptr, editor, nullptr),
 		view_x(0),
 		view_y(0) {
 
-		floor = 7;
-		zoom = 1.0;
-
-		// Force Ingame mode for "Client Box" behavior
-		drawer->getOptions().SetIngame();
-		drawer->getOptions().show_ingame_box = true;
+		ChangeFloor(7);
+		SetZoom(1.0);
 	}
 
 	virtual ~MapPreviewCanvas() {
 	}
 
 	// Overrides to decouple from MapWindow
-	void SetZoom(double value) override {
+	void SetZoom(double value) {
 		if (value < 0.125) {
 			value = 0.125;
 		}
 		if (value > 25.00) {
 			value = 25.0;
 		}
-		zoom = value;
+		MapCanvas::SetZoom(value);
 		wxGLCanvas::Refresh();
 	}
 
-	void GetViewBox(int* view_scroll_x, int* view_scroll_y, int* screensize_x, int* screensize_y) const override {
+	void GetViewBox(int* view_scroll_x, int* view_scroll_y, int* screensize_x, int* screensize_y) const {
 		wxSize size = GetClientSize();
 		*screensize_x = size.GetWidth();
 		*screensize_y = size.GetHeight();
@@ -214,29 +210,29 @@ public:
 		*view_scroll_y = view_y;
 	}
 
-	void ScreenToMap(int screen_x, int screen_y, int* map_x, int* map_y) override {
+	void ScreenToMap(int screen_x, int screen_y, int* map_x, int* map_y) {
 		screen_x *= GetContentScaleFactor();
 		screen_y *= GetContentScaleFactor();
 
 		if (screen_x < 0) {
 			*map_x = (view_x + screen_x) / 32;
 		} else {
-			*map_x = int(view_x + (screen_x * zoom)) / 32;
+			*map_x = int(view_x + (screen_x * GetZoom())) / 32;
 		}
 
 		if (screen_y < 0) {
 			*map_y = (view_y + screen_y) / 32;
 		} else {
-			*map_y = int(view_y + (screen_y * zoom)) / 32;
+			*map_y = int(view_y + (screen_y * GetZoom())) / 32;
 		}
 
-		if (floor <= 7) {
-			*map_x += 7 - floor;
-			*map_y += 7 - floor;
+		if (GetFloor() <= 7) {
+			*map_x += 7 - GetFloor();
+			*map_y += 7 - GetFloor();
 		}
 	}
 
-	void GetScreenCenter(int* map_x, int* map_y) override {
+	void GetScreenCenter(int* map_x, int* map_y) {
 		wxSize size = GetClientSize();
 		ScreenToMap(size.GetWidth() / 2, size.GetHeight() / 2, map_x, map_y);
 	}
@@ -254,9 +250,9 @@ public:
 			height = 300;
 		}
 
-		view_x = (x * 32) - (width * zoom) / 2;
-		view_y = (y * 32) - (height * zoom) / 2;
-		floor = z;
+		view_x = (x * 32) - (width * GetZoom()) / 2;
+		view_y = (y * 32) - (height * GetZoom()) / 2;
+		ChangeFloor(z);
 		Refresh();
 	}
 
@@ -268,8 +264,7 @@ public:
 	}
 
 	void OnMouseMove(wxMouseEvent &event) {
-		cursor_x = event.GetX();
-		cursor_y = event.GetY();
+		event.Skip();
 	}
 
 	void OnWheel(wxMouseEvent &event) {
@@ -296,7 +291,7 @@ public:
 		client_h = h;
 
 		// Auto-resize the window to fit the new client dimensions
-		int tile_pixel_size = static_cast<int>(32 / zoom);
+		int tile_pixel_size = static_cast<int>(32 / GetZoom());
 		int req_w = w * tile_pixel_size;
 		int req_h = h * tile_pixel_size;
 
@@ -314,7 +309,6 @@ public:
 	}
 
 	void SetLight(bool on) {
-		drawer->getOptions().show_lights = on;
 		Refresh();
 	}
 
@@ -336,19 +330,19 @@ public:
 	int GetMapX() {
 		wxSize size = GetClientSize();
 		int width = size.GetWidth() > 0 ? size.GetWidth() : 400;
-		return (view_x + (width * (double)zoom) / 2.0) / 32;
+		return (view_x + (width * (double)GetZoom()) / 2.0) / 32;
 	}
 
 	int GetMapY() {
 		wxSize size = GetClientSize();
 		int height = size.GetHeight() > 0 ? size.GetHeight() : 300;
-		return (view_y + (height * (double)zoom) / 2.0) / 32;
+		return (view_y + (height * (double)GetZoom()) / 2.0) / 32;
 	}
 
-	int GetClientWidth() const override {
+	int GetClientWidth() const {
 		return client_w;
 	}
-	int GetClientHeight() const override {
+	int GetClientHeight() const {
 		return client_h;
 	}
 
@@ -356,8 +350,8 @@ private:
 	int view_x;
 	int view_y;
 
-	int client_w = ClientMapWidth;
-	int client_h = ClientMapHeight;
+	int client_w = 25;
+	int client_h = 25;
 
 	DECLARE_EVENT_TABLE()
 };
@@ -2117,14 +2111,14 @@ LuaDialog* LuaDialog::modify(sol::table options) {
 						canvas->SetZoom(props.get_or(std::string("zoom"), 1.0));
 					}
 					if (props["floor"].valid()) {
-						canvas->SetFloor(props.get_or(std::string("floor"), 7));
+						canvas->ChangeFloor(props.get_or(std::string("floor"), 7));
 						canvas->Refresh();
 					}
 					if (props["sync"].valid() && props.get_or(std::string("sync"), false)) {
 						canvas->SyncView();
 					}
 					if (props["client_w"].valid() && props["client_h"].valid()) {
-						canvas->SetViewSize(props.get_or(std::string("client_w"), ClientMapWidth), props.get_or(std::string("client_h"), ClientMapHeight));
+						canvas->SetViewSize(props.get_or(std::string("client_w"), 25), props.get_or(std::string("client_h"), 25));
 					}
 					if (props["light"].valid()) {
 						canvas->SetLight(props.get_or(std::string("light"), false));

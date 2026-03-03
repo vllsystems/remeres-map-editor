@@ -31,7 +31,7 @@ namespace LuaAPI {
 		if (!editor) {
 			return nullptr;
 		}
-		return &editor->selection;
+		return &editor->getSelection();
 	}
 
 	// Get tiles as a Lua table

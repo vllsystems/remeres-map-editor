@@ -65,7 +65,7 @@ if (MSVC)
 		set_property(TARGET ${PROJECT_NAME} PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 	endif()
 
-	target_compile_options(${PROJECT_NAME} PUBLIC /MP /FS /Zf /EHsc )
+	target_compile_options(${PROJECT_NAME} PUBLIC /MP /FS /Zf /EHsc /bigobj)
 else()
 	add_executable(${PROJECT_NAME} "")
 endif()

@@ -57,7 +57,7 @@ namespace LuaAPI {
 
 		if (adding) {
 			if (tile->spawnMonster) {
-				map.spawnsMonster.addSpawn(tile);
+				map.spawnsMonster.addSpawnMonster(tile);
 			}
 			if (tile->getHouseID()) {
 				House* h = map.houses.getHouse(tile->getHouseID());
@@ -67,7 +67,7 @@ namespace LuaAPI {
 			}
 		} else {
 			if (tile->spawnMonster) {
-				map.spawnsMonster.removeSpawn(tile);
+				map.spawnsMonster.removeSpawnMonster(tile);
 			}
 			if (tile->getHouseID()) {
 				House* h = map.houses.getHouse(tile->getHouseID());

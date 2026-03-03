@@ -18,9 +18,9 @@
 #include "main.h"
 #include "lua_api_creature.h"
 #include "lua_api.h"
-#include "../creature.h"
-#include "../creatures.h"
-#include "../spawn.h"
+#include "../monster.h"
+#include "../monsters.h"
+#include "../spawn_monster.h"
 #include "../tile.h"
 #include "../map.h"
 #include "../editor.h"
@@ -32,91 +32,74 @@ namespace LuaAPI {
 		// Register Direction enum
 		lua.new_enum("Direction", "NORTH", NORTH, "EAST", EAST, "SOUTH", SOUTH, "WEST", WEST);
 
-		// Register Creature usertype (expanded from basic in lua_api_tile.cpp)
-		lua.new_usertype<Creature>(
+		// Register Monster usertype
+		lua.new_usertype<Monster>(
 			"Creature",
 			sol::no_constructor,
 
 			// Properties (read-only)
-			"name", sol::property([](Creature* c) -> std::string {
-				return c ? c->getName() : "";
+			"name", sol::property([](Monster* m) -> std::string {
+				return m ? m->getName() : "";
 			}),
-			"isNpc", sol::property([](Creature* c) -> bool {
-				return c && c->isNpc();
+			"isNpc", sol::property([](Monster*) -> bool {
+				return false;
 			}),
 
 			// Properties (read/write)
-			"spawnTime", sol::property([](Creature* c) -> int { return c ? c->getSpawnTime() : 0; }, [](Creature* c, int time) {
-				if (c) {
-					c->setSpawnTime(time);
-				} }),
-			"direction", sol::property([](Creature* c) -> int { return c ? static_cast<int>(c->getDirection()) : 0; }, [](Creature* c, int dir) {
-				if (c && dir >= DIRECTION_FIRST && dir <= DIRECTION_LAST) {
-					c->setDirection(static_cast<Direction>(dir));
-				} }),
+			"spawnTime", sol::property([](Monster* m) -> int { return m ? m->getSpawnMonsterTime() : 0; }, [](Monster* m, int time) { if (m) { m->setSpawnMonsterTime(time); } }),
+			"direction", sol::property([](Monster* m) -> int { return m ? static_cast<int>(m->getDirection()) : 0; }, [](Monster* m, int dir) {  
+					if (m && dir >= DIRECTION_FIRST && dir <= DIRECTION_LAST) {  
+						m->setDirection(static_cast<Direction>(dir));  
+					} }),
 
 			// Selection
-			"isSelected", sol::property([](Creature* c) { return c && c->isSelected(); }),
-			"select", [](Creature* c) { if (c){ c->select();
-} },
-			"deselect", [](Creature* c) { if (c){ c->deselect();
-} },
+			"isSelected", sol::property([](Monster* m) { return m && m->isSelected(); }),
+			"select", [](Monster* m) { if (m) { m->select(); } },
+			"deselect", [](Monster* m) { if (m) { m->deselect(); } },
 
 			// String representation
-			sol::meta_function::to_string, [](Creature* c) -> std::string {
-			if (!c){ return "Creature(invalid)";
-}
-			std::string dir;
-			switch (c->getDirection()) {
-				case NORTH: dir = "N"; break;
-				case EAST: dir = "E"; break;
-				case SOUTH: dir = "S"; break;
-				case WEST: dir = "W"; break;
-				default: dir = "?"; break;
-			}
-			return "Creature(\"" + c->getName() + "\", dir=" + dir +
-				   ", spawn=" + std::to_string(c->getSpawnTime()) + "s)"; }
+			sol::meta_function::to_string, [](Monster* m) -> std::string {  
+				if (!m) { return "Creature(invalid)"; }  
+				std::string dir;  
+				switch (m->getDirection()) {  
+					case NORTH: dir = "N"; break;  
+					case EAST: dir = "E"; break;  
+					case SOUTH: dir = "S"; break;  
+					case WEST: dir = "W"; break;  
+					default: dir = "?"; break;  
+				}  
+				return "Creature(\"" + m->getName() + "\", dir=" + dir +  
+					   ", spawn=" + std::to_string(m->getSpawnMonsterTime()) + "s)"; }
 		);
 
-		// Register Spawn usertype (expanded from basic in lua_api_tile.cpp)
-		lua.new_usertype<Spawn>(
+		// Register SpawnMonster usertype
+		lua.new_usertype<SpawnMonster>(
 			"Spawn",
 			sol::no_constructor,
 
 			// Properties (read/write)
-			"size", sol::property([](Spawn* s) -> int { return s ? s->getSize() : 0; }, [](Spawn* s, int size) {
-				if (s && size > 0 && size < 100) {
-					s->setSize(size);
-				} }),
-			// Alias for size
-			"radius", sol::property([](Spawn* s) -> int { return s ? s->getSize() : 0; }, [](Spawn* s, int size) {
-				if (s && size > 0 && size < 100) {
-					s->setSize(size);
-				} }),
+			"size", sol::property([](SpawnMonster* s) -> int { return s ? s->getSize() : 0; }, [](SpawnMonster* s, int size) { if (s && size > 0 && size < 100) { s->setSize(size); } }),
+			"radius", sol::property([](SpawnMonster* s) -> int { return s ? s->getSize() : 0; }, [](SpawnMonster* s, int size) { if (s && size > 0 && size < 100) { s->setSize(size); } }),
 
 			// Selection
-			"isSelected", sol::property([](Spawn* s) { return s && s->isSelected(); }),
-			"select", [](Spawn* s) { if (s){ s->select();
-} },
-			"deselect", [](Spawn* s) { if (s){ s->deselect();
-} },
+			"isSelected", sol::property([](SpawnMonster* s) { return s && s->isSelected(); }),
+			"select", [](SpawnMonster* s) { if (s) { s->select(); } },
+			"deselect", [](SpawnMonster* s) { if (s) { s->deselect(); } },
 
 			// String representation
-			sol::meta_function::to_string, [](Spawn* s) -> std::string {
-			if (!s){ return "Spawn(invalid)";
-}
-			return "Spawn(radius=" + std::to_string(s->getSize()) + ")"; }
+			sol::meta_function::to_string, [](SpawnMonster* s) -> std::string {  
+				if (!s) { return "Spawn(invalid)"; }  
+				return "Spawn(radius=" + std::to_string(s->getSize()) + ")"; }
 		);
 
-		// Helper function to check if a creature type exists
+		// Helper function to check if a monster type exists
 		lua["creatureExists"] = [](const std::string &name) -> bool {
-			return g_creatures[name] != nullptr;
+			return g_monsters[name] != nullptr;
 		};
 
-		// Helper function to check if a creature is an NPC by name
-		lua["isNpcType"] = [](const std::string &name) -> bool {
-			CreatureType* type = g_creatures[name];
-			return type && type->isNpc;
+		// Helper function (NPCs always false in monster context)
+		lua["isNpcType"] = [](const std::string &) -> bool {
+			return false;
 		};
 	}
 

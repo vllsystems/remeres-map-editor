@@ -74,8 +74,8 @@ namespace LuaAPI {
 		LuaMapSpawnIterator(Map* map) :
 			map(map) {
 			if (map) {
-				iter = map->spawns.begin();
-				endIter = map->spawns.end();
+				iter = map->spawnsMonster.begin();
+				endIter = map->spawnsMonster.end();
 			}
 		}
 
@@ -94,8 +94,8 @@ namespace LuaAPI {
 
 	private:
 		Map* map;
-		SpawnPositionList::const_iterator iter;
-		SpawnPositionList::const_iterator endIter;
+		SpawnNpcPositionList::const_iterator iter;
+		SpawnNpcPositionList::const_iterator endIter;
 	};
 
 	void registerMap(sol::state &lua) {
@@ -144,7 +144,13 @@ namespace LuaAPI {
 				throw sol::error("getOrCreateTile expects (x, y, z) or (Position)");
 			}
 
-			return map->getOrCreateTile(pos); },
+			TileLocation* loc = map->createTileL(pos);  
+			Tile* tile = loc->get();  
+			if (!tile) {  
+				tile = map->allocator(loc);  
+				map->setTile(pos, tile);  
+			}  
+			return tile; },
 
 			// Tiles iterator - allows: for tile in map.tiles do ... end
 			"tiles", sol::property([](Map* map, sol::this_state ts) {

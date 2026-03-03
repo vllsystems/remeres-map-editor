@@ -22,7 +22,7 @@
 #include <functional>
 #include <sol/sol.hpp>
 
-inline constexpr int SOL_ALL_SAFETIES_ON = 1;
+#define SOL_ALL_SAFETIES_ON 1
 
 class LuaEngine {
 public:

@@ -82,7 +82,7 @@ namespace LuaAPI {
 		spriteId(id), spriteSource(true) {
 		if (isItemSprite) {
 			// Get sprite ID from item type
-			if (g_items.typeExists(id)) {
+			if (g_items[id].id != 0) {
 				ItemType &itemType = g_items.getItemType(id);
 				if (itemType.id != 0) {
 					loadFromSpriteId(itemType.clientID);
@@ -128,7 +128,7 @@ namespace LuaAPI {
 
 	// Helper to reliably get sprite ID from item ID, handling client ID mapping
 	int getItemSpriteId(int itemId) {
-		if (!g_items.typeExists(itemId)) {
+		if (g_items[itemId].id == 0) {
 			return 0;
 		}
 		ItemType &itemType = g_items.getItemType(itemId);

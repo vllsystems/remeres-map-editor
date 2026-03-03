@@ -23,6 +23,8 @@
 #include "../tile.h"
 #include "../item.h"
 #include "../monster.h"
+#include "../monsters.h"
+#include "../settings.h"
 #include "../npc.h"
 #include "../spawn_monster.h"
 #include "../spawn_npc.h"
@@ -109,60 +111,60 @@ namespace LuaAPI {
 	}
 
 	// Set creature on tile
-	static Creature* setTileCreature(Tile* tile, const std::string &creatureName, sol::optional<int> spawnTimeOpt, sol::optional<int> directionOpt) {
+	static Monster* setTileCreature(Tile* tile, const std::string &creatureName, sol::optional<int> spawnTimeOpt, sol::optional<int> directionOpt) {
 		if (!tile) {
 			throw sol::error("Invalid tile");
 		}
 
-		// Check if creature type exists
-		CreatureType* type = g_creatures[creatureName];
+		// Check if monster type exists
+		MonsterType* type = g_monsters[creatureName];
 		if (!type) {
-			throw sol::error("Unknown creature type: " + creatureName);
+			type = g_monsters.addMissingMonsterType(creatureName);
 		}
 
 		// Mark tile for undo before modification
 		markTileForUndo(tile);
 
-		// Remove existing creature
-		if (tile->creature) {
-			delete tile->creature;
-			tile->creature = nullptr;
+		// Remove existing monsters
+		for (Monster* m : tile->monsters) {
+			delete m;
 		}
+		tile->monsters.clear();
 
-		// Create new creature
-		tile->creature = newd Creature(creatureName);
+		// Create new monster
+		Monster* monster = newd Monster(type);
 
-		// Set spawn time (default to global setting or 60s)
-		int spawnTime = spawnTimeOpt.value_or(g_gui.GetSpawnTime());
-		tile->creature->setSpawnTime(spawnTime);
+		// Set spawn time
+		int spawnTime = spawnTimeOpt.value_or(g_settings.getInteger(Config::DEFAULT_SPAWN_MONSTER_TIME));
+		monster->setSpawnMonsterTime(spawnTime);
 
-		// Set direction (default SOUTH)
-		Direction dir = static_cast<Direction>(directionOpt.value_or(SOUTH));
+		// Set direction (default NORTH)
+		Direction dir = static_cast<Direction>(directionOpt.value_or(NORTH));
 		if (dir >= DIRECTION_FIRST && dir <= DIRECTION_LAST) {
-			tile->creature->setDirection(dir);
+			monster->setDirection(dir);
 		}
 
+		tile->monsters.emplace_back(monster);
 		tile->modify();
-		return tile->creature;
+		return monster;
 	}
 
 	// Remove creature from tile
 	static bool removeTileCreature(Tile* tile) {
-		if (!tile || !tile->creature) {
+		if (!tile || tile->monsters.empty()) {
 			return false;
 		}
-
-		// Mark tile for undo before modification
 		markTileForUndo(tile);
-
-		delete tile->creature;
-		tile->creature = nullptr;
+		for (Monster* m : tile->monsters) {
+			delete m;
+		}
+		tile->monsters.clear();
 		tile->modify();
 		return true;
 	}
 
 	// Set spawn on tile
-	static Spawn* setTileSpawn(Tile* tile, sol::optional<int> sizeOpt) {
+	static SpawnMonster* setTileSpawn(Tile* tile, sol::optional<int> sizeOpt) {
 		if (!tile) {
 			throw sol::error("Invalid tile");
 		}
@@ -175,13 +177,13 @@ namespace LuaAPI {
 		if (!editor) {
 			throw sol::error("No active editor");
 		}
-		Map &map = editor->map;
+		Map &map = editor->getMap();
 
 		// Remove existing spawn from map metadata
-		if (tile->spawn) {
-			map.removeSpawn(tile);
-			delete tile->spawn;
-			tile->spawn = nullptr;
+		if (tile->spawnMonster) {
+			map.removeSpawnMonster(tile);
+			delete tile->spawnMonster;
+			tile->spawnMonster = nullptr;
 		}
 
 		// Create new spawn with given size (default 3)
@@ -193,18 +195,18 @@ namespace LuaAPI {
 			size = 50;
 		}
 
-		tile->spawn = newd Spawn(size);
+		tile->spawnMonster = newd SpawnMonster(size);
 
 		// Register new spawn with map
-		map.addSpawn(tile);
+		map.addSpawnMonster(tile);
 
 		tile->modify();
-		return tile->spawn;
+		return tile->spawnMonster;
 	}
 
 	// Remove spawn from tile
 	static bool removeTileSpawn(Tile* tile) {
-		if (!tile || !tile->spawn) {
+		if (!tile || !tile->spawnMonster) {
 			return false;
 		}
 
@@ -216,13 +218,13 @@ namespace LuaAPI {
 		if (!editor) {
 			throw sol::error("No active editor");
 		}
-		Map &map = editor->map;
+		Map &map = editor->getMap();
 
 		// Remove spawn from map metadata
-		map.removeSpawn(tile);
+		map.removeSpawnMonster(tile);
 
-		delete tile->spawn;
-		tile->spawn = nullptr;
+		delete tile->spawnMonster;
+		tile->spawnMonster = nullptr;
 		tile->modify();
 		return true;
 	}
@@ -268,7 +270,7 @@ namespace LuaAPI {
 		// Mark tile for undo before modification
 		markTileForUndo(tile);
 
-		tile->setHouseID(houseId);
+		tile->house_id = houseId;
 		tile->modify();
 	}
 
@@ -296,34 +298,33 @@ namespace LuaAPI {
 		if (brush->isGround()) {
 			GroundBrush* groundBrush = brush->asGround();
 			if (groundBrush) {
-				groundBrush->draw(&editor->map, tile, nullptr);
+				groundBrush->draw(&editor->getMap(), tile, nullptr);
 				success = true;
 			}
 		} else if (brush->isDoodad()) {
 			DoodadBrush* doodadBrush = brush->asDoodad();
 			if (doodadBrush) {
-				doodadBrush->draw(&editor->map, tile, nullptr);
+				doodadBrush->draw(&editor->getMap(), tile, nullptr);
 				success = true;
 			}
 		} else if (brush->isWall()) {
 			WallBrush* wallBrush = brush->asWall();
 			if (wallBrush) {
-				wallBrush->draw(&editor->map, tile, nullptr);
+				wallBrush->draw(&editor->getMap(), tile, nullptr);
 				success = true;
 			}
 		} else if (brush->isDoor()) {
 			DoorBrush* doorBrush = brush->asDoor();
 			if (doorBrush) {
-				doorBrush->draw(&editor->map, tile, nullptr);
+				doorBrush->draw(&editor->getMap(), tile, nullptr);
 				success = true;
 			}
 		}
 
 		if (success) {
-			// Apply auto-bordering if requested (default: true for ground brushes)
 			bool doBorder = autoBorder.value_or(brush->isGround());
 			if (doBorder) {
-				tile->borderize(&editor->map);
+				tile->borderize(&editor->getMap());
 			}
 			tile->modify();
 		}
@@ -391,40 +392,36 @@ namespace LuaAPI {
 } },
 
 			// Creature and Spawn (read-only access, use methods to modify)
-			"creature", sol::property([](Tile* tile) -> Creature* { return tile ? tile->creature : nullptr; }),
-			"spawn", sol::property([](Tile* tile) -> Spawn* { return tile ? tile->spawn : nullptr; }),
-			"hasCreature", sol::property([](Tile* tile) { return tile && tile->creature != nullptr; }),
-			"hasSpawn", sol::property([](Tile* tile) { return tile && tile->spawn != nullptr; }),
+			"creature", sol::property([](Tile* tile) -> Monster* { return (tile && !tile->monsters.empty()) ? tile->monsters.back() : nullptr; }),
+			"spawn", sol::property([](Tile* tile) -> SpawnMonster* { return tile ? tile->spawnMonster : nullptr; }),
+			"hasCreature", sol::property([](Tile* tile) { return tile && !tile->monsters.empty(); }),
+			"hasSpawn", sol::property([](Tile* tile) { return tile && tile->spawnMonster != nullptr; }),
 
 			// Creature methods
-			"setCreature", sol::overload([](Tile* tile, const std::string &name) -> Creature* { return setTileCreature(tile, name, sol::nullopt, sol::nullopt); }, [](Tile* tile, const std::string &name, int spawnTime) -> Creature* { return setTileCreature(tile, name, spawnTime, sol::nullopt); }, [](Tile* tile, const std::string &name, int spawnTime, int direction) -> Creature* { return setTileCreature(tile, name, spawnTime, direction); }),
+			"setCreature", sol::overload([](Tile* tile, const std::string &name) -> Monster* { return setTileCreature(tile, name, sol::nullopt, sol::nullopt); }, [](Tile* tile, const std::string &name, int spawnTime) -> Monster* { return setTileCreature(tile, name, spawnTime, sol::nullopt); }, [](Tile* tile, const std::string &name, int spawnTime, int direction) -> Monster* { return setTileCreature(tile, name, spawnTime, direction); }),
 			"removeCreature", removeTileCreature,
 
 			// Spawn methods
-			"setSpawn", sol::overload([](Tile* tile) -> Spawn* { return setTileSpawn(tile, sol::nullopt); }, [](Tile* tile, int size) -> Spawn* { return setTileSpawn(tile, size); }),
+			"setSpawn", sol::overload([](Tile* tile) -> SpawnMonster* { return setTileSpawn(tile, sol::nullopt); }, [](Tile* tile, int size) -> SpawnMonster* { return setTileSpawn(tile, size); }),
 			"removeSpawn", removeTileSpawn,
 
 			// Methods
 			"addItem", sol::overload([](Tile* tile, int itemId) -> Item* { return addItemToTile(tile, itemId, sol::nullopt); }, [](Tile* tile, int itemId, int count) -> Item* { return addItemToTile(tile, itemId, count); }),
 			"removeItem", removeItemFromTile,
 			"applyBrush", applyBrushToTile,
-			"borderize", [](Tile* tile) {
-				if (!tile){ return;
-}
-				Editor* editor = g_gui.GetCurrentEditor();
-				if (!editor){ return;
-}
-				markTileForUndo(tile);
-				tile->borderize(&editor->map);
+			"borderize", [](Tile* tile) {  
+				if (!tile){ return; }  
+				Editor* editor = g_gui.GetCurrentEditor();  
+				if (!editor){ return; }  
+				markTileForUndo(tile);  
+				tile->borderize(&editor->getMap());  
 				tile->modify(); },
-			"wallize", [](Tile* tile) {
-				if (!tile){ return;
-}
-				Editor* editor = g_gui.GetCurrentEditor();
-				if (!editor){ return;
-}
-				markTileForUndo(tile);
-				tile->wallize(&editor->map);
+			"wallize", [](Tile* tile) {  
+				if (!tile){ return; }  
+				Editor* editor = g_gui.GetCurrentEditor();  
+				if (!editor){ return; }  
+				markTileForUndo(tile);  
+				tile->wallize(&editor->getMap());  
 				tile->modify(); },
 			"moveItem", sol::overload(
 							// Index-based move within same tile

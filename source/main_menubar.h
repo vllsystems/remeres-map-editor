@@ -188,6 +188,7 @@ public:
 	void AddRecentFile(FileName file);
 	void LoadRecentFiles();
 	void SaveRecentFiles();
+	void LoadScriptsMenu();
 	std::vector<wxString> GetRecentFiles();
 
 	// Interface
