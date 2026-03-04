@@ -698,6 +698,15 @@ namespace LuaAPI {
 		// BSP (Binary Space Partitioning) - Dungeon Generation
 		// ========================================
 
+		// BSP Node (defined outside lambda for MSVC compatibility)
+		struct BSPNode {
+			int x, y, w, h;
+			BSPNode* left = nullptr;
+			BSPNode* right = nullptr;
+			int roomX, roomY, roomW, roomH;
+			bool hasRoom = false;
+		};
+
 		// algo.generateDungeon(width, height, options) -> { grid, rooms }
 		// Generate a dungeon using BSP
 		algoTable.set_function("generateDungeon", [](int width, int height, sol::optional<sol::table> options, sol::this_state s) -> sol::table {
@@ -723,15 +732,6 @@ namespace LuaAPI {
 
 			// Store rooms
 			std::vector<std::tuple<int, int, int, int>> rooms; // x, y, w, h
-
-			// BSP Node
-			struct BSPNode {
-				int x, y, w, h;
-				BSPNode* left = nullptr;
-				BSPNode* right = nullptr;
-				int roomX, roomY, roomW, roomH;
-				bool hasRoom = false;
-			};
 
 			std::function<BSPNode*(int, int, int, int, int)> split;
 			split = [&](int x, int y, int w, int h, int depth) -> BSPNode* {

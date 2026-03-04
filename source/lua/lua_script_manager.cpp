@@ -26,6 +26,7 @@
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
 #include <algorithm>
+#include <spdlog/spdlog.h>
 
 #ifdef _WIN32
 	#include <windows.h>
@@ -53,6 +54,8 @@ bool LuaScriptManager::initialize() {
 		registerAPIs();
 
 		initialized = true;
+
+		spdlog::info("Lua scripting initialized");
 
 		// Discover scripts
 		discoverScripts();

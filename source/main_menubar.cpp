@@ -27,6 +27,7 @@
 #include "find_item_window.h"
 #include "settings.h"
 #include "lua/lua_script_manager.h"
+#include "lua/lua_scripts_window.h"
 #include "gui.h"
 
 #include <wx/chartype.h>
@@ -506,23 +507,29 @@ void MainMenuBar::SaveRecentFiles() {
 
 void MainMenuBar::LoadScriptsMenu() {
 	if (!g_luaScripts.isInitialized()) {
+		spdlog::warn("LoadScriptsMenu: Lua not initialized");
 		return;
 	}
 
-	// Find the "Scripts" menu in the menubar (must exist in menubar.xml)
-	int scriptsMenuIdx = menubar->FindMenu("Scripts");
-	if (scriptsMenuIdx == wxNOT_FOUND) {
-		return;
-	}
-	wxMenu* scriptsMenu = menubar->GetMenu(scriptsMenuIdx);
 	if (!scriptsMenu) {
+		spdlog::warn("LoadScriptsMenu: Scripts menu not found (add <menu name=\"$Scripts\"> to menubar.xml)");
 		return;
 	}
 
-	// Remove old dynamic items (keep only static items added via menubar.xml)
+	// Remove old dynamic items
 	while (scriptsMenu->GetMenuItemCount() > 0) {
 		scriptsMenu->Delete(scriptsMenu->FindItemByPosition(0));
 	}
+
+	// Add "Script Manager" at the top
+	wxMenuItem* managerItem = scriptsMenu->Append(wxID_ANY, "Script Manager");
+	frame->Bind(
+		wxEVT_MENU, [](wxCommandEvent &) {
+			g_gui.ShowScriptManagerWindow();
+		},
+		managerItem->GetId()
+	);
+	scriptsMenu->AppendSeparator();
 
 	// Add one menu item per discovered script
 	const auto &scripts = g_luaScripts.getScripts();
@@ -611,12 +618,20 @@ bool MainMenuBar::Load(const FileName &path, wxArrayString &warnings, wxString &
 	}
 
 	// Load succeded
+	scriptsMenu = nullptr; // reset
 	for (pugi::xml_node menuNode = node.first_child(); menuNode; menuNode = menuNode.next_sibling()) {
-		// For each child node, load it
 		wxObject* i = LoadItem(menuNode, nullptr, warnings, error);
 		wxMenu* m = dynamic_cast<wxMenu*>(i);
 		if (m) {
-			menubar->Append(m, m->GetTitle());
+			wxString title = m->GetTitle();
+			menubar->Append(m, title);
+
+			// Store pointer to Scripts menu for later use
+			wxString cleanTitle = wxMenuItem::GetLabelText(title);
+			if (cleanTitle == "Scripts") {
+				scriptsMenu = m;
+			}
+
 #ifdef __APPLE__
 			m->SetTitle(m->GetTitle());
 #else

@@ -19,6 +19,7 @@ find_package(ZLIB REQUIRED)
 find_package(pugixml CONFIG REQUIRED)
 find_package(liblzma CONFIG REQUIRED)
 find_package(Protobuf REQUIRED)
+find_package(cpr CONFIG REQUIRED)
 
 # *****************************************************************************
 # Options
@@ -268,6 +269,7 @@ target_link_libraries(${PROJECT_NAME}
 	protobuf
 	${LUA_LIB_TARGET}
 	sol2::sol2
+	cpr::cpr
 
 	$<$<PLATFORM_ID:Linux>:xcb>
 	$<$<PLATFORM_ID:Windows>:psapi>
