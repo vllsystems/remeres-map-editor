@@ -28,7 +28,7 @@
 
 namespace LuaAPI {
 
-	void registerGeo(sol::state& lua) {
+	void registerGeo(sol::state &lua) {
 		sol::table geoTable = lua.create_table();
 
 		// ========================================
@@ -141,7 +141,7 @@ namespace LuaAPI {
 
 			// Parse control points
 			std::vector<std::pair<float, float>> points;
-			for (auto& kv : controlPoints) {
+			for (auto &kv : controlPoints) {
 				if (kv.second.get_type() == sol::type::table) {
 					sol::table pt = kv.second;
 					float x = pt.get_or(std::string("x"), pt.get_or(1, 0.0f));
@@ -195,7 +195,7 @@ namespace LuaAPI {
 
 			// Parse control points
 			std::vector<std::tuple<float, float, float>> points;
-			for (auto& kv : controlPoints) {
+			for (auto &kv : controlPoints) {
 				if (kv.second.get_type() == sol::type::table) {
 					sol::table pt = kv.second;
 					float x = pt.get_or(std::string("x"), 0.0f);
@@ -674,7 +674,7 @@ namespace LuaAPI {
 
 			// Parse vertices
 			std::vector<std::pair<int, int>> verts;
-			for (auto& kv : vertices) {
+			for (auto &kv : vertices) {
 				if (kv.second.get_type() == sol::type::table) {
 					sol::table pt = kv.second;
 					int x = pt.get_or(std::string("x"), pt.get_or(1, 0));
@@ -781,7 +781,7 @@ namespace LuaAPI {
 		// geo.pointInPolygon(px, py, vertices) -> boolean (Ray casting algorithm)
 		geoTable.set_function("pointInPolygon", [](float px, float py, sol::table vertices) -> bool {
 			std::vector<std::pair<float, float>> verts;
-			for (auto& kv : vertices) {
+			for (auto &kv : vertices) {
 				if (kv.second.get_type() == sol::type::table) {
 					sol::table pt = kv.second;
 					float x = pt.get_or(std::string("x"), pt.get_or(1, 0.0f));
@@ -844,7 +844,7 @@ namespace LuaAPI {
 				// Check minimum distance
 				bool valid = true;
 				if (minDistance > 0) {
-					for (const auto& p : points) {
+					for (const auto &p : points) {
 						int dx = x - p.first;
 						int dy = y - p.second;
 						if (dx * dx + dy * dy < minDistance * minDistance) {
@@ -922,7 +922,7 @@ namespace LuaAPI {
 			while (!activeList.empty()) {
 				size_t randIndex = rng() % activeList.size();
 				size_t pointIndex = activeList[randIndex];
-				auto& point = points[pointIndex];
+				auto &point = points[pointIndex];
 
 				bool found = false;
 
@@ -950,7 +950,7 @@ namespace LuaAPI {
 							if (cx >= 0 && cx < gridWidth && cy >= 0 && cy < gridHeight) {
 								int neighborIdx = grid[cy][cx];
 								if (neighborIdx >= 0) {
-									auto& neighbor = points[neighborIdx];
+									auto &neighbor = points[neighborIdx];
 									float ddx = newX - neighbor.first;
 									float ddy = newY - neighbor.second;
 									if (ddx * ddx + ddy * ddy < minDistance * minDistance) {

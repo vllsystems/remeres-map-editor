@@ -37,7 +37,7 @@ namespace LuaAPI {
 		StreamSession() :
 			finished_(false), hasError_(false), statusCode_(0) { }
 
-		void appendChunk(const std::string& chunk) {
+		void appendChunk(const std::string &chunk) {
 			std::lock_guard<std::mutex> lock(mutex_);
 			chunks_.push(chunk);
 			cv_.notify_one();
@@ -69,7 +69,7 @@ namespace LuaAPI {
 			return finished_;
 		}
 
-		void setError(const std::string& error) {
+		void setError(const std::string &error) {
 			std::lock_guard<std::mutex> lock(mutex_);
 			hasError_ = true;
 			errorMessage_ = error;
@@ -95,7 +95,7 @@ namespace LuaAPI {
 			return statusCode_;
 		}
 
-		void setHeaders(const cpr::Header& headers) {
+		void setHeaders(const cpr::Header &headers) {
 			std::lock_guard<std::mutex> lock(mutex_);
 			responseHeaders_ = headers;
 		}
@@ -122,7 +122,7 @@ namespace LuaAPI {
 	static int g_nextSessionId = 1;
 
 	// Security helper: Block localhost and loopback
-	static bool isUrlSafe(const std::string& url_str) {
+	static bool isUrlSafe(const std::string &url_str) {
 		std::string low = url_str;
 		std::transform(low.begin(), low.end(), low.begin(), ::tolower);
 		if (low.find("localhost") != std::string::npos || low.find("127.0.0.1") != std::string::npos || low.find("::1") != std::string::npos) {
@@ -132,7 +132,7 @@ namespace LuaAPI {
 	}
 
 	// HTTP GET request
-	static sol::table httpGet(sol::this_state ts, const std::string& url, sol::optional<sol::table> optHeaders) {
+	static sol::table httpGet(sol::this_state ts, const std::string &url, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 		sol::table result = lua.create_table();
 
@@ -145,7 +145,7 @@ namespace LuaAPI {
 		cpr::Header headers;
 		if (optHeaders) {
 			sol::table headersTable = *optHeaders;
-			for (auto& pair : headersTable) {
+			for (auto &pair : headersTable) {
 				if (pair.first.is<std::string>() && pair.second.is<std::string>()) {
 					headers[pair.first.as<std::string>()] = pair.second.as<std::string>();
 				}
@@ -161,7 +161,7 @@ namespace LuaAPI {
 
 		// Parse response headers
 		sol::table respHeaders = lua.create_table();
-		for (const auto& h : response.header) {
+		for (const auto &h : response.header) {
 			respHeaders[h.first] = h.second;
 		}
 		result["headers"] = respHeaders;
@@ -170,7 +170,7 @@ namespace LuaAPI {
 	}
 
 	// HTTP POST request
-	static sol::table httpPost(sol::this_state ts, const std::string& url, const std::string& body, sol::optional<sol::table> optHeaders) {
+	static sol::table httpPost(sol::this_state ts, const std::string &url, const std::string &body, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 		sol::table result = lua.create_table();
 
@@ -183,7 +183,7 @@ namespace LuaAPI {
 		cpr::Header headers;
 		if (optHeaders) {
 			sol::table headersTable = *optHeaders;
-			for (auto& pair : headersTable) {
+			for (auto &pair : headersTable) {
 				if (pair.first.is<std::string>() && pair.second.is<std::string>()) {
 					headers[pair.first.as<std::string>()] = pair.second.as<std::string>();
 				}
@@ -204,7 +204,7 @@ namespace LuaAPI {
 
 		// Parse response headers
 		sol::table respHeaders = lua.create_table();
-		for (const auto& h : response.header) {
+		for (const auto &h : response.header) {
 			respHeaders[h.first] = h.second;
 		}
 		result["headers"] = respHeaders;
@@ -230,7 +230,7 @@ namespace LuaAPI {
 				// Check if it's an array (sequential integer keys starting at 1)
 				bool isArray = true;
 				size_t expectedKey = 1;
-				for (auto& pair : tbl) {
+				for (auto &pair : tbl) {
 					if (!pair.first.is<size_t>() || pair.first.as<size_t>() != expectedKey) {
 						isArray = false;
 						break;
@@ -240,13 +240,13 @@ namespace LuaAPI {
 
 				if (isArray && expectedKey > 1) {
 					nlohmann::json arr = nlohmann::json::array();
-					for (auto& pair : tbl) {
+					for (auto &pair : tbl) {
 						arr.push_back(luaToJson(pair.second));
 					}
 					return arr;
 				} else {
 					nlohmann::json jsonObj = nlohmann::json::object();
-					for (auto& pair : tbl) {
+					for (auto &pair : tbl) {
 						std::string key;
 						if (pair.first.is<std::string>()) {
 							key = pair.first.as<std::string>();
@@ -268,7 +268,7 @@ namespace LuaAPI {
 	}
 
 	// HTTP POST with JSON body
-	static sol::table httpPostJson(sol::this_state ts, const std::string& url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
+	static sol::table httpPostJson(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
 		auto luaToJson = getLuaToJsonConverter();
@@ -279,7 +279,7 @@ namespace LuaAPI {
 		headers["Content-Type"] = "application/json";
 
 		if (optHeaders) {
-			for (auto& pair : *optHeaders) {
+			for (auto &pair : *optHeaders) {
 				if (pair.first.is<std::string>() && pair.second.is<std::string>()) {
 					headers[pair.first.as<std::string>()] = pair.second.as<std::string>();
 				}
@@ -290,7 +290,7 @@ namespace LuaAPI {
 	}
 
 	// Start a streaming POST request - returns session ID
-	static sol::table httpPostStream(sol::this_state ts, const std::string& url, const std::string& body, sol::optional<sol::table> optHeaders) {
+	static sol::table httpPostStream(sol::this_state ts, const std::string &url, const std::string &body, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 		sol::table result = lua.create_table();
 
@@ -312,7 +312,7 @@ namespace LuaAPI {
 		cpr::Header headers;
 		if (optHeaders) {
 			sol::table headersTable = *optHeaders;
-			for (auto& pair : headersTable) {
+			for (auto &pair : headersTable) {
 				if (pair.first.is<std::string>() && pair.second.is<std::string>()) {
 					headers[pair.first.as<std::string>()] = pair.second.as<std::string>();
 				}
@@ -351,7 +351,7 @@ namespace LuaAPI {
 	}
 
 	// Start a streaming POST request with JSON body - returns session ID
-	static sol::table httpPostJsonStream(sol::this_state ts, const std::string& url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
+	static sol::table httpPostJsonStream(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
 		auto luaToJson = getLuaToJsonConverter();
@@ -362,7 +362,7 @@ namespace LuaAPI {
 		headers["Content-Type"] = "application/json";
 
 		if (optHeaders) {
-			for (auto& pair : *optHeaders) {
+			for (auto &pair : *optHeaders) {
 				if (pair.first.is<std::string>() && pair.second.is<std::string>()) {
 					headers[pair.first.as<std::string>()] = pair.second.as<std::string>();
 				}
@@ -412,7 +412,7 @@ namespace LuaAPI {
 
 			// Return headers when finished
 			sol::table respHeaders = lua.create_table();
-			for (const auto& h : session->getHeaders()) {
+			for (const auto &h : session->getHeaders()) {
 				respHeaders[h.first] = h.second;
 			}
 			result["headers"] = respHeaders;
@@ -465,7 +465,7 @@ namespace LuaAPI {
 		return result;
 	}
 
-	void registerHttp(sol::state& lua) {
+	void registerHttp(sol::state &lua) {
 		sol::table http = lua.create_named_table("http");
 
 		// Basic HTTP methods
