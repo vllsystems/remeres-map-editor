@@ -9,11 +9,11 @@
 namespace LuaAPI {
 
 	// Forward declarations
-	sol::object valueToLua(const json_spirit::mValue& val, sol::state_view& lua);
-	json_spirit::mValue luaToValue(const sol::object& obj);
+	sol::object valueToLua(const json_spirit::mValue &val, sol::state_view &lua);
+	json_spirit::mValue luaToValue(const sol::object &obj);
 
 	// Convert JSON Spirit Value to Lua Object
-	sol::object valueToLua(const json_spirit::mValue& val, sol::state_view& lua) {
+	sol::object valueToLua(const json_spirit::mValue &val, sol::state_view &lua) {
 		switch (val.type()) {
 			case json_spirit::null_type:
 				return sol::nil;
@@ -27,7 +27,7 @@ namespace LuaAPI {
 				return sol::make_object(lua, val.get_str());
 			case json_spirit::array_type: {
 				sol::table t = lua.create_table();
-				const json_spirit::mArray& arr = val.get_array();
+				const json_spirit::mArray &arr = val.get_array();
 				for (size_t i = 0; i < arr.size(); ++i) {
 					t[i + 1] = valueToLua(arr[i], lua); // Lua 1-based indexing
 				}
@@ -35,8 +35,8 @@ namespace LuaAPI {
 			}
 			case json_spirit::obj_type: {
 				sol::table t = lua.create_table();
-				const json_spirit::mObject& obj = val.get_obj();
-				for (const auto& pair : obj) {
+				const json_spirit::mObject &obj = val.get_obj();
+				for (const auto &pair : obj) {
 					t[pair.first] = valueToLua(pair.second, lua);
 				}
 				return t;
@@ -46,7 +46,7 @@ namespace LuaAPI {
 	}
 
 	// Convert Lua Object to JSON Spirit Value
-	json_spirit::mValue luaToValue(const sol::object& obj) {
+	json_spirit::mValue luaToValue(const sol::object &obj) {
 		switch (obj.get_type()) {
 			case sol::type::nil:
 				return json_spirit::mValue(); // null
@@ -78,7 +78,7 @@ namespace LuaAPI {
 				size_t maxKey = 0;
 				size_t count = 0;
 
-				for (auto& pair : t) {
+				for (auto &pair : t) {
 					count++;
 					if (pair.first.get_type() == sol::type::number) {
 						double k = pair.first.as<double>();
@@ -129,7 +129,7 @@ namespace LuaAPI {
 					return json_spirit::mValue(arr);
 				} else {
 					json_spirit::mObject objVal;
-					for (auto& pair : t) {
+					for (auto &pair : t) {
 						std::string key;
 						if (pair.first.get_type() == sol::type::string) {
 							key = pair.first.as<std::string>();
@@ -148,7 +148,7 @@ namespace LuaAPI {
 		}
 	}
 
-	void registerJson(sol::state& lua) {
+	void registerJson(sol::state &lua) {
 		// Create "json" table
 		sol::table jsonTable = lua.create_table();
 

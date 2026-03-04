@@ -22,7 +22,7 @@
 
 namespace LuaAPI {
 	// Register geometry functions (bresenham line, bezier, flood fill, etc.)
-	void registerGeo(sol::state& lua);
+	void registerGeo(sol::state &lua);
 }
 
 #endif // RME_LUA_API_GEO_H

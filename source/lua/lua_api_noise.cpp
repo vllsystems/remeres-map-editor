@@ -28,11 +28,11 @@ namespace LuaAPI {
 	// Each seed gets its own generator instance
 	class NoiseGeneratorCache {
 	public:
-		FastNoiseLite& getGenerator(int seed) {
+		FastNoiseLite &getGenerator(int seed) {
 			std::lock_guard<std::mutex> lock(mutex_);
 			auto it = generators_.find(seed);
 			if (it == generators_.end()) {
-				auto& gen = generators_[seed];
+				auto &gen = generators_[seed];
 				gen.SetSeed(seed);
 				return gen;
 			}
@@ -60,7 +60,7 @@ namespace LuaAPI {
 		return noise;
 	}
 
-	void registerNoise(sol::state& lua) {
+	void registerNoise(sol::state &lua) {
 		sol::table noiseTable = lua.create_table();
 
 		// ========================================

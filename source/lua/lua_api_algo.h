@@ -22,7 +22,7 @@
 
 namespace LuaAPI {
 	// Register algorithm functions (cellular automata, erosion, etc.)
-	void registerAlgo(sol::state& lua);
+	void registerAlgo(sol::state &lua);
 }
 
 #endif // RME_LUA_API_ALGO_H

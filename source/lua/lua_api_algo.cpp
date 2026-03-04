@@ -28,7 +28,7 @@
 namespace LuaAPI {
 
 	// Helper: convert Lua table to 2D grid
-	static std::vector<std::vector<int>> tableToGrid(const sol::table& tbl, int width, int height) {
+	static std::vector<std::vector<int>> tableToGrid(const sol::table &tbl, int width, int height) {
 		std::vector<std::vector<int>> grid(height, std::vector<int>(width, 0));
 
 		for (int y = 1; y <= height; ++y) {
@@ -45,7 +45,7 @@ namespace LuaAPI {
 	}
 
 	// Helper: convert 2D grid to Lua table
-	static sol::table gridToTable(const std::vector<std::vector<int>>& grid, sol::state_view& lua) {
+	static sol::table gridToTable(const std::vector<std::vector<int>> &grid, sol::state_view &lua) {
 		sol::table result = lua.create_table();
 		for (size_t y = 0; y < grid.size(); ++y) {
 			sol::table row = lua.create_table();
@@ -58,7 +58,7 @@ namespace LuaAPI {
 	}
 
 	// Helper: convert Lua table to 2D float grid
-	static std::vector<std::vector<float>> tableToFloatGrid(const sol::table& tbl, int width, int height) {
+	static std::vector<std::vector<float>> tableToFloatGrid(const sol::table &tbl, int width, int height) {
 		std::vector<std::vector<float>> grid(height, std::vector<float>(width, 0.0f));
 
 		for (int y = 1; y <= height; ++y) {
@@ -75,7 +75,7 @@ namespace LuaAPI {
 	}
 
 	// Helper: convert 2D float grid to Lua table
-	static sol::table floatGridToTable(const std::vector<std::vector<float>>& grid, sol::state_view& lua) {
+	static sol::table floatGridToTable(const std::vector<std::vector<float>> &grid, sol::state_view &lua) {
 		sol::table result = lua.create_table();
 		for (size_t y = 0; y < grid.size(); ++y) {
 			sol::table row = lua.create_table();
@@ -87,7 +87,7 @@ namespace LuaAPI {
 		return result;
 	}
 
-	void registerAlgo(sol::state& lua) {
+	void registerAlgo(sol::state &lua) {
 		sol::table algoTable = lua.create_table();
 
 		// ========================================
@@ -576,7 +576,7 @@ namespace LuaAPI {
 
 			// Parse points
 			std::vector<std::pair<int, int>> seedPoints;
-			for (auto& kv : points) {
+			for (auto &kv : points) {
 				if (kv.second.get_type() == sol::type::table) {
 					sol::table pt = kv.second;
 					int x = pt.get_or(std::string("x"), pt.get_or(1, 0));
@@ -786,7 +786,7 @@ namespace LuaAPI {
 			BSPNode* root = split(0, 0, width, height, 0);
 
 			// Carve rooms
-			for (const auto& room : rooms) {
+			for (const auto &room : rooms) {
 				int rx = std::get<0>(room);
 				int ry = std::get<1>(room);
 				int rw = std::get<2>(room);

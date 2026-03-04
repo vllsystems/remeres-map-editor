@@ -22,7 +22,7 @@
 
 namespace LuaAPI {
 	// Register noise generation functions (perlin, simplex, cellular, fbm, etc.)
-	void registerNoise(sol::state& lua);
+	void registerNoise(sol::state &lua);
 }
 
 #endif // RME_LUA_API_NOISE_H
