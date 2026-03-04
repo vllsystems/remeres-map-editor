@@ -180,6 +180,11 @@ target_sources(${PROJECT_NAME}
 	lua/lua_api_creature.cpp
 	lua/lua_api_brush.cpp
 	lua/lua_api_image.cpp
+	lua/lua_api_geo.cpp
+	lua/lua_api_http.cpp
+	lua/lua_api_noise.cpp
+	lua/lua_api_json.cpp
+	lua/lua_api_algo.cpp
 	lua/lua_scripts_window.cpp
 	main_menubar.cpp
 	main_toolbar.cpp
