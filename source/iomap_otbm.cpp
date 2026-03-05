@@ -59,7 +59,7 @@ typedef uint32_t flags_t;
 namespace {
 	constexpr int HousePreviewContextMargin = 2;
 	constexpr int HouseStaticMapContextMargin = 0;
-	constexpr int HouseStaticMapContextTileRadius = 1;
+	constexpr int HouseStaticMapContextTileRadius = 0;
 	// CIP staticmapdata houses can carry up to 8 items per preview tile.
 	// Limiting to 5 truncates border/top items and can hide south walls.
 	constexpr size_t HousePreviewMaxItemsPerTile = 8;
@@ -147,8 +147,6 @@ namespace {
 	struct StaticMapTemplateTile {
 		uint32_t index = 0;
 		uint32_t skip = 0;
-		bool hasHouseMask = false;
-		bool isHouseTile = false;
 		std::vector<uint32_t> itemValues;
 	};
 
@@ -1577,11 +1575,6 @@ namespace {
 		struct SerializedTile final {
 			std::vector<uint32_t> itemValues;
 			uint32_t skip = 0;
-			bool hasHouseMask = false;
-			bool isHouseTile = false;
-			bool maskFromTemplate = false;
-			bool mapCurrentIsHouseTile = false;
-			bool mapAlternativeIsHouseTile = false;
 		};
 
 		std::vector<SerializedTile> serializedTiles;
@@ -1611,9 +1604,6 @@ namespace {
 		size_t currentMappingExactMatches = 0;
 		size_t alternativeMappingExactMatches = 0;
 		size_t alternativeMappingBetterMatches = 0;
-		size_t templateTilesWithoutMask = 0;
-		size_t templateDerivedHouseTiles = 0;
-		size_t templateDerivedContextTiles = 0;
 
 		if (houseTemplate && houseTemplate->isValid()) {
 			minX = houseTemplate->minX;
@@ -1651,15 +1641,6 @@ namespace {
 				std::vector<uint32_t> sampledTileItemValues;
 				Tile* tile = map.getTile(position);
 				Tile* alternativeTile = map.getTile(alternativePosition);
-				serializedTile.mapCurrentIsHouseTile = tile && tile->getHouseID() == house.id;
-				serializedTile.mapAlternativeIsHouseTile = alternativeTile && alternativeTile->getHouseID() == house.id;
-				if (templateTile.hasHouseMask) {
-					serializedTile.hasHouseMask = true;
-					serializedTile.isHouseTile = templateTile.isHouseTile;
-					serializedTile.maskFromTemplate = true;
-				} else {
-					++templateTilesWithoutMask;
-				}
 				if (!tile) {
 					++missingMapTileCount;
 				}
@@ -1761,45 +1742,6 @@ namespace {
 
 				serializedTiles.emplace_back(std::move(serializedTile));
 			}
-
-			// Some legacy/static templates do not carry is_house_tile. In this case
-			// derive mask from map house ownership so OTC can avoid legacy mask inference.
-			const bool useAlternativeHouseMaskMapping = alternativeMappingExactMatches > currentMappingExactMatches;
-			for (auto &serializedTile : serializedTiles) {
-				if (serializedTile.maskFromTemplate) {
-					continue;
-				}
-
-				serializedTile.hasHouseMask = true;
-				bool derivedIsHouseTile = useAlternativeHouseMaskMapping
-					? serializedTile.mapAlternativeIsHouseTile
-					: serializedTile.mapCurrentIsHouseTile;
-				if (!derivedIsHouseTile && serializedTile.mapCurrentIsHouseTile != serializedTile.mapAlternativeIsHouseTile) {
-					derivedIsHouseTile = serializedTile.mapCurrentIsHouseTile || serializedTile.mapAlternativeIsHouseTile;
-				}
-				serializedTile.isHouseTile = derivedIsHouseTile;
-				if (derivedIsHouseTile) {
-					++templateDerivedHouseTiles;
-				} else {
-					++templateDerivedContextTiles;
-				}
-			}
-
-			if (houseDebugTarget) {
-				spdlog::info(
-					"[house-debug] house={} name='{}' template_mask_missing_tiles={} derived_house_tiles={} derived_context_tiles={} "
-					"mask_mapping={} current_exact_matches={} alternative_exact_matches={} alternative_better_matches={}",
-					house.id,
-					house.name,
-					templateTilesWithoutMask,
-					templateDerivedHouseTiles,
-					templateDerivedContextTiles,
-					useAlternativeHouseMaskMapping ? "alternative" : "current",
-					currentMappingExactMatches,
-					alternativeMappingExactMatches,
-					alternativeMappingBetterMatches
-				);
-			}
 		} else {
 			const PositionVector houseTiles = selectConnectedHousePreviewTiles(house);
 			if (houseTiles.empty()) {
@@ -1890,8 +1832,6 @@ namespace {
 
 						SerializedTile serializedTile;
 						serializedTile.itemValues = tileClientIds;
-						serializedTile.hasHouseMask = true;
-						serializedTile.isHouseTile = tile->getHouseID() == house.id;
 						serializedTiles.emplace_back(std::move(serializedTile));
 					}
 				}
@@ -1941,9 +1881,6 @@ namespace {
 				item->set_value(itemValue);
 			}
 			tile->set_skip(serializedTile.skip);
-			if (serializedTile.hasHouseMask) {
-				tile->set_is_house_tile(serializedTile.isHouseTile);
-			}
 		}
 
 		auto &exportStats = g_staticMapHouseExportDebugStats;
@@ -2127,17 +2064,135 @@ namespace {
 		return templateMapData.ParseFromIstream(&mapInput);
 	}
 
+	bool tryExtractSha256FromFilename(const std::filesystem::path &path, std::string &hashHex) {
+		hashHex.clear();
+		const std::string filename = path.filename().string();
+		const size_t dashPos = filename.find('-');
+		const size_t dotPos = filename.rfind('.');
+		if (dashPos == std::string::npos || dotPos == std::string::npos || dotPos <= dashPos + 1) {
+			return false;
+		}
+
+		const std::string candidate = filename.substr(dashPos + 1, dotPos - dashPos - 1);
+		if (candidate.size() != 64) {
+			return false;
+		}
+
+		for (char ch : candidate) {
+			if (!std::isxdigit(static_cast<unsigned char>(ch))) {
+				return false;
+			}
+		}
+
+		hashHex = candidate;
+		std::transform(hashHex.begin(), hashHex.end(), hashHex.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+		return true;
+	}
+
+	bool readBinaryFile(const std::filesystem::path &path, std::vector<uint8_t> &bytes) {
+		std::ifstream input(path, std::ios::binary);
+		if (!input.is_open()) {
+			return false;
+		}
+
+		input.seekg(0, std::ios::end);
+		const std::streamoff size = input.tellg();
+		if (size < 0) {
+			return false;
+		}
+		input.seekg(0, std::ios::beg);
+
+		bytes.resize(static_cast<size_t>(size));
+		if (!bytes.empty()) {
+			input.read(reinterpret_cast<char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
+			if (!input.good() && !input.eof()) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool hasMatchingEmbeddedSha256(const std::filesystem::path &path) {
+		std::string expectedHash;
+		if (!tryExtractSha256FromFilename(path, expectedHash)) {
+			// No embedded hash in filename: accept as-is.
+			return true;
+		}
+
+		std::vector<uint8_t> bytes;
+		if (!readBinaryFile(path, bytes)) {
+			return false;
+		}
+
+		const std::string actualHash = toHex(sha256Hash(bytes));
+		if (actualHash != expectedHash) {
+			spdlog::warn(
+				"[house-debug] template hash mismatch for '{}': expected={} actual={}",
+				path.string(),
+				expectedHash,
+				actualHash
+			);
+			return false;
+		}
+
+		return true;
+	}
+
+	std::filesystem::path findValidTemplateAssetSibling(const std::filesystem::path &basePath, const std::string &fileName) {
+		if (basePath.empty() || fileName.empty()) {
+			return std::filesystem::path();
+		}
+
+		const std::filesystem::path clientRoot = basePath.parent_path();
+		const std::filesystem::path clientsRoot = clientRoot.parent_path();
+		if (clientsRoot.empty() || !std::filesystem::exists(clientsRoot) || !std::filesystem::is_directory(clientsRoot)) {
+			return std::filesystem::path();
+		}
+
+		for (const auto &entry : std::filesystem::directory_iterator(clientsRoot)) {
+			if (!entry.is_directory()) {
+				continue;
+			}
+
+			const std::filesystem::path siblingRoot = entry.path();
+			if (siblingRoot == clientRoot) {
+				continue;
+			}
+
+			const std::array<std::filesystem::path, 2> candidates {
+				siblingRoot / "assets" / fileName,
+				siblingRoot / fileName
+			};
+
+			for (const auto &candidate : candidates) {
+				if (!std::filesystem::exists(candidate)) {
+					continue;
+				}
+				if (hasMatchingEmbeddedSha256(candidate)) {
+					return candidate;
+				}
+			}
+		}
+
+		return std::filesystem::path();
+	}
+
 	bool loadStaticMapDataTemplate(const std::filesystem::path &staticMapDataPath, clienteditor::protobuf::staticmapdata::StaticMapData &templateStaticMapData) {
 		if (!std::filesystem::exists(staticMapDataPath)) {
 			return false;
 		}
 
-		std::ifstream staticMapDataInput(staticMapDataPath, std::ios::binary);
-		if (!staticMapDataInput.is_open()) {
+		if (!hasMatchingEmbeddedSha256(staticMapDataPath)) {
 			return false;
 		}
 
-		return templateStaticMapData.ParseFromIstream(&staticMapDataInput);
+		std::vector<uint8_t> bytes;
+		if (!readBinaryFile(staticMapDataPath, bytes)) {
+			return false;
+		}
+
+		return templateStaticMapData.ParseFromArray(bytes.data(), static_cast<int>(bytes.size()));
 	}
 
 	bool buildStaticMapHouseTemplate(
@@ -2183,8 +2238,6 @@ namespace {
 			StaticMapTemplateTile tile;
 			tile.index = static_cast<uint32_t>(linearIndex);
 			tile.skip = skip;
-			tile.hasHouseMask = templateTile.has_is_house_tile();
-			tile.isHouseTile = templateTile.is_house_tile();
 			tile.itemValues.reserve(templateTile.item_size());
 			for (const auto &templateItem : templateTile.item()) {
 				tile.itemValues.emplace_back(templateItem.value());
@@ -2307,12 +2360,16 @@ namespace {
 			return false;
 		}
 
-		std::ifstream staticDataInput(staticDataPath, std::ios::binary);
-		if (!staticDataInput.is_open()) {
+		if (!hasMatchingEmbeddedSha256(staticDataPath)) {
 			return false;
 		}
 
-		return templateStaticData.ParseFromIstream(&staticDataInput);
+		std::vector<uint8_t> bytes;
+		if (!readBinaryFile(staticDataPath, bytes)) {
+			return false;
+		}
+
+		return templateStaticData.ParseFromArray(bytes.data(), static_cast<int>(bytes.size()));
 	}
 
 	bool mergeStaticDataTemplate(
@@ -4884,17 +4941,26 @@ bool IOMapOTBM::saveStaticData(Map &map, const FileName &dir, const std::vector<
 	if (!hasTemplateStaticData) {
 		hasTemplateStaticData = loadStaticDataTemplate(basePath / staticDataFileName, templateStaticData);
 	}
-	if (hasHouseNameFilter && !hasTemplateStaticData) {
-		registerExportError("House filter export requires an existing staticdata template file.");
+	if (!hasTemplateStaticData) {
+		const auto siblingTemplatePath = findValidTemplateAssetSibling(basePath, staticDataFileName);
+		if (!siblingTemplatePath.empty()) {
+			hasTemplateStaticData = loadStaticDataTemplate(siblingTemplatePath, templateStaticData);
+			if (hasTemplateStaticData) {
+				spdlog::info("[house-debug] using sibling staticdata template '{}'", siblingTemplatePath.string());
+			}
+		}
+	}
+	if (!hasTemplateStaticData) {
+		registerExportError("Cyclopedia export requires a valid staticdata template file (hash must match filename).");
 		return false;
 	}
-	if (hasTemplateStaticData) {
-		std::string mergedBuffer;
-		if (mergeStaticDataTemplate(templateStaticData, buffer, mergedBuffer, &houseIdRemap, &housePositionDeltaRemap)) {
-			buffer = std::move(mergedBuffer);
-		} else {
-			registerExportError("Failed to merge template staticdata protobuf content.");
-		}
+
+	std::string mergedBuffer;
+	if (mergeStaticDataTemplate(templateStaticData, buffer, mergedBuffer, &houseIdRemap, &housePositionDeltaRemap)) {
+		buffer = std::move(mergedBuffer);
+	} else {
+		registerExportError("Failed to merge template staticdata protobuf content.");
+		return false;
 	}
 	spdlog::info(
 		"[house-debug] staticdata stage: template_loaded={} remap_size={} position_delta_size={}",
@@ -4954,8 +5020,17 @@ bool IOMapOTBM::saveStaticData(Map &map, const FileName &dir, const std::vector<
 		if (!hasTemplateStaticMapData) {
 			hasTemplateStaticMapData = loadStaticMapDataTemplate(basePath / staticMapDataFileName, templateStaticMapData);
 		}
-		if (hasHouseNameFilter && !hasTemplateStaticMapData) {
-			registerExportError("House filter export requires an existing staticmapdata template file.");
+		if (!hasTemplateStaticMapData) {
+			const auto siblingTemplatePath = findValidTemplateAssetSibling(basePath, staticMapDataFileName);
+			if (!siblingTemplatePath.empty()) {
+				hasTemplateStaticMapData = loadStaticMapDataTemplate(siblingTemplatePath, templateStaticMapData);
+				if (hasTemplateStaticMapData) {
+					spdlog::info("[house-debug] using sibling staticmapdata template '{}'", siblingTemplatePath.string());
+				}
+			}
+		}
+		if (!hasTemplateStaticMapData) {
+			registerExportError("Cyclopedia export requires a valid staticmapdata template file (hash must match filename).");
 			return false;
 		}
 		spdlog::info(
