@@ -2176,7 +2176,6 @@ namespace {
 		uint64_t linearIndex = 0;
 		for (const auto &templateTile : data.preview().layer().tile()) {
 			const uint32_t skip = templateTile.has_skip() ? templateTile.skip() : 0;
-			linearIndex += skip;
 			if (linearIndex >= totalCells) {
 				break;
 			}
@@ -2191,7 +2190,12 @@ namespace {
 				tile.itemValues.emplace_back(templateItem.value());
 			}
 			parsedTemplate.tiles.emplace_back(tile);
-			++linearIndex;
+
+			const uint64_t nextIndex = linearIndex + static_cast<uint64_t>(skip) + 1;
+			if (nextIndex < linearIndex) {
+				break;
+			}
+			linearIndex = nextIndex;
 		}
 
 		houseTemplate = std::move(parsedTemplate);
