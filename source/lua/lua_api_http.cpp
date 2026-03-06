@@ -125,7 +125,12 @@ namespace LuaAPI {
 	static bool isUrlSafe(const std::string &url_str) {
 		std::string low = url_str;
 		std::transform(low.begin(), low.end(), low.begin(), ::tolower);
-		if (low.find("localhost") != std::string::npos || low.find("127.0.0.1") != std::string::npos || low.find("::1") != std::string::npos) {
+		// Block common localhost patterns
+		if (low.find("localhost") != std::string::npos || low.find("127.") != std::string::npos || low.find("0.0.0.0") != std::string::npos || low.find("[::1]") != std::string::npos || low.find("[::ffff:127.") != std::string::npos || low.find("//[::") != std::string::npos) {
+			return false;
+		}
+		// Block file:// and other dangerous schemes
+		if (low.find("file://") == 0 || low.find("ftp://") == 0) {
 			return false;
 		}
 		return true;
@@ -213,65 +218,60 @@ namespace LuaAPI {
 	}
 
 	// Helper function to convert Lua table to JSON
-	static std::function<nlohmann::json(sol::object)> getLuaToJsonConverter() {
-		std::function<nlohmann::json(sol::object)> luaToJson;
-		luaToJson = [&luaToJson](sol::object obj) -> nlohmann::json {
-			if (obj.is<bool>()) {
-				return obj.as<bool>();
-			} else if (obj.is<int>()) {
-				return obj.as<int>();
-			} else if (obj.is<double>()) {
-				return obj.as<double>();
-			} else if (obj.is<std::string>()) {
-				return obj.as<std::string>();
-			} else if (obj.is<sol::table>()) {
-				sol::table tbl = obj.as<sol::table>();
+	static nlohmann::json luaToJson(sol::object obj) {
+		if (obj.is<bool>()) {
+			return obj.as<bool>();
+		} else if (obj.is<int>()) {
+			return obj.as<int>();
+		} else if (obj.is<double>()) {
+			return obj.as<double>();
+		} else if (obj.is<std::string>()) {
+			return obj.as<std::string>();
+		} else if (obj.is<sol::table>()) {
+			sol::table tbl = obj.as<sol::table>();
 
-				// Check if it's an array (sequential integer keys starting at 1)
-				bool isArray = true;
-				size_t expectedKey = 1;
-				for (auto &pair : tbl) {
-					if (!pair.first.is<size_t>() || pair.first.as<size_t>() != expectedKey) {
-						isArray = false;
-						break;
-					}
-					expectedKey++;
+			// Check if it's an array (sequential integer keys starting at 1)
+			bool isArray = true;
+			size_t expectedKey = 1;
+			for (auto &pair : tbl) {
+				if (!pair.first.is<size_t>() || pair.first.as<size_t>() != expectedKey) {
+					isArray = false;
+					break;
 				}
-
-				if (isArray && expectedKey > 1) {
-					nlohmann::json arr = nlohmann::json::array();
-					for (auto &pair : tbl) {
-						arr.push_back(luaToJson(pair.second));
-					}
-					return arr;
-				} else {
-					nlohmann::json jsonObj = nlohmann::json::object();
-					for (auto &pair : tbl) {
-						std::string key;
-						if (pair.first.is<std::string>()) {
-							key = pair.first.as<std::string>();
-						} else if (pair.first.is<int>()) {
-							key = std::to_string(pair.first.as<int>());
-						} else {
-							continue;
-						}
-						jsonObj[key] = luaToJson(pair.second);
-					}
-					return jsonObj;
-				}
-			} else if (obj.is<sol::nil_t>()) {
-				return nullptr;
+				expectedKey++;
 			}
+
+			if (isArray && expectedKey > 1) {
+				nlohmann::json arr = nlohmann::json::array();
+				for (auto &pair : tbl) {
+					arr.push_back(luaToJson(pair.second));
+				}
+				return arr;
+			} else {
+				nlohmann::json jsonObj = nlohmann::json::object();
+				for (auto &pair : tbl) {
+					std::string key;
+					if (pair.first.is<std::string>()) {
+						key = pair.first.as<std::string>();
+					} else if (pair.first.is<int>()) {
+						key = std::to_string(pair.first.as<int>());
+					} else {
+						continue;
+					}
+					jsonObj[key] = luaToJson(pair.second);
+				}
+				return jsonObj;
+			}
+		} else if (obj.is<sol::nil_t>()) {
 			return nullptr;
-		};
-		return luaToJson;
+		}
+		return nullptr;
 	}
 
 	// HTTP POST with JSON body
 	static sol::table httpPostJson(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		auto luaToJson = getLuaToJsonConverter();
 		std::string jsonStr = luaToJson(jsonBody).dump();
 
 		// Add Content-Type header if not present
@@ -354,7 +354,6 @@ namespace LuaAPI {
 	static sol::table httpPostJsonStream(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		auto luaToJson = getLuaToJsonConverter();
 		std::string jsonStr = luaToJson(jsonBody).dump();
 
 		// Add Content-Type header if not present

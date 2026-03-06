@@ -20,9 +20,9 @@
 
 #include <string>
 #include <functional>
-#include <sol/sol.hpp>
 
 #define SOL_ALL_SAFETIES_ON 1
+#include <sol/sol.hpp>
 
 class LuaEngine {
 public:

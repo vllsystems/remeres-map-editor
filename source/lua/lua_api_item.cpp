@@ -88,12 +88,18 @@ namespace LuaAPI {
 		sol::table items = lua.create_named_table("Items");
 
 		// Get item type info by ID
-		items["get"] = [](int id) -> sol::optional<sol::table> {
+		items["get"] = [](sol::this_state ts, int id) -> sol::object {
+			sol::state_view lua(ts);
 			if (g_items[id].id == 0) {
-				return sol::nullopt;
+				return sol::nil;
 			}
-			// Return item info as table (not the actual ItemType pointer)
-			return sol::nullopt; // We'll use getInfo instead
+			ItemType &it = g_items[id];
+			sol::table info = lua.create_table();
+			info["id"] = it.id;
+			info["clientId"] = it.clientID;
+			info["name"] = it.name;
+			info["description"] = it.description;
+			return info;
 		};
 
 		// Get item info by ID - returns a table with item properties

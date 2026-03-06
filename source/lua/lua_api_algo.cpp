@@ -304,7 +304,11 @@ namespace LuaAPI {
 			std::vector<std::vector<std::pair<int, int>>> brushIndices(erosionRadius * 2 + 1);
 			std::vector<std::vector<float>> brushWeights(erosionRadius * 2 + 1);
 
-			for (int radius = 0; radius <= erosionRadius; ++radius) {
+			// radius == 0: single center point with weight 1
+			brushIndices[0].push_back({ 0, 0 });
+			brushWeights[0].push_back(1.0f);
+
+			for (int radius = 1; radius <= erosionRadius; ++radius) {
 				for (int y = -radius; y <= radius; ++y) {
 					for (int x = -radius; x <= radius; ++x) {
 						float sqrDst = (float)(x * x + y * y);

@@ -61,6 +61,12 @@ namespace LuaAPI {
 		if (!tile) {
 			throw sol::error("Invalid tile");
 		}
+		if (itemId <= 0 || itemId > 0xFFFF) {
+			throw sol::error("Invalid item id: " + std::to_string(itemId));
+		}
+		if (countOpt && (*countOpt < 0 || *countOpt > 0xFFFF)) {
+			throw sol::error("Invalid item count: " + std::to_string(*countOpt));
+		}
 
 		// Mark tile for undo before modification
 		markTileForUndo(tile);
@@ -235,28 +241,38 @@ namespace LuaAPI {
 			throw sol::error("Invalid tile");
 		}
 
+		Item* newGround = nullptr;
+
+		if (groundObj.is<int>()) {
+			int groundId = groundObj.as<int>();
+			if (groundId > 0) {
+				newGround = Item::Create(static_cast<uint16_t>(groundId));
+				if (!newGround) {
+					throw sol::error("Failed to create ground item with id " + std::to_string(groundId));
+				}
+			}
+			// groundId <= 0 treated as removal (newGround stays nullptr)
+		} else if (groundObj.is<Item*>()) {
+			Item* item = groundObj.as<Item*>();
+			if (item) {
+				newGround = item->deepCopy();
+			}
+			// nullptr Item* treated as removal
+		} else if (groundObj.is<sol::nil_t>()) {
+			// Explicit nil: remove ground (newGround stays nullptr)
+		} else {
+			throw sol::error("Invalid argument: expected item id (int), Item*, or nil");
+		}
+
 		// Mark tile for undo before modification
 		markTileForUndo(tile);
 
-		// Remove existing ground
+		// Replace ground
 		if (tile->ground) {
 			delete tile->ground;
 			tile->ground = nullptr;
 		}
-
-		// Set new ground if provided
-		if (groundObj.is<int>()) {
-			int groundId = groundObj.as<int>();
-			if (groundId > 0) {
-				tile->ground = Item::Create(static_cast<uint16_t>(groundId));
-			}
-		} else if (groundObj.is<Item*>()) {
-			Item* item = groundObj.as<Item*>();
-			if (item) {
-				tile->ground = item->deepCopy();
-			}
-		}
-		// If nil/none, ground stays null
+		tile->ground = newGround;
 
 		tile->modify();
 	}
