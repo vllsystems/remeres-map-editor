@@ -47,15 +47,17 @@ LuaScriptsWindow::LuaScriptsWindow(wxWindow* parent) :
 	RefreshScriptList();
 
 	// Set up output callback
-	g_luaScripts.setOutputCallback([this](const std::string &msg, bool isError) {
-		// Must be called from main thread
+	g_luaScripts.setOutputCallback([](const std::string &msg, bool isError) {
+		auto logToWindow = [msg, isError]() {
+			if (LuaScriptsWindow* win = LuaScriptsWindow::Get()) {
+				win->LogMessage(wxString::FromUTF8(msg), isError);
+			}
+		};
+
 		if (wxThread::IsMain()) {
-			LogMessage(wxString::FromUTF8(msg), isError);
+			logToWindow();
 		} else {
-			// Post event to main thread
-			wxTheApp->CallAfter([this, msg, isError]() {
-				LogMessage(wxString::FromUTF8(msg), isError);
-			});
+			wxTheApp->CallAfter(logToWindow);
 		}
 	});
 }

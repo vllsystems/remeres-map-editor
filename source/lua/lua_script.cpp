@@ -179,9 +179,52 @@ void LuaScript::parseMetadataFromManifest() {
 			autorun = true;
 		}
 	} else {
-		// Also check boolean literal
-		if (content.find("autorun = true") != std::string::npos || content.find("autorun=true") != std::string::npos) {
-			autorun = true;
+		// Scan line-by-line for standalone "autorun = true", ignoring comments
+		bool inBlockComment = false;
+		std::istringstream stream(content);
+		std::string line;
+		while (std::getline(stream, line)) {
+			// Handle block comments --[[ ... ]]
+			size_t bcStart = line.find("--[[");
+			size_t bcEnd = line.find("]]");
+			if (inBlockComment) {
+				if (bcEnd != std::string::npos) {
+					inBlockComment = false;
+					line = line.substr(bcEnd + 2);
+				} else {
+					continue;
+				}
+			}
+			if (bcStart != std::string::npos && bcEnd == std::string::npos) {
+				inBlockComment = true;
+				line = line.substr(0, bcStart);
+			}
+			// Strip single-line comment
+			size_t commentPos = line.find("--");
+			if (commentPos != std::string::npos) {
+				line = line.substr(0, commentPos);
+			}
+			// Match standalone "autorun" with word boundary
+			size_t pos = line.find("autorun");
+			if (pos != std::string::npos) {
+				// Check it's not part of a larger identifier
+				bool validBefore = (pos == 0) || (!std::isalnum(line[pos - 1]) && line[pos - 1] != '_');
+				size_t afterPos = pos + 7; // length of "autorun"
+				bool validAfter = (afterPos >= line.size()) || (!std::isalnum(line[afterPos]) && line[afterPos] != '_');
+				if (validBefore && validAfter) {
+					// Check if the rest matches "= true"
+					std::string rest = line.substr(afterPos);
+					rest.erase(0, rest.find_first_not_of(" \t"));
+					if (rest.size() >= 1 && rest[0] == '=') {
+						rest = rest.substr(1);
+						rest.erase(0, rest.find_first_not_of(" \t"));
+						if (rest.substr(0, 4) == "true") {
+							autorun = true;
+							break;
+						}
+					}
+				}
+			}
 		}
 	}
 

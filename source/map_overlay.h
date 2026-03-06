@@ -18,6 +18,7 @@
 #ifndef RME_MAP_OVERLAY_H
 #define RME_MAP_OVERLAY_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <wx/colour.h>

@@ -26,6 +26,7 @@
 #include <memory>
 #include <map>
 #include <functional>
+#include <tuple>
 
 #include "../map_overlay.h"
 
@@ -108,12 +109,15 @@ public:
 			return;
 		}
 
+		// Capture args into a stable copy to avoid move-from on second iteration
+		auto argsCopy = std::make_tuple(std::decay_t<Args>(std::forward<Args>(args))...);
+
 		// Iterate over a copy to allow callbacks to modify the listener list safely
 		std::vector<EventListener> listenersCopy = eventListeners;
 		for (const auto &listener : listenersCopy) {
 			if (listener.eventName == eventName && listener.callback.valid()) {
 				try {
-					listener.callback(std::forward<Args>(args)...);
+					std::apply(listener.callback, argsCopy);
 				} catch (const sol::error &e) {
 					logOutput("Event '" + eventName + "' error: " + std::string(e.what()), true);
 				}
@@ -127,13 +131,16 @@ public:
 			return false;
 		}
 
+		// Capture args into a stable copy to avoid move-from on second iteration
+		auto argsCopy = std::make_tuple(std::decay_t<Args>(std::forward<Args>(args))...);
+
 		// Iterate over a copy to allow callbacks to modify the listener list safely
 		std::vector<EventListener> listenersCopy = eventListeners;
 		bool consumed = false;
 		for (const auto &listener : listenersCopy) {
 			if (listener.eventName == eventName && listener.callback.valid()) {
 				try {
-					sol::object result = listener.callback(std::forward<Args>(args)...);
+					sol::object result = std::apply(listener.callback, argsCopy);
 					if (result.valid() && result.is<bool>() && result.as<bool>()) {
 						consumed = true;
 						break; // Stop propagation
