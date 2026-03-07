@@ -178,6 +178,10 @@ namespace LuaAPI {
 		algoTable.set_function("generateCave", [](int width, int height, sol::optional<sol::table> options, sol::this_state s) -> sol::table {
 			sol::state_view lua(s);
 
+			if (width <= 0 || height <= 0) {
+				return lua.create_table();
+			}
+
 			float fillProbability = 0.45f;
 			int iterations = 4;
 			int birthLimit = 4;
@@ -295,6 +299,10 @@ namespace LuaAPI {
 				maxDropletLifetime = opts.get_or(std::string("maxDropletLifetime"), 30);
 			}
 
+			if (erosionRadius < 0) {
+				erosionRadius = 0;
+			}
+
 			auto heightmap = tableToFloatGrid(inputHeightmap, width, height);
 
 			std::mt19937 rng(seed);
@@ -309,6 +317,7 @@ namespace LuaAPI {
 			brushWeights[0].push_back(1.0f);
 
 			for (int radius = 1; radius <= erosionRadius; ++radius) {
+				float totalWeight = 0.0f;
 				for (int y = -radius; y <= radius; ++y) {
 					for (int x = -radius; x <= radius; ++x) {
 						float sqrDst = (float)(x * x + y * y);
@@ -316,7 +325,13 @@ namespace LuaAPI {
 							brushIndices[radius].push_back({ x, y });
 							float weight = 1.0f - std::sqrt(sqrDst) / (float)radius;
 							brushWeights[radius].push_back(weight);
+							totalWeight += weight;
 						}
+					}
+				}
+				if (totalWeight > 0.0f) {
+					for (float &weight : brushWeights[radius]) {
+						weight /= totalWeight;
 					}
 				}
 			}
@@ -428,7 +443,7 @@ namespace LuaAPI {
 					// Update position and speed
 					posX = newPosX;
 					posY = newPosY;
-					speed = std::sqrt(speed * speed + deltaHeight * gravity);
+					speed = std::sqrt(std::max(0.0f, speed * speed - deltaHeight * gravity));
 					water *= (1 - evaporateSpeed);
 				}
 			}
@@ -540,6 +555,13 @@ namespace LuaAPI {
 				kernelSize = opts.get_or(std::string("kernelSize"), 3);
 			}
 
+			if (kernelSize <= 0) {
+				return inputGrid;
+			}
+			if (kernelSize % 2 == 0) {
+				++kernelSize;
+			}
+
 			auto grid = tableToFloatGrid(inputGrid, width, height);
 
 			int radius = kernelSize / 2;
@@ -577,6 +599,10 @@ namespace LuaAPI {
 		// Generate Voronoi diagram from seed points
 		algoTable.set_function("voronoi", [](int width, int height, sol::table points, sol::this_state s) -> sol::table {
 			sol::state_view lua(s);
+
+			if (width <= 0 || height <= 0) {
+				return lua.create_table();
+			}
 
 			// Parse points
 			std::vector<std::pair<int, int>> seedPoints;
@@ -623,6 +649,10 @@ namespace LuaAPI {
 		algoTable.set_function("generateRandomPoints", [](int width, int height, int count, sol::optional<int> seed, sol::this_state s) -> sol::table {
 			sol::state_view lua(s);
 
+			if (width <= 0 || height <= 0 || count <= 0) {
+				return lua.create_table();
+			}
+
 			int sd = seed.value_or(static_cast<int>(time(nullptr)));
 			std::mt19937 rng(sd);
 			std::uniform_int_distribution<int> distX(0, width - 1);
@@ -649,6 +679,10 @@ namespace LuaAPI {
 		algoTable.set_function("generateMaze", [](int width, int height, sol::optional<sol::table> options, sol::this_state s) -> sol::table {
 			sol::state_view lua(s);
 
+			if (width <= 0 || height <= 0) {
+				return lua.create_table();
+			}
+
 			int seed = static_cast<int>(time(nullptr));
 
 			if (options) {
@@ -664,6 +698,10 @@ namespace LuaAPI {
 			}
 			if (height % 2 == 0) {
 				height++;
+			}
+
+			if (width < 3 || height < 3) {
+				return lua.create_table();
 			}
 
 			// Initialize grid with walls
@@ -716,6 +754,10 @@ namespace LuaAPI {
 		algoTable.set_function("generateDungeon", [](int width, int height, sol::optional<sol::table> options, sol::this_state s) -> sol::table {
 			sol::state_view lua(s);
 
+			if (width <= 0 || height <= 0) {
+				return lua.create_table();
+			}
+
 			int minRoomSize = 5;
 			int maxRoomSize = 15;
 			int seed = static_cast<int>(time(nullptr));
@@ -728,6 +770,9 @@ namespace LuaAPI {
 				seed = opts.get_or(std::string("seed"), seed);
 				maxDepth = opts.get_or(std::string("maxDepth"), 4);
 			}
+
+			minRoomSize = std::max(minRoomSize, 1);
+			maxRoomSize = std::max(maxRoomSize, minRoomSize);
 
 			std::mt19937 rng(seed);
 

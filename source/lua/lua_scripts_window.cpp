@@ -210,12 +210,14 @@ void LuaScriptsWindow::UpdateScriptState(long index) {
 
 	if (scriptIndex < scripts.size()) {
 		const auto &script = scripts[scriptIndex];
-		script_list->SetItem(index, 0, script->isEnabled() ? "On" : "Off");
-
-		if (script->isEnabled()) {
-			script_list->SetItemTextColour(index, wxColour(0, 0, 0));
-		} else {
-			script_list->SetItemTextColour(index, wxColour(128, 128, 128));
+		if (!script->isEnabled()) {
+			LogMessage("Script is disabled: " + wxString::FromUTF8(script->getDisplayName()), true);
+			return;
+		}
+		LogMessage("Running: " + wxString::FromUTF8(script->getDisplayName()));
+		std::string error;
+		if (!g_luaScripts.executeScript(scriptIndex, error)) {
+			LogMessage("Error: " + wxString::FromUTF8(error), true);
 		}
 	}
 }

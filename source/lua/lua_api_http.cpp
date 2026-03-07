@@ -35,7 +35,15 @@ namespace LuaAPI {
 	class StreamSession {
 	public:
 		StreamSession() :
-			finished_(false), hasError_(false), statusCode_(0) { }
+			finished_(false), hasError_(false), statusCode_(0), cancelled_(false) { }
+
+		void cancel() {
+			cancelled_ = true;
+		}
+
+		bool isCancelled() {
+			return cancelled_;
+		}
 
 		void appendChunk(const std::string &chunk) {
 			std::lock_guard<std::mutex> lock(mutex_);
@@ -111,6 +119,7 @@ namespace LuaAPI {
 		std::condition_variable cv_;
 		std::atomic<bool> finished_;
 		std::atomic<bool> hasError_;
+		std::atomic<bool> cancelled_;
 		std::string errorMessage_;
 		std::atomic<int> statusCode_;
 		cpr::Header responseHeaders_;
@@ -231,20 +240,22 @@ namespace LuaAPI {
 			sol::table tbl = obj.as<sol::table>();
 
 			// Check if it's an array (sequential integer keys starting at 1)
-			bool isArray = true;
-			size_t expectedKey = 1;
-			for (auto &pair : tbl) {
-				if (!pair.first.is<size_t>() || pair.first.as<size_t>() != expectedKey) {
-					isArray = false;
-					break;
+			size_t len = tbl.size();
+			bool isArray = len > 0;
+
+			// Verify table only has sequential integer keys 1..len
+			if (isArray) {
+				size_t count = 0;
+				for (auto &pair : tbl) {
+					++count;
 				}
-				expectedKey++;
+				isArray = (count == len);
 			}
 
-			if (isArray && expectedKey > 1) {
+			if (isArray) {
 				nlohmann::json arr = nlohmann::json::array();
-				for (auto &pair : tbl) {
-					arr.push_back(luaToJson(pair.second));
+				for (size_t i = 1; i <= len; ++i) {
+					arr.push_back(luaToJson(tbl[i]));
 				}
 				return arr;
 			} else {
@@ -322,6 +333,9 @@ namespace LuaAPI {
 		// Start the streaming request in a separate thread
 		std::thread([session, url, body, headers]() {
 			std::function<bool(std::string_view, intptr_t)> writeCallback = [session](std::string_view data, intptr_t /*userdata*/) -> bool {
+				if (session->isCancelled()) {
+					return false;
+				}
 				session->appendChunk(std::string(data));
 				return true;
 			};
@@ -402,6 +416,9 @@ namespace LuaAPI {
 		if (session->hasError()) {
 			result["error"] = session->getError();
 			result["ok"] = false;
+		} else if (session->isFinished()) {
+			int status = session->getStatusCode();
+			result["ok"] = status >= 200 && status < 300;
 		} else {
 			result["ok"] = true;
 		}
@@ -425,6 +442,7 @@ namespace LuaAPI {
 		std::lock_guard<std::mutex> lock(g_sessionsMutex);
 		auto it = g_streamSessions.find(sessionId);
 		if (it != g_streamSessions.end()) {
+			it->second->cancel();
 			g_streamSessions.erase(it);
 			return true;
 		}
