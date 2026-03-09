@@ -40,6 +40,14 @@ namespace LuaAPI {
 	}
 
 	void registerItem(sol::state &lua) {
+		// Helper to validate uint16_t range
+		auto require_u16 = [](int value, const char* field) -> uint16_t {
+			if (value < 0 || value > 65535) {
+				throw sol::error(std::string(field) + " must be between 0 and 65535");
+			}
+			return static_cast<uint16_t>(value);
+		};
+
 		// Register Item usertype
 		lua.new_usertype<Item>(
 			"Item",
@@ -53,10 +61,10 @@ namespace LuaAPI {
 			"fullName", sol::property(&Item::getFullName),
 
 			// Read/write properties
-			"count", sol::property(&Item::getCount, [](Item &item, int count) {
-				item.setSubtype(static_cast<uint16_t>(count));
+			"count", sol::property(&Item::getCount, [require_u16](Item &item, int count) {
+				item.setSubtype(require_u16(count, "count"));
 			}),
-			"subtype", sol::property([](const Item &item) -> int { return item.getSubtype(); }, [](Item &item, int subtype) { item.setSubtype(static_cast<uint16_t>(subtype)); }), "actionId", sol::property([](const Item &item) -> int { return item.getActionID(); }, [](Item &item, int aid) { item.setActionID(static_cast<uint16_t>(aid)); }), "uniqueId", sol::property([](const Item &item) -> int { return item.getUniqueID(); }, [](Item &item, int uid) { item.setUniqueID(static_cast<uint16_t>(uid)); }), "text", sol::property(&Item::getText, &Item::setText), "description", sol::property(&Item::getDescription, &Item::setDescription),
+			"subtype", sol::property([](const Item &item) -> int { return item.getSubtype(); }, [require_u16](Item &item, int subtype) { item.setSubtype(require_u16(subtype, "subtype")); }), "actionId", sol::property([](const Item &item) -> int { return item.getActionID(); }, [require_u16](Item &item, int aid) { item.setActionID(require_u16(aid, "actionId")); }), "uniqueId", sol::property([](const Item &item) -> int { return item.getUniqueID(); }, [require_u16](Item &item, int uid) { item.setUniqueID(require_u16(uid, "uniqueId")); }), "text", sol::property(&Item::getText, &Item::setText), "description", sol::property(&Item::getDescription, &Item::setDescription),
 
 			// Selection
 			"isSelected", sol::property(&Item::isSelected), "select", &Item::select, "deselect", &Item::deselect,
@@ -70,7 +78,15 @@ namespace LuaAPI {
 			// Methods
 			"clone", [](const Item &item) -> Item* { return item.deepCopy(); }, "rotate", &Item::doRotate,
 
-			"getName", [](const Item &item) -> std::string { return item.getName(); }, "getDescription", [](const Item &item) -> std::string { return item.getDescription(); },
+			"getName", [](int id) -> std::string {  
+			if (g_items[id].id != 0) {  
+				return g_items[id].name;  
+			}  
+			return ""; }, "getDescription", [](int id) -> std::string {  
+			if (g_items[id].id != 0) {  
+				return g_items[id].description;  
+			}  
+			return ""; },
 
 			// String representation
 			sol::meta_function::to_string, [](const Item &item) { return "Item(id=" + std::to_string(item.getID()) + ", name=\"" + item.getName() + "\")"; }
@@ -138,6 +154,8 @@ namespace LuaAPI {
 			int limit = maxResults.value_or(50); // Default max 50 results
 			int count = 0;
 			int maxId = g_items.getMaxID();
+
+			std::string searchLower = toLower(searchName);
 
 			for (int id = 1; id <= maxId && count < limit; ++id) {
 				if (g_items[id].id == 0) {

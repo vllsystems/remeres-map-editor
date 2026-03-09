@@ -436,9 +436,16 @@ LuaDialog::~LuaDialog() {
 		resumeHotkeys();
 	}
 	if (dockPanel) {
-		g_gui.aui_manager->DetachPane(dockPanel);
-		g_gui.aui_manager->Update();
-		dockPanel->Destroy();
+		if (g_gui.aui_manager) {
+			wxAuiPaneInfo &info = g_gui.aui_manager->GetPane(dockPanel);
+			if (info.IsOk()) {
+				g_gui.aui_manager->DetachPane(dockPanel);
+				g_gui.aui_manager->Update();
+			}
+		}
+		if (dockPanel->GetParent()) {
+			dockPanel->Destroy();
+		}
 		dockPanel = nullptr;
 	}
 }
@@ -2972,7 +2979,7 @@ void LuaDialog::onWidgetChange(const std::string &id) {
 		}
 	}
 
-	if (onchange.valid()) {
+	if (onchange.valid() && lua.lua_state() && onchange.lua_state()) {
 		try {
 			onchange(this);
 		} catch (const sol::error &e) {
@@ -2994,7 +3001,7 @@ void LuaDialog::onButtonClick(const std::string &id) {
 		}
 	}
 
-	if (onclick.valid()) {
+	if (onclick.valid() && lua.lua_state() && onclick.lua_state()) {
 		try {
 			onclick(this);
 		} catch (const sol::error &e) {
@@ -3022,7 +3029,7 @@ void LuaDialog::onWidgetDoubleClick(const std::string &id) {
 		}
 	}
 
-	if (ondoubleclick.valid()) {
+	if (ondoubleclick.valid() && lua.lua_state() && ondoubleclick.lua_state()) {
 		try {
 			ondoubleclick(this);
 		} catch (const sol::error &e) {

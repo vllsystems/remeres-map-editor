@@ -24,6 +24,7 @@
 #include <cmath>
 #include <queue>
 #include <set>
+#include <stack>
 
 namespace LuaAPI {
 
@@ -692,14 +693,13 @@ namespace LuaAPI {
 
 			std::mt19937 rng(seed);
 
-			// Make dimensions odd for proper maze
+			// Make dimensions odd for proper maze (decrement to stay within requested bounds)
 			if (width % 2 == 0) {
-				width++;
+				width--;
 			}
 			if (height % 2 == 0) {
-				height++;
+				height--;
 			}
-
 			if (width < 3 || height < 3) {
 				return lua.create_table();
 			}
@@ -707,31 +707,36 @@ namespace LuaAPI {
 			// Initialize grid with walls
 			std::vector<std::vector<int>> grid(height, std::vector<int>(width, 1));
 
-			// Recursive backtracking
-			std::function<void(int, int)> carve = [&](int x, int y) {
-				grid[y][x] = 0;
-
-				// Shuffle directions
-				std::vector<int> dirs = { 0, 1, 2, 3 }; // N, E, S, W
-				std::shuffle(dirs.begin(), dirs.end(), rng);
-
+			// Iterative backtracking (explicit stack to avoid stack overflow)
+			{
 				const int dx[] = { 0, 1, 0, -1 };
 				const int dy[] = { -1, 0, 1, 0 };
 
-				for (int dir : dirs) {
-					int nx = x + dx[dir] * 2;
-					int ny = y + dy[dir] * 2;
+				std::stack<std::pair<int, int>> stk;
+				grid[1][1] = 0;
+				stk.push({ 1, 1 });
 
-					if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && grid[ny][nx] == 1) {
-						// Carve through wall
-						grid[y + dy[dir]][x + dx[dir]] = 0;
-						carve(nx, ny);
+				while (!stk.empty()) {
+					auto [x, y] = stk.top();
+					stk.pop();
+
+					std::vector<int> dirs = { 0, 1, 2, 3 };
+					std::shuffle(dirs.begin(), dirs.end(), rng);
+
+					for (int dir : dirs) {
+						int nx = x + dx[dir] * 2;
+						int ny = y + dy[dir] * 2;
+
+						if (nx > 0 && nx < width - 1 && ny > 0 && ny < height - 1 && grid[ny][nx] == 1) {
+							grid[y + dy[dir]][x + dx[dir]] = 0;
+							grid[ny][nx] = 0;
+							stk.push({ x, y });
+							stk.push({ nx, ny });
+							break;
+						}
 					}
 				}
-			};
-
-			// Start from (1, 1)
-			carve(1, 1);
+			}
 
 			return gridToTable(grid, lua);
 		});

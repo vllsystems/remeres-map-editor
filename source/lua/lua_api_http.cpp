@@ -34,13 +34,24 @@ namespace LuaAPI {
 	// StreamSession class for managing streaming HTTP requests
 	class StreamSession {
 	public:
-		StreamSession() :
-			finished_(false), hasError_(false), statusCode_(0), cancelled_(false) { }
+		static constexpr size_t kMaxBufferedBytes = 4 * 1024 * 1024; // 4 MB
 
-		void appendChunk(const std::string &chunk) {
+		StreamSession() :
+			finished_(false), hasError_(false), statusCode_(0), bufferedBytes_(0) { }
+
+		bool appendChunk(const std::string &chunk) {
 			std::lock_guard<std::mutex> lock(mutex_);
+			if (bufferedBytes_ + chunk.size() > kMaxBufferedBytes) {
+				hasError_ = true;
+				finished_ = true;
+				errorMessage_ = "HTTP stream buffer limit exceeded";
+				cv_.notify_all();
+				return false;
+			}
 			chunks_.push(chunk);
+			bufferedBytes_ += chunk.size();
 			cv_.notify_one();
+			return true;
 		}
 
 		std::string getNextChunk() {
@@ -50,6 +61,7 @@ namespace LuaAPI {
 			}
 			std::string chunk = chunks_.front();
 			chunks_.pop();
+			bufferedBytes_ -= chunk.size();
 			return chunk;
 		}
 
@@ -106,22 +118,17 @@ namespace LuaAPI {
 		}
 
 		void cancel() {
-			cancelled_ = true;
 			finished_ = true;
 			cv_.notify_all();
 		}
 
-		bool isCancelled() const {
-			return cancelled_.load();
-		}
-
 	private:
 		std::queue<std::string> chunks_;
+		size_t bufferedBytes_ = 0;
 		std::mutex mutex_;
 		std::condition_variable cv_;
 		std::atomic<bool> finished_;
 		std::atomic<bool> hasError_;
-		std::atomic<bool> cancelled_;
 		std::string errorMessage_;
 		std::atomic<int> statusCode_;
 		cpr::Header responseHeaders_;
@@ -135,7 +142,9 @@ namespace LuaAPI {
 	// Security helper: Block localhost and loopback
 	static bool isUrlSafe(const std::string &url_str) {
 		std::string low = url_str;
-		std::transform(low.begin(), low.end(), low.begin(), ::tolower);
+		std::transform(low.begin(), low.end(), low.begin(), [](unsigned char c) {
+			return static_cast<char>(std::tolower(c));
+		});
 		// Block common localhost patterns
 		if (low.find("localhost") != std::string::npos || low.find("127.") != std::string::npos || low.find("0.0.0.0") != std::string::npos || low.find("[::1]") != std::string::npos || low.find("[::ffff:127.") != std::string::npos || low.find("//[::") != std::string::npos) {
 			return false;
@@ -229,7 +238,7 @@ namespace LuaAPI {
 	}
 
 	// Helper function to convert Lua table to JSON
-	static nlohmann::json luaToJson(sol::object obj) {
+	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<const void*> &visited) {
 		if (obj.is<bool>()) {
 			return obj.as<bool>();
 		} else if (obj.is<int>()) {
@@ -240,28 +249,30 @@ namespace LuaAPI {
 			return obj.as<std::string>();
 		} else if (obj.is<sol::table>()) {
 			sol::table tbl = obj.as<sol::table>();
-
-			// Check if it's an array (sequential integer keys starting at 1)
-			size_t len = tbl.size();
-			bool isArray = len > 0;
-
-			// Verify table only has sequential integer keys 1..len
-			if (isArray) {
-				size_t count = 0;
-				for (auto &pair : tbl) {
-					++count;
-				}
-				isArray = (count == len);
+			const void* ptr = tbl.pointer();
+			if (!visited.insert(ptr).second) {
+				throw std::runtime_error("Cyclic table detected in JSON conversion");
 			}
 
-			if (isArray) {
-				nlohmann::json arr = nlohmann::json::array();
-				for (size_t i = 1; i <= len; ++i) {
-					arr.push_back(luaToJson(tbl[i]));
+			// Check if it's an array (sequential integer keys starting at 1)
+			bool isArray = true;
+			size_t expectedKey = 1;
+			for (auto &pair : tbl) {
+				if (!pair.first.is<size_t>() || pair.first.as<size_t>() != expectedKey) {
+					isArray = false;
+					break;
 				}
-				return arr;
+				expectedKey++;
+			}
+
+			nlohmann::json result;
+			if (isArray && expectedKey > 1) {
+				result = nlohmann::json::array();
+				for (auto &pair : tbl) {
+					result.push_back(luaToJson(pair.second, visited));
+				}
 			} else {
-				nlohmann::json jsonObj = nlohmann::json::object();
+				result = nlohmann::json::object();
 				for (auto &pair : tbl) {
 					std::string key;
 					if (pair.first.is<std::string>()) {
@@ -271,10 +282,11 @@ namespace LuaAPI {
 					} else {
 						continue;
 					}
-					jsonObj[key] = luaToJson(pair.second);
+					result[key] = luaToJson(pair.second, visited);
 				}
-				return jsonObj;
 			}
+			visited.erase(ptr);
+			return result;
 		} else if (obj.is<sol::nil_t>()) {
 			return nullptr;
 		}
@@ -285,7 +297,8 @@ namespace LuaAPI {
 	static sol::table httpPostJson(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::string jsonStr = luaToJson(jsonBody).dump();
+		std::unordered_set<const void*> visited;
+		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
 		sol::table headers = lua.create_table();
@@ -335,11 +348,7 @@ namespace LuaAPI {
 		// Start the streaming request in a separate thread
 		std::thread([session, url, body, headers]() {
 			std::function<bool(std::string_view, intptr_t)> writeCallback = [session](std::string_view data, intptr_t /*userdata*/) -> bool {
-				if (session->isCancelled()) {
-					return false;
-				}
-				session->appendChunk(std::string(data));
-				return true;
+				return session->appendChunk(std::string(data));
 			};
 
 			cpr::Response response = cpr::Post(
@@ -370,7 +379,8 @@ namespace LuaAPI {
 	static sol::table httpPostJsonStream(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::string jsonStr = luaToJson(jsonBody).dump();
+		std::unordered_set<const void*> visited;
+		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
 		sol::table headers = lua.create_table();
