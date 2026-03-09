@@ -37,14 +37,6 @@ namespace LuaAPI {
 		StreamSession() :
 			finished_(false), hasError_(false), statusCode_(0), cancelled_(false) { }
 
-		void cancel() {
-			cancelled_ = true;
-		}
-
-		bool isCancelled() {
-			return cancelled_;
-		}
-
 		void appendChunk(const std::string &chunk) {
 			std::lock_guard<std::mutex> lock(mutex_);
 			chunks_.push(chunk);
@@ -111,6 +103,16 @@ namespace LuaAPI {
 		cpr::Header getHeaders() {
 			std::lock_guard<std::mutex> lock(mutex_);
 			return responseHeaders_;
+		}
+
+		void cancel() {
+			cancelled_ = true;
+			finished_ = true;
+			cv_.notify_all();
+		}
+
+		bool isCancelled() const {
+			return cancelled_.load();
 		}
 
 	private:

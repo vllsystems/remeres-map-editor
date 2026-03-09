@@ -18,7 +18,9 @@
 #ifndef RME_LUA_API_CREATURE_H
 #define RME_LUA_API_CREATURE_H
 
+#ifndef SOL_ALL_SAFETIES_ON
 #define SOL_ALL_SAFETIES_ON 1
+#endif
 #include <sol/sol.hpp>
 
 namespace LuaAPI {

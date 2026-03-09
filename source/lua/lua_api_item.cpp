@@ -70,15 +70,7 @@ namespace LuaAPI {
 			// Methods
 			"clone", [](const Item &item) -> Item* { return item.deepCopy(); }, "rotate", &Item::doRotate,
 
-			"getName", [](int id) -> std::string {
-			if (g_items[id].id != 0) {
-				return g_items[id].name;
-			}
-			return ""; }, "getDescription", [](int id) -> std::string {
-			if (g_items[id].id != 0) {
-				return g_items[id].description;
-			}
-			return ""; },
+			"getName", [](const Item &item) -> std::string { return item.getName(); }, "getDescription", [](const Item &item) -> std::string { return item.getDescription(); },
 
 			// String representation
 			sol::meta_function::to_string, [](const Item &item) { return "Item(id=" + std::to_string(item.getID()) + ", name=\"" + item.getName() + "\")"; }
@@ -146,8 +138,6 @@ namespace LuaAPI {
 			int limit = maxResults.value_or(50); // Default max 50 results
 			int count = 0;
 			int maxId = g_items.getMaxID();
-
-			std::string searchLower = toLower(searchName);
 
 			for (int id = 1; id <= maxId && count < limit; ++id) {
 				if (g_items[id].id == 0) {

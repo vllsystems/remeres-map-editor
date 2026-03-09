@@ -5,7 +5,9 @@
 #ifndef LUA_API_JSON_H
 #define LUA_API_JSON_H
 
+#ifndef SOL_ALL_SAFETIES_ON
 #define SOL_ALL_SAFETIES_ON 1
+#endif
 #include <sol/sol.hpp>
 
 namespace LuaAPI {

@@ -43,6 +43,7 @@ LuaScriptsWindow::LuaScriptsWindow(wxWindow* parent) :
 	open_folder_button(nullptr),
 	clear_console_button(nullptr),
 	run_script_button(nullptr) {
+	instance = this;
 	BuildUI();
 	RefreshScriptList();
 
@@ -247,8 +248,15 @@ void LuaScriptsWindow::OnScriptActivated(wxListEvent &event) {
 }
 
 void LuaScriptsWindow::OnScriptSelected(wxListEvent &event) {
-	// Enable/disable run button based on selection
-	run_script_button->Enable(event.GetIndex() >= 0);
+	long index = event.GetIndex();
+	if (index < 0) {
+		run_script_button->Enable(false);
+		return;
+	}
+	size_t scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
+	const auto &scripts = g_luaScripts.getScripts();
+	bool canRun = (scriptIndex < scripts.size() && scripts[scriptIndex]->isEnabled());
+	run_script_button->Enable(canRun);
 }
 
 void LuaScriptsWindow::OnReloadScripts(wxCommandEvent &event) {
@@ -259,20 +267,7 @@ void LuaScriptsWindow::OnReloadScripts(wxCommandEvent &event) {
 }
 
 void LuaScriptsWindow::OnOpenFolder(wxCommandEvent &event) {
-	wxString scriptsPath = g_luaScripts.getScriptsDirectory();
-
-	// Ensure directory exists
-	if (!wxDirExists(scriptsPath)) {
-		wxMkdir(scriptsPath);
-	}
-
-#ifdef _WIN32
-	wxExecute("explorer \"" + scriptsPath + "\"", wxEXEC_ASYNC);
-#elif defined(__APPLE__)
-	wxExecute("open \"" + scriptsPath + "\"", wxEXEC_ASYNC);
-#else
-	wxExecute("xdg-open \"" + scriptsPath + "\"", wxEXEC_ASYNC);
-#endif
+	g_luaScripts.openScriptsFolder();
 }
 
 void LuaScriptsWindow::OnClearConsole(wxCommandEvent &event) {
@@ -290,6 +285,10 @@ void LuaScriptsWindow::OnRunScript(wxCommandEvent &event) {
 
 	if (scriptIndex < scripts.size()) {
 		const auto &script = scripts[scriptIndex];
+		if (!script->isEnabled()) {
+			LogMessage("Script is disabled: " + wxString::FromUTF8(script->getDisplayName()), true);
+			return;
+		}
 		LogMessage("Running: " + wxString::FromUTF8(script->getDisplayName()));
 		std::string error;
 		if (!g_luaScripts.executeScript(scriptIndex, error)) {

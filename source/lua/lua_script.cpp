@@ -112,25 +112,29 @@ void LuaScript::parseMetadataFromManifest() {
 
 	// Simple Lua table parser for manifest
 	auto getValue = [&content](const std::string &key) -> std::string {
-		// Look for: key = "value" or key = 'value'
-		std::string pattern1 = key + " = \"";
-		std::string pattern2 = key + " = '";
-		std::string pattern3 = key + "=\"";
-		std::string pattern4 = key + "='";
+		// Look for: key = "value" or key = 'value' with word boundary
+		const std::string patterns[] = {
+			key + " = \"", key + " = '", key + "=\"", key + "='"
+		};
+		const char quotes[] = { '"', '\'', '"', '\'' };
 
-		size_t pos = content.find(pattern1);
+		size_t pos = std::string::npos;
 		char quote = '"';
-		if (pos == std::string::npos) {
-			pos = content.find(pattern2);
-			quote = '\'';
-		}
-		if (pos == std::string::npos) {
-			pos = content.find(pattern3);
-			quote = '"';
-		}
-		if (pos == std::string::npos) {
-			pos = content.find(pattern4);
-			quote = '\'';
+		for (int i = 0; i < 4; ++i) {
+			size_t found = content.find(patterns[i]);
+			while (found != std::string::npos) {
+				// Check word boundary before key
+				bool validBefore = (found == 0) || (!std::isalnum(static_cast<unsigned char>(content[found - 1])) && content[found - 1] != '_');
+				if (validBefore) {
+					pos = found;
+					quote = quotes[i];
+					break;
+				}
+				found = content.find(patterns[i], found + 1);
+			}
+			if (pos != std::string::npos) {
+				break;
+			}
 		}
 
 		if (pos == std::string::npos) {
@@ -337,7 +341,13 @@ void LuaScript::parseMetadataFromComments() {
 			continue;
 		} else if (comment.size() > 9 && (comment.substr(0, 9) == "@AutoRun:" || comment.substr(0, 9) == "@Autorun:")) {
 			std::string ar = comment.substr(9);
-			if (ar.find("true") != std::string::npos) {
+			// Trim leading/trailing whitespace
+			size_t arStart = ar.find_first_not_of(" \t");
+			size_t arEnd = ar.find_last_not_of(" \t");
+			if (arStart != std::string::npos) {
+				ar = ar.substr(arStart, arEnd - arStart + 1);
+			}
+			if (ar == "true") {
 				autorun = true;
 			}
 			continue;

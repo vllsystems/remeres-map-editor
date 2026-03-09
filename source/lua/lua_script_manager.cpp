@@ -61,9 +61,17 @@ bool LuaScriptManager::initialize() {
 		discoverScripts();
 		return true;
 	} catch (const std::exception &e) {
+		scripts.clear();
+		clearAllCallbacks();
+		engine.shutdown();
+		initialized = false;
 		lastError = "Exception during Lua initialization: " + std::string(e.what());
 		return false;
 	} catch (...) {
+		scripts.clear();
+		clearAllCallbacks();
+		engine.shutdown();
+		initialized = false;
 		lastError = "Unknown exception during Lua initialization";
 		return false;
 	}
@@ -654,7 +662,10 @@ bool LuaScriptManager::isScriptEnabled(size_t index) const {
 }
 
 void LuaScriptManager::setOutputCallback(LuaOutputCallback callback) {
-	outputCallback = callback;
+	{
+		std::lock_guard<std::mutex> lock(outputCallbackMutex);
+		outputCallback = std::move(callback);
+	}
 
 	// Also set up the engine's print callback
 	engine.setPrintCallback([this](const std::string &msg) {
@@ -663,8 +674,13 @@ void LuaScriptManager::setOutputCallback(LuaOutputCallback callback) {
 }
 
 void LuaScriptManager::logOutput(const std::string &message, bool isError) {
-	if (outputCallback) {
-		outputCallback(message, isError);
+	LuaOutputCallback cb;
+	{
+		std::lock_guard<std::mutex> lock(outputCallbackMutex);
+		cb = outputCallback;
+	}
+	if (cb) {
+		cb(message, isError);
 	}
 }
 

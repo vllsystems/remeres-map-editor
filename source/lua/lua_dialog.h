@@ -18,7 +18,9 @@
 #ifndef RME_LUA_DIALOG_H
 #define RME_LUA_DIALOG_H
 
+#ifndef SOL_ALL_SAFETIES_ON
 #define SOL_ALL_SAFETIES_ON 1
+#endif
 #include <sol/sol.hpp>
 
 #include <wx/dialog.h>

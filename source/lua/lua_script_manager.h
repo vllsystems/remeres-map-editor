@@ -196,6 +196,7 @@ private:
 	std::string lastError;
 	bool initialized = false;
 	LuaOutputCallback outputCallback;
+	mutable std::mutex outputCallbackMutex;
 	std::vector<ContextMenuItem> contextMenuItems;
 	std::vector<EventListener> eventListeners;
 	int nextListenerId = 1;
