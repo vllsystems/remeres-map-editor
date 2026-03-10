@@ -21,9 +21,6 @@
 #include <string>
 #include <functional>
 
-#ifndef SOL_ALL_SAFETIES_ON
-	#define SOL_ALL_SAFETIES_ON 1
-#endif
 #include <sol/sol.hpp>
 
 class LuaEngine {

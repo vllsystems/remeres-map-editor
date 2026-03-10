@@ -102,7 +102,7 @@ if(LUA_LIB_TARGET)
 	if(VCPKG_LUA_INCLUDES)
 		target_include_directories(${PROJECT_NAME} PRIVATE ${VCPKG_LUA_INCLUDES})
 	endif()
-	target_compile_definitions(${PROJECT_NAME} PRIVATE SOL_USING_CXX_LUA_HPP=1)
+	target_compile_definitions(${PROJECT_NAME} PRIVATE SOL_USING_CXX_LUA_HPP=1 SOL_ALL_SAFETIES_ON=1)
 endif()
 
 # === UNITY BUILD (compile time reducer) ===

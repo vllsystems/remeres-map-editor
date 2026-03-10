@@ -33,12 +33,13 @@ namespace LuaAPI {
 		std::vector<std::vector<int>> grid(height, std::vector<int>(width, 0));
 
 		for (int y = 1; y <= height; ++y) {
-			if (tbl[y].valid() && tbl[y].get_type() == sol::type::table) {
-				sol::table row = tbl[y];
-				for (int x = 1; x <= width; ++x) {
-					if (row[x].valid()) {
-						grid[y - 1][x - 1] = row[x].get<int>();
-					}
+			if (!tbl[y].valid() || tbl[y].get_type() != sol::type::table) {
+				continue;
+			}
+			sol::table row = tbl[y];
+			for (int x = 1; x <= width; ++x) {
+				if (row[x].valid()) {
+					grid[y - 1][x - 1] = row[x].get<int>();
 				}
 			}
 		}
@@ -63,12 +64,13 @@ namespace LuaAPI {
 		std::vector<std::vector<float>> grid(height, std::vector<float>(width, 0.0f));
 
 		for (int y = 1; y <= height; ++y) {
-			if (tbl[y].valid() && tbl[y].get_type() == sol::type::table) {
-				sol::table row = tbl[y];
-				for (int x = 1; x <= width; ++x) {
-					if (row[x].valid()) {
-						grid[y - 1][x - 1] = row[x].get<float>();
-					}
+			if (!tbl[y].valid() || tbl[y].get_type() != sol::type::table) {
+				continue;
+			}
+			sol::table row = tbl[y];
+			for (int x = 1; x <= width; ++x) {
+				if (row[x].valid()) {
+					grid[y - 1][x - 1] = row[x].get<float>();
 				}
 			}
 		}

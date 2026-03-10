@@ -104,7 +104,7 @@ public:
 	/// <summary>
 	/// Create new FastNoise object with optional seed
 	/// </summary>
-	FastNoiseLite(int seed = 1337) {
+	explicit FastNoiseLite(int seed = 1337) {
 		mSeed = seed;
 		mFrequency = 0.01f;
 		mNoiseType = NoiseType_OpenSimplex2;
@@ -1073,6 +1073,14 @@ private:
 
 	// OpenSimplex2S Noise
 
+	float AccumulateGrad2D(int seed, int i, int j, float x, float y) const {
+		float a = (2.0f / 3.0f) - x * x - y * y;
+		if (a > 0) {
+			return (a * a) * (a * a) * GradCoord(seed, i, j, x, y);
+		}
+		return 0.0f;
+	}
+
 	template <typename FNfloat>
 	float SingleOpenSimplex2S(int seed, FNfloat x, FNfloat y) const {
 		// 2D OpenSimplex2S case is a modified 2D simplex noise.
@@ -1113,67 +1121,27 @@ private:
 		float xmyi = xi - yi;
 		if (t > G2) {
 			if (xi + xmyi > 1) {
-				float x2 = x0 + (float)(3 * G2 - 2);
-				float y2 = y0 + (float)(3 * G2 - 1);
-				float a2 = (2.0f / 3.0f) - x2 * x2 - y2 * y2;
-				if (a2 > 0) {
-					value += (a2 * a2) * (a2 * a2) * GradCoord(seed, i + (PrimeX << 1), j + PrimeY, x2, y2);
-				}
+				value += AccumulateGrad2D(seed, i + (PrimeX << 1), j + PrimeY, x0 + (float)(3 * G2 - 2), y0 + (float)(3 * G2 - 1));
 			} else {
-				float x2 = x0 + (float)G2;
-				float y2 = y0 + (float)(G2 - 1);
-				float a2 = (2.0f / 3.0f) - x2 * x2 - y2 * y2;
-				if (a2 > 0) {
-					value += (a2 * a2) * (a2 * a2) * GradCoord(seed, i, j + PrimeY, x2, y2);
-				}
+				value += AccumulateGrad2D(seed, i, j + PrimeY, x0 + (float)G2, y0 + (float)(G2 - 1));
 			}
 
 			if (yi - xmyi > 1) {
-				float x3 = x0 + (float)(3 * G2 - 1);
-				float y3 = y0 + (float)(3 * G2 - 2);
-				float a3 = (2.0f / 3.0f) - x3 * x3 - y3 * y3;
-				if (a3 > 0) {
-					value += (a3 * a3) * (a3 * a3) * GradCoord(seed, i + PrimeX, j + (PrimeY << 1), x3, y3);
-				}
+				value += AccumulateGrad2D(seed, i + PrimeX, j + (PrimeY << 1), x0 + (float)(3 * G2 - 1), y0 + (float)(3 * G2 - 2));
 			} else {
-				float x3 = x0 + (float)(G2 - 1);
-				float y3 = y0 + (float)G2;
-				float a3 = (2.0f / 3.0f) - x3 * x3 - y3 * y3;
-				if (a3 > 0) {
-					value += (a3 * a3) * (a3 * a3) * GradCoord(seed, i + PrimeX, j, x3, y3);
-				}
+				value += AccumulateGrad2D(seed, i + PrimeX, j, x0 + (float)(G2 - 1), y0 + (float)G2);
 			}
 		} else {
 			if (xi + xmyi < 0) {
-				float x2 = x0 + (float)(1 - G2);
-				float y2 = y0 - (float)G2;
-				float a2 = (2.0f / 3.0f) - x2 * x2 - y2 * y2;
-				if (a2 > 0) {
-					value += (a2 * a2) * (a2 * a2) * GradCoord(seed, i - PrimeX, j, x2, y2);
-				}
+				value += AccumulateGrad2D(seed, i - PrimeX, j, x0 + (float)(1 - G2), y0 - (float)G2);
 			} else {
-				float x2 = x0 + (float)(G2 - 1);
-				float y2 = y0 + (float)G2;
-				float a2 = (2.0f / 3.0f) - x2 * x2 - y2 * y2;
-				if (a2 > 0) {
-					value += (a2 * a2) * (a2 * a2) * GradCoord(seed, i + PrimeX, j, x2, y2);
-				}
+				value += AccumulateGrad2D(seed, i + PrimeX, j, x0 + (float)(G2 - 1), y0 + (float)G2);
 			}
 
 			if (yi < xmyi) {
-				float x2 = x0 - (float)G2;
-				float y2 = y0 - (float)(G2 - 1);
-				float a2 = (2.0f / 3.0f) - x2 * x2 - y2 * y2;
-				if (a2 > 0) {
-					value += (a2 * a2) * (a2 * a2) * GradCoord(seed, i, j - PrimeY, x2, y2);
-				}
+				value += AccumulateGrad2D(seed, i, j - PrimeY, x0 - (float)G2, y0 - (float)(G2 - 1));
 			} else {
-				float x2 = x0 + (float)G2;
-				float y2 = y0 + (float)(G2 - 1);
-				float a2 = (2.0f / 3.0f) - x2 * x2 - y2 * y2;
-				if (a2 > 0) {
-					value += (a2 * a2) * (a2 * a2) * GradCoord(seed, i, j + PrimeY, x2, y2);
-				}
+				value += AccumulateGrad2D(seed, i, j + PrimeY, x0 + (float)G2, y0 + (float)(G2 - 1));
 			}
 		}
 
@@ -1304,40 +1272,42 @@ private:
 			}
 		}
 
-		if (!skip5) {
-			float a5 = yAFlipMask1 + zAFlipMask1 + a1;
-			if (a5 > 0) {
-				float x5 = x1;
-				float y5 = (yNMask | 1) + y1;
-				float z5 = (zNMask | 1) + z1;
-				value += (a5 * a5) * (a5 * a5) * GradCoord(seed2, i + PrimeX, j + (yNMask & (PrimeY << 1)), k + (zNMask & (PrimeZ << 1)), x5, y5, z5);
-			}
+		float a5 = yAFlipMask1 + zAFlipMask1 + a1;
+		if (!skip5 && a5 > 0) {
+			float x5 = x1;
+			float y5 = (yNMask | 1) + y1;
+			float z5 = (zNMask | 1) + z1;
+			value += (a5 * a5) * (a5 * a5) * GradCoord(seed2, i + PrimeX, j + (yNMask & (PrimeY << 1)), k + (zNMask & (PrimeZ << 1)), x5, y5, z5);
 		}
 
-		if (!skip9) {
-			float a9 = xAFlipMask1 + zAFlipMask1 + a1;
-			if (a9 > 0) {
-				float x9 = (xNMask | 1) + x1;
-				float y9 = y1;
-				float z9 = (zNMask | 1) + z1;
-				value += (a9 * a9) * (a9 * a9) * GradCoord(seed2, i + (xNMask & (PrimeX * 2)), j + PrimeY, k + (zNMask & (PrimeZ << 1)), x9, y9, z9);
-			}
+		float a9 = xAFlipMask1 + zAFlipMask1 + a1;
+		if (!skip9 && a9 > 0) {
+			float x9 = (xNMask | 1) + x1;
+			float y9 = y1;
+			float z9 = (zNMask | 1) + z1;
+			value += (a9 * a9) * (a9 * a9) * GradCoord(seed2, i + (xNMask & (PrimeX * 2)), j + PrimeY, k + (zNMask & (PrimeZ << 1)), x9, y9, z9);
 		}
 
-		if (!skipD) {
-			float aD = xAFlipMask1 + yAFlipMask1 + a1;
-			if (aD > 0) {
-				float xD = (xNMask | 1) + x1;
-				float yD = (yNMask | 1) + y1;
-				float zD = z1;
-				value += (aD * aD) * (aD * aD) * GradCoord(seed2, i + (xNMask & (PrimeX << 1)), j + (yNMask & (PrimeY << 1)), k + PrimeZ, xD, yD, zD);
-			}
+		float aD = xAFlipMask1 + yAFlipMask1 + a1;
+		if (!skipD && aD > 0) {
+			float xD = (xNMask | 1) + x1;
+			float yD = (yNMask | 1) + y1;
+			float zD = z1;
+			value += (aD * aD) * (aD * aD) * GradCoord(seed2, i + (xNMask & (PrimeX << 1)), j + (yNMask & (PrimeY << 1)), k + PrimeZ, xD, yD, zD);
 		}
 
 		return value * 9.046026385208288f;
 	}
 
 	// Cellular Noise
+
+	void UpdateCellularDistance(float newDistance, float &distance0, float &distance1, int hash, int &closestHash) const {
+		distance1 = FastMax(FastMin(distance1, newDistance), distance0);
+		if (newDistance < distance0) {
+			distance0 = newDistance;
+			closestHash = hash;
+		}
+	}
 
 	template <typename FNfloat>
 	float SingleCellular(int seed, FNfloat x, FNfloat y) const {
@@ -1359,21 +1329,13 @@ private:
 			case CellularDistanceFunction_EuclideanSq:
 				for (int xi = xr - 1; xi <= xr + 1; xi++) {
 					unsigned int yPrimed = yPrimedBase;
-
 					for (int yi = yr - 1; yi <= yr + 1; yi++) {
 						int hash = Hash(seed, xPrimed, (int)yPrimed);
 						int idx = hash & (255 << 1);
-
 						float vecX = (float)(xi - x) + Lookup<float>::RandVecs2D[idx] * cellularJitter;
 						float vecY = (float)(yi - y) + Lookup<float>::RandVecs2D[idx | 1] * cellularJitter;
-
 						float newDistance = vecX * vecX + vecY * vecY;
-
-						distance1 = FastMax(FastMin(distance1, newDistance), distance0);
-						if (newDistance < distance0) {
-							distance0 = newDistance;
-							closestHash = hash;
-						}
+						UpdateCellularDistance(newDistance, distance0, distance1, hash, closestHash);
 						yPrimed += PrimeY;
 					}
 					xPrimed += PrimeX;
@@ -1382,21 +1344,13 @@ private:
 			case CellularDistanceFunction_Manhattan:
 				for (int xi = xr - 1; xi <= xr + 1; xi++) {
 					unsigned int yPrimed = yPrimedBase;
-
 					for (int yi = yr - 1; yi <= yr + 1; yi++) {
 						int hash = Hash(seed, xPrimed, (int)yPrimed);
 						int idx = hash & (255 << 1);
-
 						float vecX = (float)(xi - x) + Lookup<float>::RandVecs2D[idx] * cellularJitter;
 						float vecY = (float)(yi - y) + Lookup<float>::RandVecs2D[idx | 1] * cellularJitter;
-
 						float newDistance = FastAbs(vecX) + FastAbs(vecY);
-
-						distance1 = FastMax(FastMin(distance1, newDistance), distance0);
-						if (newDistance < distance0) {
-							distance0 = newDistance;
-							closestHash = hash;
-						}
+						UpdateCellularDistance(newDistance, distance0, distance1, hash, closestHash);
 						yPrimed += PrimeY;
 					}
 					xPrimed += PrimeX;
@@ -1405,21 +1359,13 @@ private:
 			case CellularDistanceFunction_Hybrid:
 				for (int xi = xr - 1; xi <= xr + 1; xi++) {
 					unsigned int yPrimed = yPrimedBase;
-
 					for (int yi = yr - 1; yi <= yr + 1; yi++) {
 						int hash = Hash(seed, xPrimed, (int)yPrimed);
 						int idx = hash & (255 << 1);
-
 						float vecX = (float)(xi - x) + Lookup<float>::RandVecs2D[idx] * cellularJitter;
 						float vecY = (float)(yi - y) + Lookup<float>::RandVecs2D[idx | 1] * cellularJitter;
-
 						float newDistance = (FastAbs(vecX) + FastAbs(vecY)) + (vecX * vecX + vecY * vecY);
-
-						distance1 = FastMax(FastMin(distance1, newDistance), distance0);
-						if (newDistance < distance0) {
-							distance0 = newDistance;
-							closestHash = hash;
-						}
+						UpdateCellularDistance(newDistance, distance0, distance1, hash, closestHash);
 						yPrimed += PrimeY;
 					}
 					xPrimed += PrimeX;
@@ -1455,6 +1401,29 @@ private:
 		}
 	}
 
+	template <typename FNfloat, typename DistFunc>
+	void CellularSearch3D(int seed, FNfloat x, FNfloat y, FNfloat z, int xr, int yr, int zr, int xPrimedStart, int yPrimedBase, int zPrimedBase, float cellularJitter, float &distance0, float &distance1, int &closestHash, DistFunc distFunc) const {
+		int xPrimed = xPrimedStart;
+		for (int xi = xr - 1; xi <= xr + 1; xi++) {
+			int yPrimed = yPrimedBase;
+			for (int yi = yr - 1; yi <= yr + 1; yi++) {
+				unsigned int zPrimed = zPrimedBase;
+				for (int zi = zr - 1; zi <= zr + 1; zi++) {
+					int hash = Hash(seed, xPrimed, yPrimed, (int)zPrimed);
+					int idx = hash & (255 << 2);
+					float vecX = (float)(xi - x) + Lookup<float>::RandVecs3D[idx] * cellularJitter;
+					float vecY = (float)(yi - y) + Lookup<float>::RandVecs3D[idx | 1] * cellularJitter;
+					float vecZ = (float)(zi - z) + Lookup<float>::RandVecs3D[idx | 2] * cellularJitter;
+					float newDistance = distFunc(vecX, vecY, vecZ);
+					UpdateCellularDistance(newDistance, distance0, distance1, hash, closestHash);
+					zPrimed += PrimeZ;
+				}
+				yPrimed += PrimeY;
+			}
+			xPrimed += PrimeX;
+		}
+	}
+
 	template <typename FNfloat>
 	float SingleCellular(int seed, FNfloat x, FNfloat y, FNfloat z) const {
 		int xr = FastRound(x);
@@ -1474,91 +1443,13 @@ private:
 		switch (mCellularDistanceFunction) {
 			case CellularDistanceFunction_Euclidean:
 			case CellularDistanceFunction_EuclideanSq:
-				for (int xi = xr - 1; xi <= xr + 1; xi++) {
-					int yPrimed = yPrimedBase;
-
-					for (int yi = yr - 1; yi <= yr + 1; yi++) {
-						unsigned int zPrimed = zPrimedBase;
-
-						for (int zi = zr - 1; zi <= zr + 1; zi++) {
-							int hash = Hash(seed, xPrimed, yPrimed, (int)zPrimed);
-							int idx = hash & (255 << 2);
-
-							float vecX = (float)(xi - x) + Lookup<float>::RandVecs3D[idx] * cellularJitter;
-							float vecY = (float)(yi - y) + Lookup<float>::RandVecs3D[idx | 1] * cellularJitter;
-							float vecZ = (float)(zi - z) + Lookup<float>::RandVecs3D[idx | 2] * cellularJitter;
-
-							float newDistance = vecX * vecX + vecY * vecY + vecZ * vecZ;
-
-							distance1 = FastMax(FastMin(distance1, newDistance), distance0);
-							if (newDistance < distance0) {
-								distance0 = newDistance;
-								closestHash = hash;
-							}
-							zPrimed += PrimeZ;
-						}
-						yPrimed += PrimeY;
-					}
-					xPrimed += PrimeX;
-				}
+				CellularSearch3D(seed, x, y, z, xr, yr, zr, xPrimed, yPrimedBase, zPrimedBase, cellularJitter, distance0, distance1, closestHash, [](float vx, float vy, float vz) { return vx * vx + vy * vy + vz * vz; });
 				break;
 			case CellularDistanceFunction_Manhattan:
-				for (int xi = xr - 1; xi <= xr + 1; xi++) {
-					int yPrimed = yPrimedBase;
-
-					for (int yi = yr - 1; yi <= yr + 1; yi++) {
-						unsigned int zPrimed = zPrimedBase;
-
-						for (int zi = zr - 1; zi <= zr + 1; zi++) {
-							int hash = Hash(seed, xPrimed, yPrimed, (int)zPrimed);
-							int idx = hash & (255 << 2);
-
-							float vecX = (float)(xi - x) + Lookup<float>::RandVecs3D[idx] * cellularJitter;
-							float vecY = (float)(yi - y) + Lookup<float>::RandVecs3D[idx | 1] * cellularJitter;
-							float vecZ = (float)(zi - z) + Lookup<float>::RandVecs3D[idx | 2] * cellularJitter;
-
-							float newDistance = FastAbs(vecX) + FastAbs(vecY) + FastAbs(vecZ);
-
-							distance1 = FastMax(FastMin(distance1, newDistance), distance0);
-							if (newDistance < distance0) {
-								distance0 = newDistance;
-								closestHash = hash;
-							}
-							zPrimed += PrimeZ;
-						}
-						yPrimed += PrimeY;
-					}
-					xPrimed += PrimeX;
-				}
+				CellularSearch3D(seed, x, y, z, xr, yr, zr, xPrimed, yPrimedBase, zPrimedBase, cellularJitter, distance0, distance1, closestHash, [](float vx, float vy, float vz) { return FastAbs(vx) + FastAbs(vy) + FastAbs(vz); });
 				break;
 			case CellularDistanceFunction_Hybrid:
-				for (int xi = xr - 1; xi <= xr + 1; xi++) {
-					int yPrimed = yPrimedBase;
-
-					for (int yi = yr - 1; yi <= yr + 1; yi++) {
-						unsigned int zPrimed = zPrimedBase;
-
-						for (int zi = zr - 1; zi <= zr + 1; zi++) {
-							int hash = Hash(seed, xPrimed, yPrimed, (int)zPrimed);
-							int idx = hash & (255 << 2);
-
-							float vecX = (float)(xi - x) + Lookup<float>::RandVecs3D[idx] * cellularJitter;
-							float vecY = (float)(yi - y) + Lookup<float>::RandVecs3D[idx | 1] * cellularJitter;
-							float vecZ = (float)(zi - z) + Lookup<float>::RandVecs3D[idx | 2] * cellularJitter;
-
-							float newDistance = (FastAbs(vecX) + FastAbs(vecY) + FastAbs(vecZ)) + (vecX * vecX + vecY * vecY + vecZ * vecZ);
-
-							distance1 = FastMax(FastMin(distance1, newDistance), distance0);
-							if (newDistance < distance0) {
-								distance0 = newDistance;
-								closestHash = hash;
-							}
-							zPrimed += PrimeZ;
-						}
-						yPrimed += PrimeY;
-					}
-					xPrimed += PrimeX;
-				}
+				CellularSearch3D(seed, x, y, z, xr, yr, zr, xPrimed, yPrimedBase, zPrimedBase, cellularJitter, distance0, distance1, closestHash, [](float vx, float vy, float vz) { return (FastAbs(vx) + FastAbs(vy) + FastAbs(vz)) + (vx * vx + vy * vy + vz * vz); });
 				break;
 			default:
 				break;
