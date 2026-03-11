@@ -110,9 +110,7 @@ namespace LuaAPI {
 		return *this;
 	}
 
-	LuaImage::~LuaImage() {
-		// wxImage handles its own cleanup
-	}
+	LuaImage::~LuaImage() = default;
 
 	LuaImage LuaImage::loadFromFile(const std::string &path) {
 		return LuaImage(path);
@@ -124,6 +122,22 @@ namespace LuaAPI {
 
 	LuaImage LuaImage::loadFromSprite(int spriteId) {
 		return LuaImage(spriteId, false);
+	}
+
+	static void copySpriteTilePixels(const uint8_t* rgbaData, unsigned char* imgData, unsigned char* alphaData, int destX, int destY, int spriteWidth) {
+		for (int py = 0; py < 32; ++py) {
+			for (int px = 0; px < 32; ++px) {
+				int srcIdx = (py * 32 + px) * 4;
+				int destIdx = (destY + py) * spriteWidth + (destX + px);
+				uint8_t alpha = rgbaData[srcIdx + 3];
+				if (alpha > 0) {
+					imgData[destIdx * 3 + 0] = rgbaData[srcIdx + 0];
+					imgData[destIdx * 3 + 1] = rgbaData[srcIdx + 1];
+					imgData[destIdx * 3 + 2] = rgbaData[srcIdx + 2];
+					alphaData[destIdx] = alpha;
+				}
+			}
+		}
 	}
 
 	// Helper to reliably get sprite ID from item ID, handling client ID mapping
@@ -142,65 +156,48 @@ namespace LuaAPI {
 		}
 
 		GameSprite* gameSprite = dynamic_cast<GameSprite*>(sprite);
-		if (gameSprite && gameSprite->width > 0 && gameSprite->height > 0) {
-			// Calculate full sprite size (can be larger than 32x32 for multi-tile sprites)
-			int spriteWidth = gameSprite->width * 32;
-			int spriteHeight = gameSprite->height * 32;
-
-			// Create image with alpha channel
-			image.Create(spriteWidth, spriteHeight);
-			image.InitAlpha();
-
-			// Fill with transparent background
-			unsigned char* imgData = image.GetData();
-			unsigned char* alphaData = image.GetAlpha();
-			memset(imgData, 0, spriteWidth * spriteHeight * 3);
-			memset(alphaData, 0, spriteWidth * spriteHeight); // Fully transparent
-
-			// Get sprite data for each part
-			for (int y = 0; y < gameSprite->height; ++y) {
-				for (int x = 0; x < gameSprite->width; ++x) {
-					int spriteIndex = gameSprite->getIndex(x, y, 0, 0, 0, 0, 0);
-					if (spriteIndex >= 0 && spriteIndex < (int)gameSprite->spriteList.size()) {
-						auto* normalImage = gameSprite->spriteList[spriteIndex];
-						if (normalImage) {
-							uint8_t* rgbaData = normalImage->getRGBAData();
-							if (rgbaData) {
-								// Copy pixel data to the correct position
-								int destX = (gameSprite->width - 1 - x) * 32;
-								int destY = (gameSprite->height - 1 - y) * 32;
-
-								for (int py = 0; py < 32; ++py) {
-									for (int px = 0; px < 32; ++px) {
-										int srcIdx = (py * 32 + px) * 4;
-										int destIdx = (destY + py) * spriteWidth + (destX + px);
-
-										// Only copy non-transparent pixels
-										uint8_t alpha = rgbaData[srcIdx + 3];
-										if (alpha > 0) {
-											imgData[destIdx * 3 + 0] = rgbaData[srcIdx + 0]; // R
-											imgData[destIdx * 3 + 1] = rgbaData[srcIdx + 1]; // G
-											imgData[destIdx * 3 + 2] = rgbaData[srcIdx + 2]; // B
-											alphaData[destIdx] = alpha;
-										}
-									}
-								}
-							}
-						}
-					}
-				}
-			}
+		if (!gameSprite || gameSprite->width <= 0 || gameSprite->height <= 0) {
+			// Fallback: use DC-based rendering
+			wxBitmap bmp(32, 32, 32);
+			wxMemoryDC dc(bmp);
+			dc.SetBackground(*wxWHITE_BRUSH);
+			dc.Clear();
+			sprite->DrawTo(&dc, SPRITE_SIZE_32x32, 0, 0, 32, 32);
+			dc.SelectObject(wxNullBitmap);
+			image = bmp.ConvertToImage();
 			return;
 		}
 
-		// Fallback: use DC-based rendering
-		wxBitmap bmp(32, 32, 32);
-		wxMemoryDC dc(bmp);
-		dc.SetBackground(*wxWHITE_BRUSH);
-		dc.Clear();
-		sprite->DrawTo(&dc, SPRITE_SIZE_32x32, 0, 0, 32, 32);
-		dc.SelectObject(wxNullBitmap);
-		image = bmp.ConvertToImage();
+		int spriteWidth = gameSprite->width * 32;
+		int spriteHeight = gameSprite->height * 32;
+
+		image.Create(spriteWidth, spriteHeight);
+		image.InitAlpha();
+
+		unsigned char* imgData = image.GetData();
+		unsigned char* alphaData = image.GetAlpha();
+		memset(imgData, 0, spriteWidth * spriteHeight * 3);
+		memset(alphaData, 0, spriteWidth * spriteHeight);
+
+		for (int y = 0; y < gameSprite->height; ++y) {
+			for (int x = 0; x < gameSprite->width; ++x) {
+				int spriteIndex = gameSprite->getIndex(x, y, 0, 0, 0, 0, 0);
+				if (spriteIndex < 0 || spriteIndex >= (int)gameSprite->spriteList.size()) {
+					continue;
+				}
+				auto* normalImage = gameSprite->spriteList[spriteIndex];
+				if (!normalImage) {
+					continue;
+				}
+				uint8_t* rgbaData = normalImage->getRGBAData();
+				if (!rgbaData) {
+					continue;
+				}
+				int destX = (gameSprite->width - 1 - x) * 32;
+				int destY = (gameSprite->height - 1 - y) * 32;
+				copySpriteTilePixels(rgbaData, imgData, alphaData, destX, destY, spriteWidth);
+			}
+		}
 	}
 
 	int LuaImage::getWidth() const {

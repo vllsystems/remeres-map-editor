@@ -88,11 +88,7 @@ namespace LuaAPI {
 				if (isArray) {
 					nlohmann::json arr = nlohmann::json::array();
 					for (size_t i = 1; i <= count; ++i) {
-						if (t[i].valid()) {
-							arr.push_back(luaToValue(t[i]));
-						} else {
-							arr.push_back(nullptr);
-						}
+						arr.push_back(t[i].valid() ? luaToValue(t[i]) : nlohmann::json(nullptr));
 					}
 					return arr;
 				} else {

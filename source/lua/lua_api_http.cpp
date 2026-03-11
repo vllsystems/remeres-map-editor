@@ -134,10 +134,20 @@ namespace LuaAPI {
 		cpr::Header responseHeaders_;
 	};
 
-	// Global map to store active stream sessions
-	static std::map<int, std::shared_ptr<StreamSession>> g_streamSessions;
-	static std::mutex g_sessionsMutex;
-	static int g_nextSessionId = 1;
+	static std::map<int, std::shared_ptr<StreamSession>> &streamSessions() {
+		static std::map<int, std::shared_ptr<StreamSession>> instance;
+		return instance;
+	}
+
+	static std::mutex &sessionsMutex() {
+		static std::mutex instance;
+		return instance;
+	}
+
+	static int generateSessionId() {
+		static int id = 0;
+		return ++id;
+	}
 
 	// Security helper: Block localhost and loopback
 	static bool isUrlSafe(const std::string &url_str) {
@@ -238,7 +248,7 @@ namespace LuaAPI {
 	}
 
 	// Helper function to convert Lua table to JSON
-	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<const void*> &visited) {
+	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<uintptr_t> &visited) {
 		if (obj.is<bool>()) {
 			return obj.as<bool>();
 		} else if (obj.is<int>()) {
@@ -249,7 +259,7 @@ namespace LuaAPI {
 			return obj.as<std::string>();
 		} else if (obj.is<sol::table>()) {
 			sol::table tbl = obj.as<sol::table>();
-			const void* ptr = tbl.pointer();
+			uintptr_t ptr = reinterpret_cast<uintptr_t>(tbl.pointer());
 			if (!visited.insert(ptr).second) {
 				throw std::runtime_error("Cyclic table detected in JSON conversion");
 			}
@@ -297,7 +307,7 @@ namespace LuaAPI {
 	static sol::table httpPostJson(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::unordered_set<const void*> visited;
+		std::unordered_set<uintptr_t> visited;
 		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
@@ -330,9 +340,9 @@ namespace LuaAPI {
 		int sessionId;
 
 		{
-			std::lock_guard<std::mutex> lock(g_sessionsMutex);
-			sessionId = g_nextSessionId++;
-			g_streamSessions[sessionId] = session;
+			std::lock_guard<std::mutex> lock(sessionsMutex());
+			sessionId = generateSessionId();
+			streamSessions()[sessionId] = session;
 		}
 
 		cpr::Header headers;
@@ -379,7 +389,7 @@ namespace LuaAPI {
 	static sol::table httpPostJsonStream(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::unordered_set<const void*> visited;
+		std::unordered_set<uintptr_t> visited;
 		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
@@ -404,9 +414,9 @@ namespace LuaAPI {
 
 		std::shared_ptr<StreamSession> session;
 		{
-			std::lock_guard<std::mutex> lock(g_sessionsMutex);
-			auto it = g_streamSessions.find(sessionId);
-			if (it == g_streamSessions.end()) {
+			std::lock_guard<std::mutex> lock(sessionsMutex());
+			auto it = streamSessions().find(sessionId);
+			if (it == streamSessions().end()) {
 				result["ok"] = false;
 				result["error"] = "Invalid session ID";
 				result["finished"] = true;
@@ -451,11 +461,11 @@ namespace LuaAPI {
 
 	// Close and cleanup a stream session
 	static bool httpStreamClose(int sessionId) {
-		std::lock_guard<std::mutex> lock(g_sessionsMutex);
-		auto it = g_streamSessions.find(sessionId);
-		if (it != g_streamSessions.end()) {
+		std::lock_guard<std::mutex> lock(sessionsMutex());
+		auto it = streamSessions().find(sessionId);
+		if (it != streamSessions().end()) {
 			it->second->cancel();
-			g_streamSessions.erase(it);
+			streamSessions().erase(it);
 			return true;
 		}
 		return false;
@@ -468,9 +478,9 @@ namespace LuaAPI {
 
 		std::shared_ptr<StreamSession> session;
 		{
-			std::lock_guard<std::mutex> lock(g_sessionsMutex);
-			auto it = g_streamSessions.find(sessionId);
-			if (it == g_streamSessions.end()) {
+			std::lock_guard<std::mutex> lock(sessionsMutex());
+			auto it = streamSessions().find(sessionId);
+			if (it == streamSessions().end()) {
 				result["valid"] = false;
 				result["finished"] = true;
 				return result;

@@ -29,7 +29,7 @@ namespace LuaAPI {
 	// Custom iterator for Map tiles to use in Lua for-loops
 	class LuaMapTileIterator {
 	public:
-		LuaMapTileIterator(Map* map) :
+		explicit LuaMapTileIterator(Map* map) :
 			map(map), started(false) {
 			if (map) {
 				iter = map->begin();
@@ -71,7 +71,7 @@ namespace LuaAPI {
 	// Iterator for Spawns
 	class LuaMapSpawnIterator {
 	public:
-		LuaMapSpawnIterator(Map* map) :
+		explicit LuaMapSpawnIterator(Map* map) :
 			map(map) {
 			if (map) {
 				iter = map->spawnsMonster.begin();

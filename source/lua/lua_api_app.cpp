@@ -34,6 +34,7 @@
 #include <filesystem>
 #include <unordered_set>
 #include <unordered_map>
+#include <memory>
 #include <cstdio>
 #include <thread>
 #include <chrono>
@@ -87,9 +88,9 @@ namespace LuaAPI {
 	class LuaTransaction {
 		bool active;
 		Editor* editor;
-		BatchAction* batch;
-		Action* action;
-		std::unordered_map<uint64_t, Tile*> originalTiles;
+		std::unique_ptr<BatchAction> batch;
+		std::unique_ptr<Action> action;
+		std::unordered_map<uint64_t, std::unique_ptr<Tile>> originalTiles;
 
 		uint64_t positionKey(const Position &pos) const {
 			return (static_cast<uint64_t>(pos.x) << 32) | (static_cast<uint64_t>(pos.y) << 16) | static_cast<uint64_t>(pos.z);
@@ -102,7 +103,7 @@ namespace LuaAPI {
 		}
 
 		LuaTransaction() :
-			active(false), editor(nullptr), batch(nullptr), action(nullptr) { }
+			active(false), editor(nullptr) { }
 
 		void begin(Editor* ed) {
 			if (active) {
@@ -115,8 +116,8 @@ namespace LuaAPI {
 			}
 
 			active = true;
-			batch = editor->getActionQueue()->createBatch(ACTION_LUA_SCRIPT);
-			action = editor->getActionQueue()->createAction(ACTION_LUA_SCRIPT);
+			batch.reset(editor->getActionQueue()->createBatch(ACTION_LUA_SCRIPT));
+			action.reset(editor->getActionQueue()->createAction(ACTION_LUA_SCRIPT));
 			originalTiles.clear();
 		}
 
@@ -127,35 +128,18 @@ namespace LuaAPI {
 
 			// Process each modified tile
 			for (auto &pair : originalTiles) {
-				Tile* originalTile = pair.second;
-				Position pos = originalTile->getPosition();
+				Position pos = pair.second->getPosition();
 
-				// Get the current (modified) tile from the map
 				Tile* modifiedTile = editor->getMap().getTile(pos);
 				if (modifiedTile) {
-					// Create a deep copy of the modified tile - this is what we want as the "new" state
 					Tile* modifiedCopy = modifiedTile->deepCopy(editor->getMap());
 
-					// Swap the original back into the map
-					Tile* swappedOut = editor->getMap().swapTile(pos, originalTile);
+					std::unique_ptr<Tile> swappedOut(editor->getMap().swapTile(pos, pair.second.release()));
 
-					// swappedOut should be the modifiedTile. We need to clean it up.
-					// Remove it from Map metadata (spawns, houses) and selection
-					updateTileMetadata(editor, swappedOut, false);
+					updateTileMetadata(editor, swappedOut.get(), false);
+					updateTileMetadata(editor, editor->getMap().getTile(pos), true);
 
-					// Add originalTile back to Map metadata
-					updateTileMetadata(editor, originalTile, true);
-
-					delete swappedOut;
-
-					// Create Change with the modified copy
-					// When actions commit, they will swap modifiedCopy in and originalTile out.
-					// The Action system handles metadata updates during its commit/undo.
-					Change* change = new Change(modifiedCopy);
-					action->addChange(change);
-				} else {
-					// No real change or tile was removed, cleanup
-					delete originalTile;
+					action->addChange(new Change(modifiedCopy));
 				}
 			}
 
@@ -163,14 +147,10 @@ namespace LuaAPI {
 			originalTiles.clear();
 
 			if (action->size() > 0) {
-				batch->addAndCommitAction(action);
-				editor->addBatch(batch);
+				batch->addAndCommitAction(action.release());
+				editor->addBatch(batch.release());
 				editor->getMap().doChange();
-				g_gui.RefreshView(); // Force redraw immediately
-			} else {
-				// No changes, clean up
-				delete action;
-				delete batch;
+				g_gui.RefreshView();
 			}
 
 			cleanup();
@@ -181,29 +161,19 @@ namespace LuaAPI {
 				return;
 			}
 
-			// Restore original tiles (discard any changes made)
 			for (auto &pair : originalTiles) {
-				Tile* originalTile = pair.second;
-				if (originalTile) {
-					Position pos = originalTile->getPosition();
-					Tile* modifiedTile = editor->getMap().swapTile(pos, originalTile);
+				if (pair.second) {
+					Position pos = pair.second->getPosition();
+					std::unique_ptr<Tile> modifiedTile(editor->getMap().swapTile(pos, pair.second.release()));
 
-					// Clean up modified tile
-					updateTileMetadata(editor, modifiedTile, false);
-
-					// Restore original tile metadata
-					updateTileMetadata(editor, originalTile, true);
-
-					delete modifiedTile; // Discard the modified version
+					updateTileMetadata(editor, modifiedTile.get(), false);
+					updateTileMetadata(editor, editor->getMap().getTile(pos), true);
 				}
 			}
 			originalTiles.clear();
 
-			// Discard without committing
-			delete action;
-			delete batch;
-
 			cleanup();
+			;
 		}
 
 		void markTileModified(Tile* tile) {
@@ -216,9 +186,7 @@ namespace LuaAPI {
 
 			// Only snapshot the tile once per transaction (first time it's modified)
 			if (originalTiles.find(key) == originalTiles.end()) {
-				// Create a deep copy of the ORIGINAL tile BEFORE modification
-				Tile* originalCopy = tile->deepCopy(editor->getMap());
-				originalTiles[key] = originalCopy;
+				originalTiles[key].reset(tile->deepCopy(editor->getMap()));
 			}
 		}
 
@@ -233,9 +201,8 @@ namespace LuaAPI {
 		void cleanup() {
 			active = false;
 			editor = nullptr;
-			batch = nullptr;
-			action = nullptr;
-			// Don't clear originalTiles here - it should be empty or ownership transferred
+			batch.reset();
+			action.reset();
 		}
 	};
 
@@ -250,71 +217,78 @@ namespace LuaAPI {
 	// Helper Functions
 	// ============================================================================
 
-	// Helper function to show alert dialog
-	static int showAlert(sol::this_state ts, sol::object arg) {
-		sol::state_view lua(ts);
-
+	struct AlertOptions {
 		std::string title = "Script";
 		std::string message;
 		std::vector<std::string> buttons;
+	};
 
-		// Handle different argument types
+	static AlertOptions parseAlertOptions(sol::this_state ts, sol::object arg) {
+		sol::state_view lua(ts);
+		AlertOptions opts;
+
 		if (arg.is<std::string>()) {
-			message = arg.as<std::string>();
-			buttons.push_back("OK");
-		} else if (arg.is<sol::table>()) {
-			sol::table opts = arg.as<sol::table>();
-
-			if (opts["title"].valid()) {
-				title = opts["title"].get<std::string>();
-			}
-			if (opts["text"].valid()) {
-				message = opts["text"].get<std::string>();
-			}
-			if (opts["buttons"].valid()) {
-				sol::table btns = opts["buttons"];
-				for (size_t i = 1; i <= btns.size(); ++i) {
-					if (btns[i].valid()) {
-						buttons.push_back(btns[i].get<std::string>());
-					}
-				}
-			}
-
-			if (buttons.empty()) {
-				buttons.push_back("OK");
-			}
-		} else {
-			sol::function tostring = lua["tostring"];
-			message = tostring(arg);
-			buttons.push_back("OK");
+			opts.message = arg.as<std::string>();
+			opts.buttons.push_back("OK");
+			return opts;
 		}
 
-		// Determine dialog style based on buttons
+		if (!arg.is<sol::table>()) {
+			sol::function tostring = lua["tostring"];
+			opts.message = tostring(arg);
+			opts.buttons.push_back("OK");
+			return opts;
+		}
+
+		sol::table tbl = arg.as<sol::table>();
+		if (tbl["title"].valid()) {
+			opts.title = tbl["title"].get<std::string>();
+		}
+		if (tbl["text"].valid()) {
+			opts.message = tbl["text"].get<std::string>();
+		}
+		if (tbl["buttons"].valid()) {
+			sol::table btns = tbl["buttons"];
+			for (size_t i = 1; i <= btns.size(); ++i) {
+				if (!btns[i].valid()) {
+					continue;
+				}
+				opts.buttons.push_back(btns[i].get<std::string>());
+			}
+		}
+		if (opts.buttons.empty()) {
+			opts.buttons.push_back("OK");
+		}
+		return opts;
+	}
+
+	static long getDialogStyle(const std::vector<std::string> &buttons) {
 		long style = wxCENTRE;
 		if (buttons.size() == 1) {
-			style |= wxOK;
-		} else if (buttons.size() == 2) {
-			std::string btn1 = buttons[0];
-			std::string btn2 = buttons[1];
-			std::transform(btn1.begin(), btn1.end(), btn1.begin(), ::tolower);
-			std::transform(btn2.begin(), btn2.end(), btn2.begin(), ::tolower);
-
-			if ((btn1 == "ok" && btn2 == "cancel") || (btn1 == "cancel" && btn2 == "ok")) {
-				style |= wxOK | wxCANCEL;
-			} else if ((btn1 == "yes" && btn2 == "no") || (btn1 == "no" && btn2 == "yes")) {
-				style |= wxYES_NO;
-			} else {
-				style |= wxOK | wxCANCEL;
-			}
-		} else if (buttons.size() >= 3) {
-			style |= wxYES_NO | wxCANCEL;
+			return style | wxOK;
+		}
+		if (buttons.size() >= 3) {
+			return style | wxYES_NO | wxCANCEL;
+		}
+		if (buttons.size() != 2) {
+			return style | wxOK;
 		}
 
-		wxWindow* parent = g_gui.root;
-		wxMessageDialog dlg(parent, wxString(message), wxString(title), style);
+		std::string btn1 = buttons[0];
+		std::string btn2 = buttons[1];
+		std::transform(btn1.begin(), btn1.end(), btn1.begin(), ::tolower);
+		std::transform(btn2.begin(), btn2.end(), btn2.begin(), ::tolower);
 
-		int result = dlg.ShowModal();
+		if ((btn1 == "ok" && btn2 == "cancel") || (btn1 == "cancel" && btn2 == "ok")) {
+			return style | wxOK | wxCANCEL;
+		}
+		if ((btn1 == "yes" && btn2 == "no") || (btn1 == "no" && btn2 == "yes")) {
+			return style | wxYES_NO;
+		}
+		return style | wxOK | wxCANCEL;
+	}
 
+	static int mapDialogResult(int result, size_t buttonCount) {
 		switch (result) {
 			case wxID_OK:
 			case wxID_YES:
@@ -322,10 +296,20 @@ namespace LuaAPI {
 			case wxID_NO:
 				return 2;
 			case wxID_CANCEL:
-				return buttons.size() >= 3 ? 3 : 2;
+				return buttonCount >= 3 ? 3 : 2;
 			default:
 				return 0;
 		}
+	}
+
+	static int showAlert(sol::this_state ts, sol::object arg) {
+		AlertOptions opts = parseAlertOptions(ts, arg);
+		long style = getDialogStyle(opts.buttons);
+
+		wxWindow* parent = g_gui.root;
+		wxMessageDialog dlg(parent, wxString(opts.message), wxString(opts.title), style);
+
+		return mapDialogResult(dlg.ShowModal(), opts.buttons.size());
 	}
 
 	// Check if a map is currently open
@@ -505,150 +489,78 @@ namespace LuaAPI {
 	// Register App API
 	// ============================================================================
 
-	void registerApp(sol::state &lua) {
-		// Create the 'app' table
-		sol::table app = lua.create_named_table("app");
+	static sol::object appPropertyGetter(sol::this_state ts, sol::table self, std::string key) {
+		sol::state_view lua(ts);
 
-		// Version info
-		app["version"] = __RME_VERSION__;
-		app["apiVersion"] = 1;
-
-		// Functions
-		app["alert"] = showAlert;
-		app["hasMap"] = hasMap;
-		app["refresh"] = refresh;
-		app["transaction"] = transaction;
-		app["setClipboard"] = setClipboard;
-		app["getDataDirectory"] = getDataDirectory;
-		app["addContextMenu"] = [](const std::string &label, sol::function callback) {
-			g_luaScripts.registerContextMenuItem(label, callback);
-		};
-		app["selectRaw"] = [](int itemId) {
-			if (g_items[itemId].id != 0) {
-				ItemType &it = g_items[itemId];
-				if (it.raw_brush) {
-					g_gui.SelectBrush(it.raw_brush, TILESET_RAW);
-				}
-			}
-		};
-
-		app["setCameraPosition"] = [](int x, int y, int z) {
-			g_gui.SetScreenCenterPosition(Position(x, y, z));
-		};
-		app["storage"] = storageForScript;
-
-		// Yield to process pending UI events (prevents UI freeze during long operations)
-		app["yield"] = []() {
-			if (wxTheApp) {
-				wxTheApp->Yield(true);
-			}
-		};
-
-		// Sleep for a given number of milliseconds (use sparingly, blocks the UI)
-		app["sleep"] = [](int milliseconds) {
-			if (milliseconds > 0 && milliseconds <= 10000) { // Max 10 seconds
-				std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
-			}
-		};
-
-		// Get elapsed time in milliseconds since application start (high precision timer)
-		app["getTime"] = []() -> long {
-			return g_gui.gfx.getElapsedTime();
-		};
-
-		// Event system: app.events:on("eventName", callback) / app.events:off(id)
-		sol::table events = lua.create_table();
-		events["on"] = [](sol::this_state ts, sol::table self, const std::string &eventName, sol::function callback) -> int {
-			return g_luaScripts.addEventListener(eventName, callback);
-		};
-		events["off"] = [](sol::this_state ts, sol::table self, int listenerId) -> bool {
-			return g_luaScripts.removeEventListener(listenerId);
-		};
-		app["events"] = events;
-
-		// Properties via metatable (for dynamic properties like 'map' and 'selection')
-		sol::table mt = lua.create_table();
-		mt[sol::meta_function::index] = [](sol::this_state ts, sol::table self, std::string key) -> sol::object {
-			sol::state_view lua(ts);
-
-			if (key == "map") {
-				Map* map = getMap();
-				if (map) {
-					return sol::make_object(lua, map);
-				}
-				return sol::nil;
-			} else if (key == "selection") {
-				Selection* sel = getSelection();
-				if (sel) {
-					return sol::make_object(lua, sel);
-				}
-				return sol::nil;
-			} else if (key == "borders") {
-				return getBorders(ts);
-			} else if (key == "editor") {
-				Editor* editor = g_gui.GetCurrentEditor();
-				if (editor) {
-					return sol::make_object(lua, editor);
-				}
-				return sol::nil;
-			} else if (key == "brush") {
-				Brush* b = g_gui.GetCurrentBrush();
-				if (b) {
-					return sol::make_object(lua, b);
-				}
-				return sol::nil;
-			} else if (key == "brushSize") {
-				return sol::make_object(lua, g_gui.GetBrushSize());
-			} else if (key == "brushShape") {
-				return sol::make_object(lua, g_gui.GetBrushShape() == BRUSHSHAPE_CIRCLE ? "circle" : "square");
-			} else if (key == "brushVariation") {
-				return sol::make_object(lua, g_gui.GetBrushVariation());
-			} else if (key == "spawnTime") {
-				return sol::make_object(lua, 0);
+		if (key == "map") {
+			Map* map = getMap();
+			if (map) {
+				return sol::make_object(lua, map);
 			}
 			return sol::nil;
-		};
+		}
+		if (key == "selection") {
+			Selection* sel = getSelection();
+			if (sel) {
+				return sol::make_object(lua, sel);
+			}
+			return sol::nil;
+		}
+		if (key == "borders") {
+			return getBorders(ts);
+		}
+		if (key == "editor") {
+			Editor* editor = g_gui.GetCurrentEditor();
+			if (editor) {
+				return sol::make_object(lua, editor);
+			}
+			return sol::nil;
+		}
+		if (key == "brush") {
+			Brush* b = g_gui.GetCurrentBrush();
+			if (b) {
+				return sol::make_object(lua, b);
+			}
+			return sol::nil;
+		}
+		if (key == "brushSize") {
+			return sol::make_object(lua, g_gui.GetBrushSize());
+		}
+		if (key == "brushShape") {
+			return sol::make_object(lua, g_gui.GetBrushShape() == BRUSHSHAPE_CIRCLE ? "circle" : "square");
+		}
+		if (key == "brushVariation") {
+			return sol::make_object(lua, g_gui.GetBrushVariation());
+		}
+		if (key == "spawnTime") {
+			return sol::make_object(lua, 0);
+		}
+		return sol::nil;
+	}
 
-		mt[sol::meta_function::new_index] = [](sol::this_state ts, sol::table self, std::string key, sol::object value) {
-			if (key == "brushSize") {
-				if (value.is<int>()) {
-					g_gui.SetBrushSize(value.as<int>());
-				}
-			} else if (key == "brushShape") {
-				if (value.is<std::string>()) {
-					std::string s = value.as<std::string>();
-					if (s == "circle") {
-						g_gui.SetBrushShape(BRUSHSHAPE_CIRCLE);
-					} else if (s == "square") {
-						g_gui.SetBrushShape(BRUSHSHAPE_SQUARE);
-					}
-				}
-			} else if (key == "brushVariation") {
-				if (value.is<int>()) {
-					g_gui.SetBrushVariation(value.as<int>());
+	static void appPropertySetter(sol::this_state ts, sol::table self, std::string key, sol::object value) {
+		if (key == "brushSize") {
+			if (value.is<int>()) {
+				g_gui.SetBrushSize(value.as<int>());
+			}
+		} else if (key == "brushShape") {
+			if (value.is<std::string>()) {
+				std::string s = value.as<std::string>();
+				if (s == "circle") {
+					g_gui.SetBrushShape(BRUSHSHAPE_CIRCLE);
+				} else if (s == "square") {
+					g_gui.SetBrushShape(BRUSHSHAPE_SQUARE);
 				}
 			}
-		};
+		} else if (key == "brushVariation") {
+			if (value.is<int>()) {
+				g_gui.SetBrushVariation(value.as<int>());
+			}
+		}
+	}
 
-		// Keyboard modification state
-		sol::table keyboard = lua.create_table();
-		keyboard["isCtrlDown"] = []() -> bool {
-			return wxGetKeyState(WXK_CONTROL);
-		};
-		keyboard["isShiftDown"] = []() -> bool {
-			return wxGetKeyState(WXK_SHIFT);
-		};
-		keyboard["isAltDown"] = []() -> bool {
-			return wxGetKeyState(WXK_ALT);
-		};
-		app["keyboard"] = keyboard;
-
-		// Clipboard / Edit operations
-		app["copy"] = []() { g_gui.DoCopy(); };
-		app["cut"] = []() { g_gui.DoCut(); };
-		app["paste"] = []() { g_gui.DoPaste(); };
-
-		// Map overlay system
+		static void setupMapView(sol::table &app) {
+		sol::state_view lua(app.lua_state());
 		sol::table mapView = lua.create_table();
 		mapView["addOverlay"] = [](sol::variadic_args va) -> bool {
 			if (va.size() == 2 && va[0].is<std::string>() && va[1].is<sol::table>()) {
@@ -717,29 +629,59 @@ namespace LuaAPI {
 			return g_luaScripts.registerMapOverlayShow(label, overlayId, enabled, ontoggle);
 		};
 		app["mapView"] = mapView;
+	}
 
-		app[sol::metatable_key] = mt;
+	static void editorGoToHistory(Editor* editor, int targetIndex) {
+		if (!editor || !editor->getActionQueue()) {
+			return;
+		}
 
-		// Register Editor usertype for undo/redo functionality
+		int current = (int)editor->getActionQueue()->getCurrentIndex();
+		int target = targetIndex;
+
+		if (target < 0) {
+			target = 0;
+		}
+		if (target > (int)editor->getActionQueue()->size()) {
+			target = (int)editor->getActionQueue()->size();
+		}
+
+		int diff = target - current;
+
+		if (diff > 0) {
+			for (int i = 0; i < diff; ++i) {
+				if (editor->canRedo()) {
+					editor->redo();
+				}
+			}
+		} else if (diff < 0) {
+			for (int i = 0; i < -diff; ++i) {
+				if (editor->canUndo()) {
+					editor->undo();
+				}
+			}
+		}
+		g_gui.RefreshView();
+	}
+
+	static void registerEditorUsertype(sol::state &lua) {
 		lua.new_usertype<Editor>(
 			"Editor",
 			sol::no_constructor,
 
-			// Undo/Redo functions
-			"undo", [](Editor* editor) {
-			if (editor && editor->canUndo()) {  
-				editor->undo();
-				g_gui.RefreshView();
-			} },
-			"redo", [](Editor* editor) {
-			if (editor && editor->canRedo()) {  
-				editor->redo();
-				g_gui.RefreshView();
-			} },
+			"undo", [](Editor* editor) {  
+				if (editor && editor->canUndo()) {  
+					editor->undo();  
+					g_gui.RefreshView();  
+				} },
+			"redo", [](Editor* editor) {  
+				if (editor && editor->canRedo()) {  
+					editor->redo();  
+					g_gui.RefreshView();  
+				} },
 			"canUndo", [](Editor* editor) -> bool { return editor && editor->canUndo(); },
 			"canRedo", [](Editor* editor) -> bool { return editor && editor->canRedo(); },
 
-			// History info
 			"historyIndex", sol::property([](Editor* editor) -> int {
 				if (editor && editor->getActionQueue()) {
 					return (int)editor->getActionQueue()->getCurrentIndex();
@@ -753,54 +695,99 @@ namespace LuaAPI {
 				return 0;
 			}),
 
-			// Get history as a table
-			"getHistory", [](Editor* editor, sol::this_state ts) -> sol::table {
-			sol::state_view lua(ts);
-			sol::table history = lua.create_table();
+			"getHistory", [](Editor* editor, sol::this_state ts) -> sol::table {  
+				sol::state_view lua(ts);  
+				sol::table history = lua.create_table();  
+  
+				if (editor && editor->getActionQueue()) {  
+					size_t size = editor->getActionQueue()->size();  
+					for (size_t i = 0; i < size; ++i) {  
+						sol::table input = lua.create_table();  
+						input["index"] = (int)(i + 1);  
+						const BatchAction* ba = editor->getActionQueue()->getAction(i);  
+						input["name"] = ba ? ba->getLabel().ToStdString() : std::string("");  
+						history[i + 1] = input;  
+					}  
+				}  
+				return history; },
 
-			if (editor && editor->getActionQueue()) {  
-				size_t size = editor->getActionQueue()->size();
-				for (size_t i = 0; i < size; ++i) {
-					sol::table input = lua.create_table();
-					input["index"] = (int)(i + 1); // 1-based for Lua
-					const BatchAction* ba = editor->getActionQueue()->getAction(i);  
-					input["name"] = ba ? ba->getLabel().ToStdString() : std::string("");
-					history[i + 1] = input;
+			"goToHistory", editorGoToHistory
+		);
+	}
+
+	void registerApp(sol::state &lua) {
+		sol::table app = lua.create_named_table("app");
+
+		app["version"] = __RME_VERSION__;
+		app["apiVersion"] = 1;
+
+		app["alert"] = showAlert;
+		app["hasMap"] = hasMap;
+		app["refresh"] = refresh;
+		app["transaction"] = transaction;
+		app["setClipboard"] = setClipboard;
+		app["getDataDirectory"] = getDataDirectory;
+		app["addContextMenu"] = [](const std::string &label, sol::function callback) {
+			g_luaScripts.registerContextMenuItem(label, callback);
+		};
+		app["selectRaw"] = [](int itemId) {
+			if (g_items[itemId].id != 0) {
+				ItemType &it = g_items[itemId];
+				if (it.raw_brush) {
+					g_gui.SelectBrush(it.raw_brush, TILESET_RAW);
 				}
 			}
-			return history; },
+		};
 
-			// Navigate to specific history index
-			"goToHistory", [](Editor* editor, int targetIndex) {  
-			if (!editor || !editor->getActionQueue()){ return;  
-}  
-  
-			int current = (int)editor->getActionQueue()->getCurrentIndex();  
-			int target = targetIndex;  
-  
-			if (target < 0){ target = 0;  
-}  
-			if (target > (int)editor->getActionQueue()->size()) {  
-				target = (int)editor->getActionQueue()->size();  
-			}  
-  
-			int diff = target - current;  
-  
-			if (diff > 0) {  
-				for (int i = 0; i < diff; ++i) {  
-					if (editor->canRedo()) {  
-						editor->redo();  
-					}  
-				}  
-			} else if (diff < 0) {  
-				for (int i = 0; i < -diff; ++i) {  
-					if (editor->canUndo()) {  
-						editor->undo();  
-					}  
-				}  
-			}  
-			g_gui.RefreshView(); }
-		);
+		app["setCameraPosition"] = [](int x, int y, int z) {
+			g_gui.SetScreenCenterPosition(Position(x, y, z));
+		};
+		app["storage"] = storageForScript;
+
+		app["yield"] = []() {
+			if (wxTheApp) {
+				wxTheApp->Yield(true);
+			}
+		};
+
+		app["sleep"] = [](int milliseconds) {
+			if (milliseconds > 0 && milliseconds <= 10000) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(milliseconds));
+			}
+		};
+
+		app["getTime"] = []() -> long {
+			return g_gui.gfx.getElapsedTime();
+		};
+
+		sol::table events = lua.create_table();
+		events["on"] = [](sol::this_state ts, sol::table self, const std::string &eventName, sol::function callback) -> int {
+			return g_luaScripts.addEventListener(eventName, callback);
+		};
+		events["off"] = [](sol::this_state ts, sol::table self, int listenerId) -> bool {
+			return g_luaScripts.removeEventListener(listenerId);
+		};
+		app["events"] = events;
+
+		sol::table mt = lua.create_table();
+		mt[sol::meta_function::index] = appPropertyGetter;
+		mt[sol::meta_function::new_index] = appPropertySetter;
+
+		sol::table keyboard = lua.create_table();
+		keyboard["isCtrlDown"] = []() -> bool { return wxGetKeyState(WXK_CONTROL); };
+		keyboard["isShiftDown"] = []() -> bool { return wxGetKeyState(WXK_SHIFT); };
+		keyboard["isAltDown"] = []() -> bool { return wxGetKeyState(WXK_ALT); };
+		app["keyboard"] = keyboard;
+
+		app["copy"] = []() { g_gui.DoCopy(); };
+		app["cut"] = []() { g_gui.DoCut(); };
+		app["paste"] = []() { g_gui.DoPaste(); };
+
+		setupMapView(app);
+
+		app[sol::metatable_key] = mt;
+
+		registerEditorUsertype(lua);
 	}
 
 } // namespace LuaAPI

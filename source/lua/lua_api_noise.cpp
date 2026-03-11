@@ -49,9 +49,11 @@ namespace LuaAPI {
 		std::mutex mutex_;
 	};
 
-	static NoiseGeneratorCache g_noiseCache;
+	static NoiseGeneratorCache &noiseCache() {
+		static NoiseGeneratorCache instance;
+		return instance;
+	}
 
-	// Helper to create configured noise generator
 	static FastNoiseLite createNoiseGenerator(int seed, FastNoiseLite::NoiseType type, float frequency = 0.01f) {
 		FastNoiseLite noise;
 		noise.SetSeed(seed);
@@ -60,236 +62,215 @@ namespace LuaAPI {
 		return noise;
 	}
 
+	static FastNoiseLite::NoiseType resolveNoiseType(const std::string &name) {
+		static const std::unordered_map<std::string, FastNoiseLite::NoiseType> types = {
+			{ "perlin", FastNoiseLite::NoiseType_Perlin },
+			{ "simplex", FastNoiseLite::NoiseType_OpenSimplex2 },
+			{ "opensimplex", FastNoiseLite::NoiseType_OpenSimplex2 },
+			{ "value", FastNoiseLite::NoiseType_Value },
+			{ "cellular", FastNoiseLite::NoiseType_Cellular },
+		};
+		auto it = types.find(name);
+		return it != types.end() ? it->second : FastNoiseLite::NoiseType_OpenSimplex2;
+	}
+
+	static FastNoiseLite::CellularDistanceFunction resolveCellularDistance(const std::string &name) {
+		static const std::unordered_map<std::string, FastNoiseLite::CellularDistanceFunction> types = {
+			{ "euclidean", FastNoiseLite::CellularDistanceFunction_EuclideanSq },
+			{ "euclideanSq", FastNoiseLite::CellularDistanceFunction_EuclideanSq },
+			{ "manhattan", FastNoiseLite::CellularDistanceFunction_Manhattan },
+			{ "hybrid", FastNoiseLite::CellularDistanceFunction_Hybrid },
+		};
+		auto it = types.find(name);
+		return it != types.end() ? it->second : FastNoiseLite::CellularDistanceFunction_EuclideanSq;
+	}
+
+	static FastNoiseLite::CellularReturnType resolveCellularReturn(const std::string &name) {
+		static const std::unordered_map<std::string, FastNoiseLite::CellularReturnType> types = {
+			{ "cellValue", FastNoiseLite::CellularReturnType_CellValue },
+			{ "distance", FastNoiseLite::CellularReturnType_Distance },
+			{ "distance2", FastNoiseLite::CellularReturnType_Distance2 },
+			{ "distance2Add", FastNoiseLite::CellularReturnType_Distance2Add },
+			{ "distance2Sub", FastNoiseLite::CellularReturnType_Distance2Sub },
+			{ "distance2Mul", FastNoiseLite::CellularReturnType_Distance2Mul },
+			{ "distance2Div", FastNoiseLite::CellularReturnType_Distance2Div },
+		};
+		auto it = types.find(name);
+		return it != types.end() ? it->second : FastNoiseLite::CellularReturnType_Distance;
+	}
+
+	static FastNoiseLite::DomainWarpType resolveDomainWarpType(const std::string &name) {
+		static const std::unordered_map<std::string, FastNoiseLite::DomainWarpType> types = {
+			{ "simplex", FastNoiseLite::DomainWarpType_OpenSimplex2 },
+			{ "opensimplex", FastNoiseLite::DomainWarpType_OpenSimplex2 },
+			{ "simplexReduced", FastNoiseLite::DomainWarpType_OpenSimplex2Reduced },
+			{ "basic", FastNoiseLite::DomainWarpType_BasicGrid },
+		};
+		auto it = types.find(name);
+		return it != types.end() ? it->second : FastNoiseLite::DomainWarpType_OpenSimplex2;
+	}
+
+	static float cellularNoise(float x, float y, sol::optional<int> seed, sol::optional<float> frequency, sol::optional<std::string> distanceFunc, sol::optional<std::string> returnType) {
+		int s = seed.value_or(1337);
+		float freq = frequency.value_or(0.01f);
+
+		FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_Cellular, freq);
+		noise.SetCellularDistanceFunction(resolveCellularDistance(distanceFunc.value_or("euclidean")));
+		noise.SetCellularReturnType(resolveCellularReturn(returnType.value_or("distance")));
+
+		return noise.GetNoise(x, y);
+	}
+
+	static void configureFbm(FastNoiseLite &noise, const sol::table &opts) {
+		noise.SetFrequency(opts.get_or(std::string("frequency"), 0.01f));
+		noise.SetFractalOctaves(opts.get_or(std::string("octaves"), 4));
+		noise.SetFractalLacunarity(opts.get_or(std::string("lacunarity"), 2.0f));
+		noise.SetFractalGain(opts.get_or(std::string("gain"), 0.5f));
+		std::string noiseType = opts.get_or<std::string>(std::string("noiseType"), "simplex");
+		noise.SetNoiseType(resolveNoiseType(noiseType));
+	}
+
+	static float fbmNoise(float x, float y, sol::optional<int> seed, sol::optional<sol::table> options) {
+		FastNoiseLite noise;
+		noise.SetSeed(seed.value_or(1337));
+		noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+
+		if (options) {
+			configureFbm(noise, *options);
+		} else {
+			noise.SetFrequency(0.01f);
+			noise.SetFractalOctaves(4);
+			noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+		}
+		return noise.GetNoise(x, y);
+	}
+
+	static float fbmNoise3d(float x, float y, float z, sol::optional<int> seed, sol::optional<sol::table> options) {
+		FastNoiseLite noise;
+		noise.SetSeed(seed.value_or(1337));
+		noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+
+		if (options) {
+			configureFbm(noise, *options);
+		} else {
+			noise.SetFrequency(0.01f);
+			noise.SetFractalOctaves(4);
+			noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+		}
+		return noise.GetNoise(x, y, z);
+	}
+
+	static sol::object warpNoise(float x, float y, sol::optional<int> seed, sol::optional<sol::table> options, sol::this_state s) {
+		FastNoiseLite noise;
+		noise.SetSeed(seed.value_or(1337));
+
+		float amplitude = 30.0f;
+		float frequency = 0.01f;
+
+		if (options) {
+			sol::table opts = *options;
+			amplitude = opts.get_or(std::string("amplitude"), 30.0f);
+			frequency = opts.get_or(std::string("frequency"), 0.01f);
+			std::string warpType = opts.get_or<std::string>(std::string("type"), "simplex");
+			noise.SetDomainWarpType(resolveDomainWarpType(warpType));
+		} else {
+			noise.SetDomainWarpType(FastNoiseLite::DomainWarpType_OpenSimplex2);
+		}
+
+		noise.SetDomainWarpAmp(amplitude);
+		noise.SetFrequency(frequency);
+		noise.DomainWarp(x, y);
+
+		sol::state_view lua(s);
+		sol::table result = lua.create_table();
+		result["x"] = x;
+		result["y"] = y;
+		return result;
+	}
+
+	static void configureGridNoise(FastNoiseLite &noise, const sol::table &opts) {
+		noise.SetSeed(opts.get_or(std::string("seed"), 1337));
+		noise.SetFrequency(opts.get_or(std::string("frequency"), 0.01f));
+		noise.SetNoiseType(resolveNoiseType(opts.get_or<std::string>(std::string("noiseType"), "simplex")));
+
+		std::string fractal = opts.get_or<std::string>(std::string("fractal"), "none");
+		if (fractal == "fbm") {
+			noise.SetFractalType(FastNoiseLite::FractalType_FBm);
+			noise.SetFractalOctaves(opts.get_or(std::string("octaves"), 4));
+			noise.SetFractalLacunarity(opts.get_or(std::string("lacunarity"), 2.0f));
+			noise.SetFractalGain(opts.get_or(std::string("gain"), 0.5f));
+		} else if (fractal == "ridged") {
+			noise.SetFractalType(FastNoiseLite::FractalType_Ridged);
+			noise.SetFractalOctaves(opts.get_or(std::string("octaves"), 4));
+		}
+	}
+
+	static sol::table generateGridNoise(int x1, int y1, int x2, int y2, sol::optional<sol::table> options, sol::this_state s) {
+		sol::state_view lua(s);
+		sol::table result = lua.create_table();
+
+		FastNoiseLite noise;
+		if (options) {
+			configureGridNoise(noise, *options);
+		} else {
+			noise.SetSeed(1337);
+			noise.SetFrequency(0.01f);
+			noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
+		}
+
+		for (int y = y1; y <= y2; ++y) {
+			sol::table row = lua.create_table();
+			for (int x = x1; x <= x2; ++x) {
+				row[x - x1 + 1] = noise.GetNoise((float)x, (float)y);
+			}
+			result[y - y1 + 1] = row;
+		}
+		return result;
+	}
+
 	void registerNoise(sol::state &lua) {
 		sol::table noiseTable = lua.create_table();
 
-		// ========================================
-		// PERLIN NOISE
-		// ========================================
-
-		// noise.perlin(x, y, seed, frequency) -> number [-1, 1]
-		// Simple 2D perlin noise
 		noiseTable.set_function("perlin", [](float x, float y, sol::optional<int> seed, sol::optional<float> frequency) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_Perlin, freq);
-			return noise.GetNoise(x, y);
+			return createNoiseGenerator(seed.value_or(1337), FastNoiseLite::NoiseType_Perlin, frequency.value_or(0.01f)).GetNoise(x, y);
 		});
 
-		// noise.perlin3d(x, y, z, seed, frequency) -> number [-1, 1]
-		// 3D perlin noise
 		noiseTable.set_function("perlin3d", [](float x, float y, float z, sol::optional<int> seed, sol::optional<float> frequency) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_Perlin, freq);
-			return noise.GetNoise(x, y, z);
+			return createNoiseGenerator(seed.value_or(1337), FastNoiseLite::NoiseType_Perlin, frequency.value_or(0.01f)).GetNoise(x, y, z);
 		});
 
-		// ========================================
-		// SIMPLEX / OPENSIMPLEX2 NOISE
-		// ========================================
-
-		// noise.simplex(x, y, seed, frequency) -> number [-1, 1]
-		// OpenSimplex2 noise - better quality than perlin
 		noiseTable.set_function("simplex", [](float x, float y, sol::optional<int> seed, sol::optional<float> frequency) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_OpenSimplex2, freq);
-			return noise.GetNoise(x, y);
+			return createNoiseGenerator(seed.value_or(1337), FastNoiseLite::NoiseType_OpenSimplex2, frequency.value_or(0.01f)).GetNoise(x, y);
 		});
 
-		// noise.simplex3d(x, y, z, seed, frequency) -> number [-1, 1]
 		noiseTable.set_function("simplex3d", [](float x, float y, float z, sol::optional<int> seed, sol::optional<float> frequency) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_OpenSimplex2, freq);
-			return noise.GetNoise(x, y, z);
+			return createNoiseGenerator(seed.value_or(1337), FastNoiseLite::NoiseType_OpenSimplex2, frequency.value_or(0.01f)).GetNoise(x, y, z);
 		});
 
-		// noise.simplexSmooth(x, y, seed, frequency) -> number [-1, 1]
-		// OpenSimplex2S - smoother variant
 		noiseTable.set_function("simplexSmooth", [](float x, float y, sol::optional<int> seed, sol::optional<float> frequency) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_OpenSimplex2S, freq);
-			return noise.GetNoise(x, y);
+			return createNoiseGenerator(seed.value_or(1337), FastNoiseLite::NoiseType_OpenSimplex2S, frequency.value_or(0.01f)).GetNoise(x, y);
 		});
 
-		// ========================================
-		// CELLULAR / VORONOI NOISE
-		// ========================================
+		noiseTable.set_function("cellular", cellularNoise);
 
-		// noise.cellular(x, y, seed, frequency, distanceFunc, returnType) -> number
-		// Cellular/Voronoi noise for cave-like structures, organic patterns
-		noiseTable.set_function("cellular", [](float x, float y, sol::optional<int> seed, sol::optional<float> frequency, sol::optional<std::string> distanceFunc, sol::optional<std::string> returnType) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-			std::string distFn = distanceFunc.value_or("euclidean");
-			std::string retType = returnType.value_or("distance");
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_Cellular, freq);
-
-			// Set distance function
-			if (distFn == "euclidean" || distFn == "euclideanSq") {
-				noise.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction_EuclideanSq);
-			} else if (distFn == "manhattan") {
-				noise.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction_Manhattan);
-			} else if (distFn == "hybrid") {
-				noise.SetCellularDistanceFunction(FastNoiseLite::CellularDistanceFunction_Hybrid);
-			}
-
-			// Set return type
-			if (retType == "cellValue") {
-				noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_CellValue);
-			} else if (retType == "distance") {
-				noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance);
-			} else if (retType == "distance2") {
-				noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2);
-			} else if (retType == "distance2Add") {
-				noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Add);
-			} else if (retType == "distance2Sub") {
-				noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Sub);
-			} else if (retType == "distance2Mul") {
-				noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Mul);
-			} else if (retType == "distance2Div") {
-				noise.SetCellularReturnType(FastNoiseLite::CellularReturnType_Distance2Div);
-			}
-
-			return noise.GetNoise(x, y);
-		});
-
-		// noise.cellular3d(x, y, z, seed, frequency) -> number
 		noiseTable.set_function("cellular3d", [](float x, float y, float z, sol::optional<int> seed, sol::optional<float> frequency) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_Cellular, freq);
-			return noise.GetNoise(x, y, z);
+			return createNoiseGenerator(seed.value_or(1337), FastNoiseLite::NoiseType_Cellular, frequency.value_or(0.01f)).GetNoise(x, y, z);
 		});
 
-		// ========================================
-		// VALUE NOISE
-		// ========================================
-
-		// noise.value(x, y, seed, frequency) -> number [-1, 1]
-		// Value noise - blocky, good for heightmaps
 		noiseTable.set_function("value", [](float x, float y, sol::optional<int> seed, sol::optional<float> frequency) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_Value, freq);
-			return noise.GetNoise(x, y);
+			return createNoiseGenerator(seed.value_or(1337), FastNoiseLite::NoiseType_Value, frequency.value_or(0.01f)).GetNoise(x, y);
 		});
 
-		// noise.valueCubic(x, y, seed, frequency) -> number [-1, 1]
-		// Cubic interpolated value noise - smoother than value
 		noiseTable.set_function("valueCubic", [](float x, float y, sol::optional<int> seed, sol::optional<float> frequency) -> float {
-			int s = seed.value_or(1337);
-			float freq = frequency.value_or(0.01f);
-
-			FastNoiseLite noise = createNoiseGenerator(s, FastNoiseLite::NoiseType_ValueCubic, freq);
-			return noise.GetNoise(x, y);
+			return createNoiseGenerator(seed.value_or(1337), FastNoiseLite::NoiseType_ValueCubic, frequency.value_or(0.01f)).GetNoise(x, y);
 		});
 
-		// ========================================
-		// FBM (Fractional Brownian Motion)
-		// ========================================
+		noiseTable.set_function("fbm", fbmNoise);
+		noiseTable.set_function("fbm3d", fbmNoise3d);
 
-		// noise.fbm(x, y, seed, options) -> number
-		// Fractal Brownian Motion - layered noise for natural terrain
-		// options: { frequency, octaves, lacunarity, gain, noiseType }
-		noiseTable.set_function("fbm", [](float x, float y, sol::optional<int> seed, sol::optional<sol::table> options) -> float {
-			int s = seed.value_or(1337);
-
-			FastNoiseLite noise;
-			noise.SetSeed(s);
-			noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-
-			if (options) {
-				sol::table opts = *options;
-
-				// Frequency
-				float freq = opts.get_or(std::string("frequency"), 0.01f);
-				noise.SetFrequency(freq);
-
-				// Octaves (layers of noise)
-				int octaves = opts.get_or(std::string("octaves"), 4);
-				noise.SetFractalOctaves(octaves);
-
-				// Lacunarity (frequency multiplier per octave)
-				float lacunarity = opts.get_or(std::string("lacunarity"), 2.0f);
-				noise.SetFractalLacunarity(lacunarity);
-
-				// Gain (amplitude multiplier per octave)
-				float gain = opts.get_or(std::string("gain"), 0.5f);
-				noise.SetFractalGain(gain);
-
-				// Noise type for fractal
-				std::string noiseType = opts.get_or<std::string>(std::string("noiseType"), "simplex");
-				if (noiseType == "perlin") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-				} else if (noiseType == "simplex" || noiseType == "opensimplex") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-				} else if (noiseType == "value") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_Value);
-				} else if (noiseType == "cellular") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
-				}
-			} else {
-				noise.SetFrequency(0.01f);
-				noise.SetFractalOctaves(4);
-				noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-			}
-
-			return noise.GetNoise(x, y);
-		});
-
-		// noise.fbm3d(x, y, z, seed, options) -> number
-		noiseTable.set_function("fbm3d", [](float x, float y, float z, sol::optional<int> seed, sol::optional<sol::table> options) -> float {
-			int s = seed.value_or(1337);
-
-			FastNoiseLite noise;
-			noise.SetSeed(s);
-			noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-
-			if (options) {
-				sol::table opts = *options;
-				noise.SetFrequency(opts.get_or(std::string("frequency"), 0.01f));
-				noise.SetFractalOctaves(opts.get_or(std::string("octaves"), 4));
-				noise.SetFractalLacunarity(opts.get_or(std::string("lacunarity"), 2.0f));
-				noise.SetFractalGain(opts.get_or(std::string("gain"), 0.5f));
-
-				std::string noiseType = opts.get_or<std::string>(std::string("noiseType"), "simplex");
-				if (noiseType == "perlin") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-				} else {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-				}
-			} else {
-				noise.SetFrequency(0.01f);
-				noise.SetFractalOctaves(4);
-				noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-			}
-
-			return noise.GetNoise(x, y, z);
-		});
-
-		// ========================================
-		// RIDGED NOISE
-		// ========================================
-
-		// noise.ridged(x, y, seed, options) -> number
-		// Ridged fractal noise - good for mountains, veins
 		noiseTable.set_function("ridged", [](float x, float y, sol::optional<int> seed, sol::optional<sol::table> options) -> float {
-			int s = seed.value_or(1337);
-
 			FastNoiseLite noise;
-			noise.SetSeed(s);
+			noise.SetSeed(seed.value_or(1337));
 			noise.SetFractalType(FastNoiseLite::FractalType_Ridged);
 			noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
 
@@ -303,99 +284,41 @@ namespace LuaAPI {
 				noise.SetFrequency(0.01f);
 				noise.SetFractalOctaves(4);
 			}
-
 			return noise.GetNoise(x, y);
 		});
 
-		// ========================================
-		// DOMAIN WARP
-		// ========================================
+		noiseTable.set_function("warp", warpNoise);
 
-		// noise.warp(x, y, seed, options) -> x, y (warped coordinates)
-		// Domain warping - distorts input coordinates for organic effects
-		noiseTable.set_function("warp", [](float x, float y, sol::optional<int> seed, sol::optional<sol::table> options, sol::this_state s) -> sol::object {
-			int sd = seed.value_or(1337);
-
-			FastNoiseLite noise;
-			noise.SetSeed(sd);
-			noise.SetDomainWarpType(FastNoiseLite::DomainWarpType_OpenSimplex2);
-
-			float amplitude = 30.0f;
-			float frequency = 0.01f;
-
-			if (options) {
-				sol::table opts = *options;
-				amplitude = opts.get_or(std::string("amplitude"), 30.0f);
-				frequency = opts.get_or(std::string("frequency"), 0.01f);
-
-				std::string warpType = opts.get_or<std::string>(std::string("type"), "simplex");
-				if (warpType == "simplex" || warpType == "opensimplex") {
-					noise.SetDomainWarpType(FastNoiseLite::DomainWarpType_OpenSimplex2);
-				} else if (warpType == "simplexReduced") {
-					noise.SetDomainWarpType(FastNoiseLite::DomainWarpType_OpenSimplex2Reduced);
-				} else if (warpType == "basic") {
-					noise.SetDomainWarpType(FastNoiseLite::DomainWarpType_BasicGrid);
-				}
-			}
-
-			noise.SetDomainWarpAmp(amplitude);
-			noise.SetFrequency(frequency);
-
-			noise.DomainWarp(x, y);
-
-			sol::state_view lua(s);
-			sol::table result = lua.create_table();
-			result["x"] = x;
-			result["y"] = y;
-			return result;
-		});
-
-		// ========================================
-		// UTILITY FUNCTIONS
-		// ========================================
-
-		// noise.normalize(value, min, max) -> number [0, 1]
-		// Normalize noise value from [-1,1] to [min, max]
 		noiseTable.set_function("normalize", [](float value, sol::optional<float> minVal, sol::optional<float> maxVal) -> float {
-			float min = minVal.value_or(0.0f);
-			float max = maxVal.value_or(1.0f);
-			// value is in [-1, 1], normalize to [0, 1] first, then scale
+			float mn = minVal.value_or(0.0f);
+			float mx = maxVal.value_or(1.0f);
 			float normalized = (value + 1.0f) * 0.5f;
-			return min + normalized * (max - min);
+			return mn + normalized * (mx - mn);
 		});
 
-		// noise.threshold(value, threshold) -> boolean
-		// Returns true if value is above threshold
 		noiseTable.set_function("threshold", [](float value, float threshold) -> bool {
 			return value >= threshold;
 		});
 
-		// noise.map(value, inMin, inMax, outMin, outMax) -> number
-		// Map value from one range to another
 		noiseTable.set_function("map", [](float value, float inMin, float inMax, float outMin, float outMax) -> float {
 			float t = (value - inMin) / (inMax - inMin);
 			return outMin + t * (outMax - outMin);
 		});
 
-		// noise.clamp(value, min, max) -> number
-		noiseTable.set_function("clamp", [](float value, float min, float max) -> float {
-			if (value < min) {
-				return min;
+		noiseTable.set_function("clamp", [](float value, float mn, float mx) -> float {
+			if (value < mn) {
+				return mn;
 			}
-			if (value > max) {
-				return max;
+			if (value > mx) {
+				return mx;
 			}
 			return value;
 		});
 
-		// noise.lerp(a, b, t) -> number
-		// Linear interpolation
 		noiseTable.set_function("lerp", [](float a, float b, float t) -> float {
 			return a + t * (b - a);
 		});
 
-		// noise.smoothstep(edge0, edge1, x) -> number
-		// Smooth interpolation
 		noiseTable.set_function("smoothstep", [](float edge0, float edge1, float x) -> float {
 			float t = (x - edge0) / (edge1 - edge0);
 			if (t < 0.0f) {
@@ -407,67 +330,11 @@ namespace LuaAPI {
 			return t * t * (3.0f - 2.0f * t);
 		});
 
-		// noise.clearCache() - clear noise generator cache
 		noiseTable.set_function("clearCache", []() {
-			g_noiseCache.clear();
+			noiseCache().clear();
 		});
 
-		// ========================================
-		// BATCH GENERATION (for performance)
-		// ========================================
-
-		// noise.generateGrid(x1, y1, x2, y2, options) -> table of values
-		// Generate noise values for a grid area (faster than individual calls)
-		noiseTable.set_function("generateGrid", [](int x1, int y1, int x2, int y2, sol::optional<sol::table> options, sol::this_state s) -> sol::table {
-			sol::state_view lua(s);
-			sol::table result = lua.create_table();
-
-			FastNoiseLite noise;
-
-			if (options) {
-				sol::table opts = *options;
-				noise.SetSeed(opts.get_or(std::string("seed"), 1337));
-				noise.SetFrequency(opts.get_or(std::string("frequency"), 0.01f));
-
-				std::string noiseType = opts.get_or<std::string>(std::string("noiseType"), "simplex");
-				if (noiseType == "perlin") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_Perlin);
-				} else if (noiseType == "simplex") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-				} else if (noiseType == "cellular") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_Cellular);
-				} else if (noiseType == "value") {
-					noise.SetNoiseType(FastNoiseLite::NoiseType_Value);
-				}
-
-				// Fractal settings
-				std::string fractal = opts.get_or<std::string>(std::string("fractal"), "none");
-				if (fractal == "fbm") {
-					noise.SetFractalType(FastNoiseLite::FractalType_FBm);
-					noise.SetFractalOctaves(opts.get_or(std::string("octaves"), 4));
-					noise.SetFractalLacunarity(opts.get_or(std::string("lacunarity"), 2.0f));
-					noise.SetFractalGain(opts.get_or(std::string("gain"), 0.5f));
-				} else if (fractal == "ridged") {
-					noise.SetFractalType(FastNoiseLite::FractalType_Ridged);
-					noise.SetFractalOctaves(opts.get_or(std::string("octaves"), 4));
-				}
-			} else {
-				noise.SetSeed(1337);
-				noise.SetFrequency(0.01f);
-				noise.SetNoiseType(FastNoiseLite::NoiseType_OpenSimplex2);
-			}
-
-			// Generate values
-			for (int y = y1; y <= y2; ++y) {
-				sol::table row = lua.create_table();
-				for (int x = x1; x <= x2; ++x) {
-					row[x - x1 + 1] = noise.GetNoise((float)x, (float)y);
-				}
-				result[y - y1 + 1] = row;
-			}
-
-			return result;
-		});
+		noiseTable.set_function("generateGrid", generateGridNoise);
 
 		lua["noise"] = noiseTable;
 	}
