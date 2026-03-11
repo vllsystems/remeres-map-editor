@@ -559,7 +559,7 @@ namespace LuaAPI {
 		}
 	}
 
-		static void setupMapView(sol::table &app) {
+	static void setupMapView(sol::table &app) {
 		sol::state_view lua(app.lua_state());
 		sol::table mapView = lua.create_table();
 		mapView["addOverlay"] = [](sol::variadic_args va) -> bool {
