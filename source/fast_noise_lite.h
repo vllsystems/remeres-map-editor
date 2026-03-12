@@ -54,7 +54,7 @@
 
 class FastNoiseLite {
 public:
-	enum NoiseType {
+	enum class NoiseType {
 		NoiseType_OpenSimplex2,
 		NoiseType_OpenSimplex2S,
 		NoiseType_Cellular,
@@ -63,13 +63,13 @@ public:
 		NoiseType_Value
 	};
 
-	enum RotationType3D {
+	enum class RotationType3D {
 		RotationType3D_None,
 		RotationType3D_ImproveXYPlanes,
 		RotationType3D_ImproveXZPlanes
 	};
 
-	enum FractalType {
+	enum class FractalType {
 		FractalType_None,
 		FractalType_FBm,
 		FractalType_Ridged,
@@ -78,14 +78,14 @@ public:
 		FractalType_DomainWarpIndependent
 	};
 
-	enum CellularDistanceFunction {
+	enum class CellularDistanceFunction {
 		CellularDistanceFunction_Euclidean,
 		CellularDistanceFunction_EuclideanSq,
 		CellularDistanceFunction_Manhattan,
 		CellularDistanceFunction_Hybrid
 	};
 
-	enum CellularReturnType {
+	enum class CellularReturnType {
 		CellularReturnType_CellValue,
 		CellularReturnType_Distance,
 		CellularReturnType_Distance2,
@@ -95,7 +95,7 @@ public:
 		CellularReturnType_Distance2Div
 	};
 
-	enum DomainWarpType {
+	enum class DomainWarpType {
 		DomainWarpType_OpenSimplex2,
 		DomainWarpType_OpenSimplex2Reduced,
 		DomainWarpType_BasicGrid
@@ -104,29 +104,25 @@ public:
 	/// <summary>
 	/// Create new FastNoise object with optional seed
 	/// </summary>
-	explicit FastNoiseLite(int seed = 1337) {
-		mSeed = seed;
-		mFrequency = 0.01f;
-		mNoiseType = NoiseType_OpenSimplex2;
-		mRotationType3D = RotationType3D_None;
-		mTransformType3D = TransformType3D_DefaultOpenSimplex2;
-
-		mFractalType = FractalType_None;
-		mOctaves = 3;
-		mLacunarity = 2.0f;
-		mGain = 0.5f;
-		mWeightedStrength = 0.0f;
-		mPingPongStrength = 2.0f;
-
-		mFractalBounding = 1 / 1.75f;
-
-		mCellularDistanceFunction = CellularDistanceFunction_EuclideanSq;
-		mCellularReturnType = CellularReturnType_Distance;
-		mCellularJitterModifier = 1.0f;
-
-		mDomainWarpType = DomainWarpType_OpenSimplex2;
-		mWarpTransformType3D = TransformType3D_DefaultOpenSimplex2;
-		mDomainWarpAmp = 1.0f;
+	explicit FastNoiseLite(int seed = 1337) :
+		mSeed(seed),
+		mFrequency(0.01f),
+		mNoiseType(NoiseType::NoiseType_OpenSimplex2),
+		mRotationType3D(RotationType3D::RotationType3D_None),
+		mTransformType3D(TransformType3D::TransformType3D_DefaultOpenSimplex2),
+		mFractalType(FractalType::FractalType_None),
+		mOctaves(3),
+		mLacunarity(2.0f),
+		mGain(0.5f),
+		mWeightedStrength(0.0f),
+		mPingPongStrength(2.0f),
+		mFractalBounding(1 / 1.75f),
+		mCellularDistanceFunction(CellularDistanceFunction::CellularDistanceFunction_EuclideanSq),
+		mCellularReturnType(CellularReturnType::CellularReturnType_Distance),
+		mCellularJitterModifier(1.0f),
+		mDomainWarpType(DomainWarpType::DomainWarpType_OpenSimplex2),
+		mWarpTransformType3D(TransformType3D::TransformType3D_DefaultOpenSimplex2),
+		mDomainWarpAmp(1.0f) {
 	}
 
 	/// <summary>
@@ -304,11 +300,11 @@ public:
 		switch (mFractalType) {
 			default:
 				return GenNoiseSingle(mSeed, x, y);
-			case FractalType_FBm:
+			case FractalType::FractalType_FBm:
 				return GenFractalFBm(x, y);
-			case FractalType_Ridged:
+			case FractalType::FractalType_Ridged:
 				return GenFractalRidged(x, y);
-			case FractalType_PingPong:
+			case FractalType::FractalType_PingPong:
 				return GenFractalPingPong(x, y);
 		}
 	}
@@ -328,11 +324,11 @@ public:
 		switch (mFractalType) {
 			default:
 				return GenNoiseSingle(mSeed, x, y, z);
-			case FractalType_FBm:
+			case FractalType::FractalType_FBm:
 				return GenFractalFBm(x, y, z);
-			case FractalType_Ridged:
+			case FractalType::FractalType_Ridged:
 				return GenFractalRidged(x, y, z);
-			case FractalType_PingPong:
+			case FractalType::FractalType_PingPong:
 				return GenFractalPingPong(x, y, z);
 		}
 	}
@@ -353,10 +349,10 @@ public:
 			default:
 				DomainWarpSingle(x, y);
 				break;
-			case FractalType_DomainWarpProgressive:
+			case FractalType::FractalType_DomainWarpProgressive:
 				DomainWarpFractalProgressive(x, y);
 				break;
-			case FractalType_DomainWarpIndependent:
+			case FractalType::FractalType_DomainWarpIndependent:
 				DomainWarpFractalIndependent(x, y);
 				break;
 		}
@@ -378,10 +374,10 @@ public:
 			default:
 				DomainWarpSingle(x, y, z);
 				break;
-			case FractalType_DomainWarpProgressive:
+			case FractalType::FractalType_DomainWarpProgressive:
 				DomainWarpFractalProgressive(x, y, z);
 				break;
-			case FractalType_DomainWarpIndependent:
+			case FractalType::FractalType_DomainWarpIndependent:
 				DomainWarpFractalIndependent(x, y, z);
 				break;
 		}
@@ -391,7 +387,7 @@ private:
 	template <typename T>
 	struct Arguments_must_be_floating_point_values;
 
-	enum TransformType3D {
+	enum class TransformType3D {
 		TransformType3D_None,
 		TransformType3D_ImproveXYPlanes,
 		TransformType3D_ImproveXZPlanes,
@@ -601,17 +597,17 @@ private:
 	template <typename FNfloat>
 	float GenNoiseSingle(int seed, FNfloat x, FNfloat y) const {
 		switch (mNoiseType) {
-			case NoiseType_OpenSimplex2:
+			case NoiseType::NoiseType_OpenSimplex2:
 				return SingleSimplex(seed, x, y);
-			case NoiseType_OpenSimplex2S:
+			case NoiseType::NoiseType_OpenSimplex2S:
 				return SingleOpenSimplex2S(seed, x, y);
-			case NoiseType_Cellular:
+			case NoiseType::NoiseType_Cellular:
 				return SingleCellular(seed, x, y);
-			case NoiseType_Perlin:
+			case NoiseType::NoiseType_Perlin:
 				return SinglePerlin(seed, x, y);
-			case NoiseType_ValueCubic:
+			case NoiseType::NoiseType_ValueCubic:
 				return SingleValueCubic(seed, x, y);
-			case NoiseType_Value:
+			case NoiseType::NoiseType_Value:
 				return SingleValue(seed, x, y);
 			default:
 				return 0;
@@ -621,17 +617,17 @@ private:
 	template <typename FNfloat>
 	float GenNoiseSingle(int seed, FNfloat x, FNfloat y, FNfloat z) const {
 		switch (mNoiseType) {
-			case NoiseType_OpenSimplex2:
+			case NoiseType::NoiseType_OpenSimplex2:
 				return SingleOpenSimplex2(seed, x, y, z);
-			case NoiseType_OpenSimplex2S:
+			case NoiseType::NoiseType_OpenSimplex2S:
 				return SingleOpenSimplex2S(seed, x, y, z);
-			case NoiseType_Cellular:
+			case NoiseType::NoiseType_Cellular:
 				return SingleCellular(seed, x, y, z);
-			case NoiseType_Perlin:
+			case NoiseType::NoiseType_Perlin:
 				return SinglePerlin(seed, x, y, z);
-			case NoiseType_ValueCubic:
+			case NoiseType::NoiseType_ValueCubic:
 				return SingleValueCubic(seed, x, y, z);
-			case NoiseType_Value:
+			case NoiseType::NoiseType_Value:
 				return SingleValue(seed, x, y, z);
 			default:
 				return 0;
@@ -646,8 +642,8 @@ private:
 		y *= mFrequency;
 
 		switch (mNoiseType) {
-			case NoiseType_OpenSimplex2:
-			case NoiseType_OpenSimplex2S: {
+			case NoiseType::NoiseType_OpenSimplex2:
+			case NoiseType::NoiseType_OpenSimplex2S: {
 				const FNfloat SQRT3 = (FNfloat)1.7320508075688772935274463415059;
 				const FNfloat F2 = 0.5f * (SQRT3 - 1);
 				FNfloat t = (x + y) * F2;
@@ -666,7 +662,7 @@ private:
 		z *= mFrequency;
 
 		switch (mTransformType3D) {
-			case TransformType3D_ImproveXYPlanes: {
+			case TransformType3D::TransformType3D_ImproveXYPlanes: {
 				FNfloat xy = x + y;
 				FNfloat s2 = xy * -(FNfloat)0.211324865405187;
 				z *= (FNfloat)0.577350269189626;
@@ -674,7 +670,7 @@ private:
 				y = y + s2 - z;
 				z += xy * (FNfloat)0.577350269189626;
 			} break;
-			case TransformType3D_ImproveXZPlanes: {
+			case TransformType3D::TransformType3D_ImproveXZPlanes: {
 				FNfloat xz = x + z;
 				FNfloat s2 = xz * -(FNfloat)0.211324865405187;
 				y *= (FNfloat)0.577350269189626;
@@ -682,7 +678,7 @@ private:
 				z += s2 - y;
 				y += xz * (FNfloat)0.577350269189626;
 			} break;
-			case TransformType3D_DefaultOpenSimplex2: {
+			case TransformType3D::TransformType3D_DefaultOpenSimplex2: {
 				const FNfloat R3 = (FNfloat)(2.0 / 3.0);
 				FNfloat r = (x + y + z) * R3; // Rotation, not skew
 				x = r - x;
@@ -696,20 +692,20 @@ private:
 
 	void UpdateTransformType3D() {
 		switch (mRotationType3D) {
-			case RotationType3D_ImproveXYPlanes:
-				mTransformType3D = TransformType3D_ImproveXYPlanes;
+			case RotationType3D::RotationType3D_ImproveXYPlanes:
+				mTransformType3D = TransformType3D::TransformType3D_ImproveXYPlanes;
 				break;
-			case RotationType3D_ImproveXZPlanes:
-				mTransformType3D = TransformType3D_ImproveXZPlanes;
+			case RotationType3D::RotationType3D_ImproveXZPlanes:
+				mTransformType3D = TransformType3D::TransformType3D_ImproveXZPlanes;
 				break;
 			default:
 				switch (mNoiseType) {
-					case NoiseType_OpenSimplex2:
-					case NoiseType_OpenSimplex2S:
-						mTransformType3D = TransformType3D_DefaultOpenSimplex2;
+					case NoiseType::NoiseType_OpenSimplex2:
+					case NoiseType::NoiseType_OpenSimplex2S:
+						mTransformType3D = TransformType3D::TransformType3D_DefaultOpenSimplex2;
 						break;
 					default:
-						mTransformType3D = TransformType3D_None;
+						mTransformType3D = TransformType3D::TransformType3D_None;
 						break;
 				}
 				break;
@@ -721,8 +717,8 @@ private:
 	template <typename FNfloat>
 	void TransformDomainWarpCoordinate(FNfloat &x, FNfloat &y) const {
 		switch (mDomainWarpType) {
-			case DomainWarpType_OpenSimplex2:
-			case DomainWarpType_OpenSimplex2Reduced: {
+			case DomainWarpType::DomainWarpType_OpenSimplex2:
+			case DomainWarpType::DomainWarpType_OpenSimplex2Reduced: {
 				const FNfloat SQRT3 = (FNfloat)1.7320508075688772935274463415059;
 				const FNfloat F2 = 0.5f * (SQRT3 - 1);
 				FNfloat t = (x + y) * F2;
@@ -737,7 +733,7 @@ private:
 	template <typename FNfloat>
 	void TransformDomainWarpCoordinate(FNfloat &x, FNfloat &y, FNfloat &z) const {
 		switch (mWarpTransformType3D) {
-			case TransformType3D_ImproveXYPlanes: {
+			case TransformType3D::TransformType3D_ImproveXYPlanes: {
 				FNfloat xy = x + y;
 				FNfloat s2 = xy * -(FNfloat)0.211324865405187;
 				z *= (FNfloat)0.577350269189626;
@@ -745,7 +741,7 @@ private:
 				y = y + s2 - z;
 				z += xy * (FNfloat)0.577350269189626;
 			} break;
-			case TransformType3D_ImproveXZPlanes: {
+			case TransformType3D::TransformType3D_ImproveXZPlanes: {
 				FNfloat xz = x + z;
 				FNfloat s2 = xz * -(FNfloat)0.211324865405187;
 				y *= (FNfloat)0.577350269189626;
@@ -753,7 +749,7 @@ private:
 				z += s2 - y;
 				y += xz * (FNfloat)0.577350269189626;
 			} break;
-			case TransformType3D_DefaultOpenSimplex2: {
+			case TransformType3D::TransformType3D_DefaultOpenSimplex2: {
 				const FNfloat R3 = (FNfloat)(2.0 / 3.0);
 				FNfloat r = (x + y + z) * R3; // Rotation, not skew
 				x = r - x;
@@ -767,20 +763,20 @@ private:
 
 	void UpdateWarpTransformType3D() {
 		switch (mRotationType3D) {
-			case RotationType3D_ImproveXYPlanes:
-				mWarpTransformType3D = TransformType3D_ImproveXYPlanes;
+			case RotationType3D::RotationType3D_ImproveXYPlanes:
+				mWarpTransformType3D = TransformType3D::TransformType3D_ImproveXYPlanes;
 				break;
-			case RotationType3D_ImproveXZPlanes:
-				mWarpTransformType3D = TransformType3D_ImproveXZPlanes;
+			case RotationType3D::RotationType3D_ImproveXZPlanes:
+				mWarpTransformType3D = TransformType3D::TransformType3D_ImproveXZPlanes;
 				break;
 			default:
 				switch (mDomainWarpType) {
-					case DomainWarpType_OpenSimplex2:
-					case DomainWarpType_OpenSimplex2Reduced:
-						mWarpTransformType3D = TransformType3D_DefaultOpenSimplex2;
+					case DomainWarpType::DomainWarpType_OpenSimplex2:
+					case DomainWarpType::DomainWarpType_OpenSimplex2Reduced:
+						mWarpTransformType3D = TransformType3D::TransformType3D_DefaultOpenSimplex2;
 						break;
 					default:
-						mWarpTransformType3D = TransformType3D_None;
+						mWarpTransformType3D = TransformType3D::TransformType3D_None;
 						break;
 				}
 				break;
@@ -1325,8 +1321,8 @@ private:
 
 		switch (mCellularDistanceFunction) {
 			default:
-			case CellularDistanceFunction_Euclidean:
-			case CellularDistanceFunction_EuclideanSq:
+			case CellularDistanceFunction::CellularDistanceFunction_Euclidean:
+			case CellularDistanceFunction::CellularDistanceFunction_EuclideanSq:
 				for (int xi = xr - 1; xi <= xr + 1; xi++) {
 					unsigned int yPrimed = yPrimedBase;
 					for (int yi = yr - 1; yi <= yr + 1; yi++) {
@@ -1341,7 +1337,7 @@ private:
 					xPrimed += PrimeX;
 				}
 				break;
-			case CellularDistanceFunction_Manhattan:
+			case CellularDistanceFunction::CellularDistanceFunction_Manhattan:
 				for (int xi = xr - 1; xi <= xr + 1; xi++) {
 					unsigned int yPrimed = yPrimedBase;
 					for (int yi = yr - 1; yi <= yr + 1; yi++) {
@@ -1356,7 +1352,7 @@ private:
 					xPrimed += PrimeX;
 				}
 				break;
-			case CellularDistanceFunction_Hybrid:
+			case CellularDistanceFunction::CellularDistanceFunction_Hybrid:
 				for (int xi = xr - 1; xi <= xr + 1; xi++) {
 					unsigned int yPrimed = yPrimedBase;
 					for (int yi = yr - 1; yi <= yr + 1; yi++) {
@@ -1373,28 +1369,28 @@ private:
 				break;
 		}
 
-		if (mCellularDistanceFunction == CellularDistanceFunction_Euclidean && mCellularReturnType >= CellularReturnType_Distance) {
+		if (mCellularDistanceFunction == CellularDistanceFunction::CellularDistanceFunction_Euclidean && mCellularReturnType != CellularReturnType::CellularReturnType_CellValue) {
 			distance0 = FastSqrt(distance0);
 
-			if (mCellularReturnType >= CellularReturnType_Distance2) {
+			if (mCellularReturnType != CellularReturnType::CellularReturnType_CellValue && mCellularReturnType != CellularReturnType::CellularReturnType_Distance) {
 				distance1 = FastSqrt(distance1);
 			}
 		}
 
 		switch (mCellularReturnType) {
-			case CellularReturnType_CellValue:
+			case CellularReturnType::CellularReturnType_CellValue:
 				return closestHash * (1 / 2147483648.0f);
-			case CellularReturnType_Distance:
+			case CellularReturnType::CellularReturnType_Distance:
 				return distance0 - 1;
-			case CellularReturnType_Distance2:
+			case CellularReturnType::CellularReturnType_Distance2:
 				return distance1 - 1;
-			case CellularReturnType_Distance2Add:
+			case CellularReturnType::CellularReturnType_Distance2Add:
 				return (distance1 + distance0) * 0.5f - 1;
-			case CellularReturnType_Distance2Sub:
+			case CellularReturnType::CellularReturnType_Distance2Sub:
 				return distance1 - distance0 - 1;
-			case CellularReturnType_Distance2Mul:
+			case CellularReturnType::CellularReturnType_Distance2Mul:
 				return distance1 * distance0 * 0.5f - 1;
-			case CellularReturnType_Distance2Div:
+			case CellularReturnType::CellularReturnType_Distance2Div:
 				return distance0 / distance1 - 1;
 			default:
 				return 0;
@@ -1441,42 +1437,42 @@ private:
 		int zPrimedBase = (zr - 1) * PrimeZ;
 
 		switch (mCellularDistanceFunction) {
-			case CellularDistanceFunction_Euclidean:
-			case CellularDistanceFunction_EuclideanSq:
+			case CellularDistanceFunction::CellularDistanceFunction_Euclidean:
+			case CellularDistanceFunction::CellularDistanceFunction_EuclideanSq:
 				CellularSearch3D(seed, x, y, z, xr, yr, zr, xPrimed, yPrimedBase, zPrimedBase, cellularJitter, distance0, distance1, closestHash, [](float vx, float vy, float vz) { return vx * vx + vy * vy + vz * vz; });
 				break;
-			case CellularDistanceFunction_Manhattan:
+			case CellularDistanceFunction::CellularDistanceFunction_Manhattan:
 				CellularSearch3D(seed, x, y, z, xr, yr, zr, xPrimed, yPrimedBase, zPrimedBase, cellularJitter, distance0, distance1, closestHash, [](float vx, float vy, float vz) { return FastAbs(vx) + FastAbs(vy) + FastAbs(vz); });
 				break;
-			case CellularDistanceFunction_Hybrid:
+			case CellularDistanceFunction::CellularDistanceFunction_Hybrid:
 				CellularSearch3D(seed, x, y, z, xr, yr, zr, xPrimed, yPrimedBase, zPrimedBase, cellularJitter, distance0, distance1, closestHash, [](float vx, float vy, float vz) { return (FastAbs(vx) + FastAbs(vy) + FastAbs(vz)) + (vx * vx + vy * vy + vz * vz); });
 				break;
 			default:
 				break;
 		}
 
-		if (mCellularDistanceFunction == CellularDistanceFunction_Euclidean && mCellularReturnType >= CellularReturnType_Distance) {
+		if (mCellularDistanceFunction == CellularDistanceFunction::CellularDistanceFunction_Euclidean && mCellularReturnType != CellularReturnType::CellularReturnType_CellValue) {
 			distance0 = FastSqrt(distance0);
 
-			if (mCellularReturnType >= CellularReturnType_Distance2) {
+			if (mCellularReturnType != CellularReturnType::CellularReturnType_CellValue && mCellularReturnType != CellularReturnType::CellularReturnType_Distance) {
 				distance1 = FastSqrt(distance1);
 			}
 		}
 
 		switch (mCellularReturnType) {
-			case CellularReturnType_CellValue:
+			case CellularReturnType::CellularReturnType_CellValue:
 				return closestHash * (1 / 2147483648.0f);
-			case CellularReturnType_Distance:
+			case CellularReturnType::CellularReturnType_Distance:
 				return distance0 - 1;
-			case CellularReturnType_Distance2:
+			case CellularReturnType::CellularReturnType_Distance2:
 				return distance1 - 1;
-			case CellularReturnType_Distance2Add:
+			case CellularReturnType::CellularReturnType_Distance2Add:
 				return (distance1 + distance0) * 0.5f - 1;
-			case CellularReturnType_Distance2Sub:
+			case CellularReturnType::CellularReturnType_Distance2Sub:
 				return distance1 - distance0 - 1;
-			case CellularReturnType_Distance2Mul:
+			case CellularReturnType::CellularReturnType_Distance2Mul:
 				return distance1 * distance0 * 0.5f - 1;
-			case CellularReturnType_Distance2Div:
+			case CellularReturnType::CellularReturnType_Distance2Div:
 				return distance0 / distance1 - 1;
 			default:
 				return 0;
@@ -1685,13 +1681,13 @@ private:
 	template <typename FNfloat>
 	void DoSingleDomainWarp(int seed, float amp, float freq, FNfloat x, FNfloat y, FNfloat &xr, FNfloat &yr) const {
 		switch (mDomainWarpType) {
-			case DomainWarpType_OpenSimplex2:
+			case DomainWarpType::DomainWarpType_OpenSimplex2:
 				SingleDomainWarpSimplexGradient(seed, amp * 38.283687591552734375f, freq, x, y, xr, yr, false);
 				break;
-			case DomainWarpType_OpenSimplex2Reduced:
+			case DomainWarpType::DomainWarpType_OpenSimplex2Reduced:
 				SingleDomainWarpSimplexGradient(seed, amp * 16.0f, freq, x, y, xr, yr, true);
 				break;
-			case DomainWarpType_BasicGrid:
+			case DomainWarpType::DomainWarpType_BasicGrid:
 				SingleDomainWarpBasicGrid(seed, amp, freq, x, y, xr, yr);
 				break;
 		}
@@ -1700,13 +1696,13 @@ private:
 	template <typename FNfloat>
 	void DoSingleDomainWarp(int seed, float amp, float freq, FNfloat x, FNfloat y, FNfloat z, FNfloat &xr, FNfloat &yr, FNfloat &zr) const {
 		switch (mDomainWarpType) {
-			case DomainWarpType_OpenSimplex2:
+			case DomainWarpType::DomainWarpType_OpenSimplex2:
 				SingleDomainWarpOpenSimplex2Gradient(seed, amp * 32.69428253173828125f, freq, x, y, z, xr, yr, zr, false);
 				break;
-			case DomainWarpType_OpenSimplex2Reduced:
+			case DomainWarpType::DomainWarpType_OpenSimplex2Reduced:
 				SingleDomainWarpOpenSimplex2Gradient(seed, amp * 7.71604938271605f, freq, x, y, z, xr, yr, zr, true);
 				break;
-			case DomainWarpType_BasicGrid:
+			case DomainWarpType::DomainWarpType_BasicGrid:
 				SingleDomainWarpBasicGrid(seed, amp, freq, x, y, z, xr, yr, zr);
 				break;
 		}
