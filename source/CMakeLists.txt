@@ -21,6 +21,14 @@ find_package(liblzma CONFIG REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(cpr CONFIG REQUIRED)
 
+include(FetchContent)
+FetchContent_Declare(
+    FastNoiseLite
+    GIT_REPOSITORY https://github.com/Auburn/FastNoiseLite.git
+    GIT_TAG        v1.1.1
+)
+FetchContent_MakeAvailable(FastNoiseLite)
+
 # *****************************************************************************
 # Options
 # *****************************************************************************
@@ -252,6 +260,7 @@ target_include_directories(${PROJECT_NAME}
 	${OPENGL_INCLUDE_DIR}
 	${GLUT_INCLUDE_DIRS}
 	${ZLIB_INCLUDE_DIR}
+	${fastnoiselite_SOURCE_DIR}/Cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
