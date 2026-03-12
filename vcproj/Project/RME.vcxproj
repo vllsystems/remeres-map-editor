@@ -131,6 +131,7 @@
       <AdditionalIncludeDirectories>
       vcpkg_installed\$(VcpkgTriplet)\include\;
       generated;
+      ..\..\source;
       %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_CRTDBG_MAP_ALLOC;__DEBUG__;WXUSINGDLL;wxMSVC_VERSION_AUTO;__EXPERIMENTAL__;LIVE_SERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -163,6 +164,7 @@
       <AdditionalIncludeDirectories>
       vcpkg_installed\$(VcpkgTriplet)\include\;
       generated;
+      ..\..\source;
 	  %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_CRTDBG_MAP_ALLOC;__DEBUG__;WXUSINGDLL;wxMSVC_VERSION_AUTO;__EXPERIMENTAL__;LIVE_SERVER;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -197,6 +199,7 @@
       <AdditionalIncludeDirectories>
       vcpkg_installed\$(VcpkgTriplet)\include\;
       generated;
+      ..\..\source;
       %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;__RELEASE__;WXUSINGDLL;wxMSVC_VERSION_AUTO;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -232,6 +235,7 @@
       <AdditionalIncludeDirectories>
       vcpkg_installed\$(VcpkgTriplet)\include\;
       generated;
+      ..\..\source;
 	  %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>NDEBUG;__RELEASE__;WXUSINGDLL;wxMSVC_VERSION_AUTO;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -546,6 +550,13 @@
         <IncludeInUnityFile>false</IncludeInUnityFile>
       </ClInclude>
     </ItemGroup>
+  </Target>
+  <Target Name="DownloadFastNoiseLite" BeforeTargets="ClCompile"
+          Condition="!Exists('$(ProjectDir)..\..\source\lua\FastNoiseLite.h')">
+    <DownloadFile
+      SourceUrl="https://raw.githubusercontent.com/Auburn/FastNoiseLite/v1.1.1/Cpp/FastNoiseLite.h"
+      DestinationFolder="$(ProjectDir)..\..\source\lua"
+      DestinationFileName="FastNoiseLite.h" />
   </Target>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
