@@ -2380,7 +2380,7 @@ namespace {
 		const std::vector<std::filesystem::path> &candidatePaths,
 		const Loader &loader,
 		TemplateData &templateData,
-		std::filesystem::path *loadedPath = nullptr
+		std::filesystem::path* loadedPath = nullptr
 	) {
 		if (loadedPath) {
 			loadedPath->clear();
