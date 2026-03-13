@@ -801,9 +801,11 @@ namespace LuaAPI {
 
 					// Create room
 					std::uniform_int_distribution<int> roomW(minRoomSize, std::min(maxRoomSize, w - 2));
+
 					std::uniform_int_distribution<int> roomH(minRoomSize, std::min(maxRoomSize, h - 2));
 
 					int rw = roomW(rng);
+
 					int rh = roomH(rng);
 
 					std::uniform_int_distribution<int> roomX(x + 1, x + w - rw - 1);

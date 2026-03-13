@@ -25,6 +25,7 @@
 #include "../action.h"
 #include "../tile.h"
 #include "../selection.h"
+#include "../house.h"
 #include "../items.h"
 #include "../raw_brush.h"
 
@@ -45,9 +46,7 @@ namespace LuaAPI {
 // Transaction System for Undo/Redo Support
 // ============================================================================
 
-// Transaction implementation
-#include "../selection.h"
-#include "../house.h"
+	// Transaction implementation
 
 	// Helper to sync map metadata when swapping tiles
 	static void updateTileMetadata(Editor* editor, Tile* tile, bool adding) {
@@ -86,8 +85,8 @@ namespace LuaAPI {
 	}
 
 	class LuaTransaction {
-		bool active;
-		Editor* editor;
+		bool active = false;
+		Editor* editor = nullptr;
 		std::unique_ptr<BatchAction> batch;
 		std::unique_ptr<Action> action;
 		std::unordered_map<uint64_t, std::unique_ptr<Tile>> originalTiles;
@@ -102,8 +101,7 @@ namespace LuaAPI {
 			return instance;
 		}
 
-		LuaTransaction() :
-			active(false), editor(nullptr) { }
+		LuaTransaction() = default;
 
 		void begin(Editor* ed) {
 			if (active) {
@@ -127,14 +125,14 @@ namespace LuaAPI {
 			}
 
 			// Process each modified tile
-			for (auto &pair : originalTiles) {
-				Position pos = pair.second->getPosition();
+			for (auto &[key, originalTile] : originalTiles) {
+				Position pos = originalTile->getPosition();
 
 				Tile* modifiedTile = editor->getMap().getTile(pos);
 				if (modifiedTile) {
 					Tile* modifiedCopy = modifiedTile->deepCopy(editor->getMap());
 
-					std::unique_ptr<Tile> swappedOut(editor->getMap().swapTile(pos, pair.second.release()));
+					std::unique_ptr<Tile> swappedOut(editor->getMap().swapTile(pos, originalTile.release()));
 
 					updateTileMetadata(editor, swappedOut.get(), false);
 					updateTileMetadata(editor, editor->getMap().getTile(pos), true);
@@ -161,10 +159,10 @@ namespace LuaAPI {
 				return;
 			}
 
-			for (auto &pair : originalTiles) {
-				if (pair.second) {
-					Position pos = pair.second->getPosition();
-					std::unique_ptr<Tile> modifiedTile(editor->getMap().swapTile(pos, pair.second.release()));
+			for (auto &[key, originalTile] : originalTiles) {
+				if (originalTile) {
+					Position pos = originalTile->getPosition();
+					std::unique_ptr<Tile> modifiedTile(editor->getMap().swapTile(pos, originalTile.release()));
 
 					updateTileMetadata(editor, modifiedTile.get(), false);
 					updateTileMetadata(editor, editor->getMap().getTile(pos), true);
@@ -173,7 +171,6 @@ namespace LuaAPI {
 			originalTiles.clear();
 
 			cleanup();
-			;
 		}
 
 		void markTileModified(Tile* tile) {
@@ -185,7 +182,7 @@ namespace LuaAPI {
 			uint64_t key = positionKey(pos);
 
 			// Only snapshot the tile once per transaction (first time it's modified)
-			if (originalTiles.find(key) == originalTiles.end()) {
+			if (!originalTiles.contains(key)) {
 				originalTiles[key].reset(tile->deepCopy(editor->getMap()));
 			}
 		}
