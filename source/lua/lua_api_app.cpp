@@ -37,6 +37,7 @@
 #include <unordered_map>
 #include <memory>
 #include <cstdio>
+#include <print>
 #include <thread>
 #include <chrono>
 
@@ -144,7 +145,7 @@ namespace LuaAPI {
 			// Clear - ownership has been transferred
 			originalTiles.clear();
 
-			if (action->size() > 0) {
+			if (!action->empty()) {
 				batch->addAndCommitAction(action.release());
 				editor->addBatch(batch.release());
 				editor->getMap().doChange();
@@ -226,14 +227,14 @@ namespace LuaAPI {
 
 		if (arg.is<std::string>()) {
 			opts.message = arg.as<std::string>();
-			opts.buttons.push_back("OK");
+			opts.buttons.emplace_back("OK");
 			return opts;
 		}
 
 		if (!arg.is<sol::table>()) {
 			sol::function tostring = lua["tostring"];
 			opts.message = tostring(arg);
-			opts.buttons.push_back("OK");
+			opts.buttons.emplace_back("OK");
 			return opts;
 		}
 
@@ -254,7 +255,7 @@ namespace LuaAPI {
 			}
 		}
 		if (opts.buttons.empty()) {
-			opts.buttons.push_back("OK");
+			opts.buttons.emplace_back("OK");
 		}
 		return opts;
 	}
@@ -365,9 +366,6 @@ namespace LuaAPI {
 		} catch (const std::exception &e) {
 			trans.rollback();
 			throw sol::error(std::string("Transaction failed: ") + e.what());
-		} catch (...) {
-			trans.rollback();
-			throw sol::error("Transaction failed with unknown error");
 		}
 	}
 
@@ -379,6 +377,43 @@ namespace LuaAPI {
 
 	static std::string getDataDirectory() {
 		return GUI::GetDataDirectory().ToStdString();
+	}
+
+	static bool saveStorageData(const std::string &path, sol::this_state ts2, sol::object first, sol::object second) {
+		sol::state_view lua(ts2);
+		std::string content;
+
+		sol::object data = (second.valid() && !second.is<sol::nil_t>()) ? second : first;
+		if (!data.valid() || data.is<sol::nil_t>()) {
+			return false;
+		}
+
+		if (data.is<std::string>()) {
+			content = data.as<std::string>();
+		} else {
+			sol::table json = lua["json"];
+			if (!json.valid() || !json["encode_pretty"].valid()) {
+				return false;
+			}
+			try {
+				sol::function encode = json["encode_pretty"];
+				sol::protected_function_result result = encode(data);
+				if (!result.valid()) {
+					return false;
+				}
+				content = result.get<std::string>();
+			} catch (const sol::error &) {
+				return false;
+			}
+		}
+
+		std::ofstream file(path, std::ios::trunc);
+		if (!file.is_open()) {
+			return false;
+		}
+		file << content;
+		file.close();
+		return true;
 	}
 
 	static sol::table storageForScript(sol::this_state ts, const std::string &name) {
@@ -393,12 +428,12 @@ namespace LuaAPI {
 		std::string filename = name;
 
 		// Security check: Prevent path traversal and absolute paths
-		if (filename.find("..") != std::string::npos || std::filesystem::path(filename).is_absolute()) {
-			printf("[Lua Security] Blocked unsafe path in app.storage: %s\n", filename.c_str());
+		if (filename.contains("..") || std::filesystem::path(filename).is_absolute()) {
+			std::println("[Lua Security] Blocked unsafe path in app.storage: {}", filename);
 			return lua.create_table();
 		}
 
-		if (filename.find('.') == std::string::npos) {
+		if (!filename.contains('.')) {
 			filename += ".json";
 		}
 		std::string path = scriptDir + "/" + filename;
@@ -438,44 +473,11 @@ namespace LuaAPI {
 			}
 		};
 
-		storage["save"] = [path](sol::this_state ts2, sol::object first, sol::object second) -> bool {
-			sol::state_view lua(ts2);
-			std::string content;
-
-			sol::object data = (second.valid() && !second.is<sol::nil_t>()) ? second : first;
-			if (!data.valid() || data.is<sol::nil_t>()) {
-				return false;
-			}
-
-			if (data.is<std::string>()) {
-				content = data.as<std::string>();
-			} else {
-				sol::table json = lua["json"];
-				if (!json.valid() || !json["encode_pretty"].valid()) {
-					return false;
-				}
-				try {
-					sol::function encode = json["encode_pretty"];
-					sol::protected_function_result result = encode(data);
-					if (!result.valid()) {
-						return false;
-					}
-					content = result.get<std::string>();
-				} catch (const sol::error &) {
-					return false;
-				}
-			}
-
-			std::ofstream file(path, std::ios::trunc);
-			if (!file.is_open()) {
-				return false;
-			}
-			file << content;
-			file.close();
-			return true;
+		storage["save"] = [path](sol::this_state ts2, sol::object first, sol::object second) {
+			return saveStorageData(path, ts2, first, second);
 		};
 
-		storage["clear"] = [path](sol::object) -> bool {
+		storage["clear"] = [path](sol::object) {
 			return std::remove(path.c_str()) == 0;
 		};
 
@@ -556,6 +558,46 @@ namespace LuaAPI {
 		}
 	}
 
+	static bool handleRegisterShow(sol::variadic_args va) {
+		std::string label;
+		std::string overlayId;
+		bool enabled = true;
+		sol::function ontoggle;
+
+		if (va.size() == 2 && va[0].is<std::string>() && va[1].is<std::string>()) {
+			label = va[0].as<std::string>();
+			overlayId = va[1].as<std::string>();
+		} else if (va.size() >= 3) {
+			if (va[0].is<sol::table>()) {
+				if (va[1].is<std::string>()) {
+					label = va[1].as<std::string>();
+				}
+				if (va[2].is<std::string>()) {
+					overlayId = va[2].as<std::string>();
+				}
+			} else if (va[0].is<std::string>() && va[1].is<std::string>()) {
+				label = va[0].as<std::string>();
+				overlayId = va[1].as<std::string>();
+			}
+		}
+
+		if (va.size() >= 3 && va[va.size() - 1].is<sol::table>()) {
+			sol::table opts = va[va.size() - 1].as<sol::table>();
+			enabled = opts.get_or(std::string("enabled"), enabled);
+			if (opts["ontoggle"].valid()) {
+				ontoggle = opts["ontoggle"];
+			}
+		} else if (va.size() >= 3 && va[va.size() - 1].is<bool>()) {
+			enabled = va[va.size() - 1].as<bool>();
+		}
+
+		if (label.empty() || overlayId.empty()) {
+			return false;
+		}
+
+		return g_luaScripts.registerMapOverlayShow(label, overlayId, enabled, ontoggle);
+	}
+
 	static void setupMapView(sol::table &app) {
 		sol::state_view lua(app.lua_state());
 		sol::table mapView = lua.create_table();
@@ -586,45 +628,7 @@ namespace LuaAPI {
 			}
 			return false;
 		};
-		mapView["registerShow"] = [](sol::variadic_args va) -> bool {
-			std::string label;
-			std::string overlayId;
-			bool enabled = true;
-			sol::function ontoggle;
-
-			if (va.size() == 2 && va[0].is<std::string>() && va[1].is<std::string>()) {
-				label = va[0].as<std::string>();
-				overlayId = va[1].as<std::string>();
-			} else if (va.size() >= 3) {
-				if (va[0].is<sol::table>()) {
-					if (va[1].is<std::string>()) {
-						label = va[1].as<std::string>();
-					}
-					if (va[2].is<std::string>()) {
-						overlayId = va[2].as<std::string>();
-					}
-				} else if (va[0].is<std::string>() && va[1].is<std::string>()) {
-					label = va[0].as<std::string>();
-					overlayId = va[1].as<std::string>();
-				}
-			}
-
-			if (va.size() >= 3 && va[va.size() - 1].is<sol::table>()) {
-				sol::table opts = va[va.size() - 1].as<sol::table>();
-				enabled = opts.get_or(std::string("enabled"), enabled);
-				if (opts["ontoggle"].valid()) {
-					ontoggle = opts["ontoggle"];
-				}
-			} else if (va.size() >= 3 && va[va.size() - 1].is<bool>()) {
-				enabled = va[va.size() - 1].as<bool>();
-			}
-
-			if (label.empty() || overlayId.empty()) {
-				return false;
-			}
-
-			return g_luaScripts.registerMapOverlayShow(label, overlayId, enabled, ontoggle);
-		};
+		mapView["registerShow"] = handleRegisterShow;
 		app["mapView"] = mapView;
 	}
 
@@ -633,7 +637,7 @@ namespace LuaAPI {
 			return;
 		}
 
-		int current = (int)editor->getActionQueue()->getCurrentIndex();
+		auto current = static_cast<int>(editor->getActionQueue()->getCurrentIndex());
 		int target = targetIndex;
 
 		if (target < 0) {
@@ -761,7 +765,7 @@ namespace LuaAPI {
 		events["on"] = [](sol::this_state ts, sol::table self, const std::string &eventName, sol::function callback) -> int {
 			return g_luaScripts.addEventListener(eventName, callback);
 		};
-		events["off"] = [](sol::this_state ts, sol::table self, int listenerId) -> bool {
+		events["off"] = [](sol::this_state ts, sol::table self, int listenerId) {
 			return g_luaScripts.removeEventListener(listenerId);
 		};
 		app["events"] = events;
