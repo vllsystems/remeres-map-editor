@@ -21,25 +21,25 @@
 #include "../graphics.h"
 #include "../items.h"
 #include <filesystem>
+#include <print>
 #include "lua_script_manager.h"
 
 namespace LuaAPI {
 
-	LuaImage::LuaImage() :
-		spriteId(0), spriteSource(false) {
+	LuaImage::LuaImage() {
 		// Empty image
 	}
 
 	LuaImage::LuaImage(const std::string &path) :
-		filePath(path), spriteId(0), spriteSource(false) {
+		filePath(path) {
 
 		if (path.empty()) {
 			return;
 		}
 
 		// Security Check
-		if (path.find("..") != std::string::npos) {
-			printf("[Lua Security] Blocked image path with traversal: %s\n", path.c_str());
+		if (path.contains("..")) {
+			std::print("[Lua Security] Blocked image path with traversal: {}\n", path);
 			return;
 		}
 
@@ -65,11 +65,11 @@ namespace LuaAPI {
 				}
 
 				if (!allowed) {
-					printf("[Lua Security] Blocked absolute image path outside allowed directories: %s\n", path.c_str());
+					std::print("[Lua Security] Blocked absolute image path outside allowed directories: {}\n", path);
 					return;
 				}
 			}
-		} catch (...) {
+		} catch (const std::filesystem::filesystem_error &) {
 			return;
 		}
 
@@ -155,8 +155,8 @@ namespace LuaAPI {
 			return;
 		}
 
-		GameSprite* gameSprite = dynamic_cast<GameSprite*>(sprite);
-		if (!gameSprite || gameSprite->width <= 0 || gameSprite->height <= 0) {
+		auto* gameSprite = dynamic_cast<GameSprite*>(sprite);
+		if (gameSprite && gameSprite->width > 0 && gameSprite->height > 0) {
 			// Fallback: use DC-based rendering
 			wxBitmap bmp(32, 32, 32);
 			wxMemoryDC dc(bmp);
@@ -228,8 +228,8 @@ namespace LuaAPI {
 		if (factor <= 0 || !image.IsOk()) {
 			return LuaImage();
 		}
-		int newWidth = static_cast<int>(image.GetWidth() * factor);
-		int newHeight = static_cast<int>(image.GetHeight() * factor);
+		auto newWidth = static_cast<int>(image.GetWidth() * factor);
+		auto newHeight = static_cast<int>(image.GetHeight() * factor);
 		return resize(newWidth, newHeight, smooth);
 	}
 

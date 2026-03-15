@@ -36,7 +36,7 @@ namespace LuaAPI {
 	static bool containsIgnoreCase(const std::string &haystack, const std::string &needle) {
 		std::string lowerHaystack = toLower(haystack);
 		std::string lowerNeedle = toLower(needle);
-		return lowerHaystack.find(lowerNeedle) != std::string::npos;
+		return lowerHaystack.contains(lowerNeedle);
 	}
 
 	void registerItem(sol::state &lua) {
@@ -76,7 +76,7 @@ namespace LuaAPI {
 			"zOrder", sol::property(&Item::getTopOrder),
 
 			// Methods
-			"clone", [](const Item &item) -> Item* { return item.deepCopy(); }, "rotate", &Item::doRotate,
+			"clone", [](const Item &item) { return item.deepCopy(); }, "rotate", &Item::doRotate,
 
 			"getName", [](int id) -> std::string {  
 			if (g_items[id].id != 0) {  
@@ -136,7 +136,7 @@ namespace LuaAPI {
 		};
 
 		// Check if item ID exists
-		items["exists"] = [](int id) -> bool {
+		items["exists"] = [](int id) {
 			return g_items[id].id != 0;
 		};
 

@@ -749,10 +749,16 @@ namespace LuaAPI {
 
 		// BSP Node (defined outside lambda for MSVC compatibility)
 		struct BSPNode {
-			int x, y, w, h;
+			int x;
+			int y;
+			int w;
+			int h;
 			BSPNode* left = nullptr;
 			BSPNode* right = nullptr;
-			int roomX, roomY, roomW, roomH;
+			int roomX;
+			int roomY;
+			int roomW;
+			int roomH;
 			bool hasRoom = false;
 		};
 

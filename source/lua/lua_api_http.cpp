@@ -121,6 +121,10 @@ namespace LuaAPI {
 			cv_.notify_all();
 		}
 
+		void setWorker(std::jthread &&t) {
+			worker_ = std::move(t);
+		}
+
 	private:
 		std::queue<std::string> chunks_;
 		size_t bufferedBytes_ = 0;
@@ -131,6 +135,7 @@ namespace LuaAPI {
 		std::string errorMessage_;
 		std::atomic<int> statusCode_ = 0;
 		cpr::Header responseHeaders_;
+		std::jthread worker_;
 	};
 
 	static std::map<int, std::shared_ptr<StreamSession>> &streamSessions() {
@@ -247,7 +252,7 @@ namespace LuaAPI {
 	}
 
 	// Helper function to convert Lua table to JSON
-	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<const void*> &visited) {
+	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<uintptr_t> &visited) {
 		if (obj.is<bool>()) {
 			return obj.as<bool>();
 		} else if (obj.is<int>()) {
@@ -258,7 +263,7 @@ namespace LuaAPI {
 			return obj.as<std::string>();
 		} else if (obj.is<sol::table>()) {
 			sol::table tbl = obj.as<sol::table>();
-			auto ptr = tbl.pointer();
+			auto ptr = reinterpret_cast<uintptr_t>(tbl.pointer());
 			if (!visited.insert(ptr).second) {
 				throw sol::error("Cyclic table detected in JSON conversion");
 			}
@@ -306,7 +311,7 @@ namespace LuaAPI {
 	static sol::table httpPostJson(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::unordered_set<const void*> visited;
+		std::unordered_set<uintptr_t> visited;
 		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
@@ -339,7 +344,7 @@ namespace LuaAPI {
 		int sessionId;
 
 		{
-			std::lock_guard<std::mutex> lock(sessionsMutex());
+			std::scoped_lock lock(sessionsMutex());
 			sessionId = generateSessionId();
 			streamSessions()[sessionId] = session;
 		}
@@ -355,8 +360,8 @@ namespace LuaAPI {
 		}
 
 		// Start the streaming request in a separate thread
-		std::thread([session, url, body, headers]() {
-			std::function<bool(std::string_view, intptr_t)> writeCallback = [session](std::string_view data, intptr_t /*userdata*/) -> bool {
+		session->setWorker(std::jthread([session, url, body, headers](std::stop_token) {
+			std::function<bool(std::string_view, intptr_t)> writeCallback = [session](std::string_view data, intptr_t /*userdata*/) {
 				return session->appendChunk(std::string(data));
 			};
 
@@ -376,7 +381,7 @@ namespace LuaAPI {
 			} else {
 				session->setFinished();
 			}
-		}).detach();
+		}));
 
 		result["sessionId"] = sessionId;
 		result["ok"] = true;
@@ -388,7 +393,7 @@ namespace LuaAPI {
 	static sol::table httpPostJsonStream(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::unordered_set<const void*> visited;
+		std::unordered_set<uintptr_t> visited;
 		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
@@ -413,7 +418,7 @@ namespace LuaAPI {
 
 		std::shared_ptr<StreamSession> session;
 		{
-			std::lock_guard<std::mutex> lock(sessionsMutex());
+			std::scoped_lock lock(sessionsMutex());
 			auto it = streamSessions().find(sessionId);
 			if (it == streamSessions().end()) {
 				result["ok"] = false;
@@ -460,7 +465,7 @@ namespace LuaAPI {
 
 	// Close and cleanup a stream session
 	static bool httpStreamClose(int sessionId) {
-		std::lock_guard<std::mutex> lock(sessionsMutex());
+		std::scoped_lock lock(sessionsMutex());
 		auto it = streamSessions().find(sessionId);
 		if (it != streamSessions().end()) {
 			it->second->cancel();
@@ -477,7 +482,7 @@ namespace LuaAPI {
 
 		std::shared_ptr<StreamSession> session;
 		{
-			std::lock_guard<std::mutex> lock(sessionsMutex());
+			std::scoped_lock lock(sessionsMutex());
 			auto it = streamSessions().find(sessionId);
 			if (it == streamSessions().end()) {
 				result["valid"] = false;

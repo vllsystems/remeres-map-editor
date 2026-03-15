@@ -637,7 +637,7 @@ namespace LuaAPI {
 			return;
 		}
 
-		auto current = static_cast<int>(editor->getActionQueue()->getCurrentIndex());
+		int current = editor->getActionQueue()->getCurrentIndex();
 		int target = targetIndex;
 
 		if (target < 0) {

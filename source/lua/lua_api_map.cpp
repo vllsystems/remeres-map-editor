@@ -30,7 +30,7 @@ namespace LuaAPI {
 	class LuaMapTileIterator {
 	public:
 		explicit LuaMapTileIterator(Map* map) :
-			map(map), started(false) {
+			map(map) {
 			if (map) {
 				iter = map->begin();
 				endIter = map->end();
@@ -65,7 +65,7 @@ namespace LuaAPI {
 		Map* map;
 		MapIterator iter;
 		MapIterator endIter;
-		bool started;
+		bool started = false;
 	};
 
 	// Iterator for Spawns
