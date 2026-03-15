@@ -93,12 +93,12 @@ namespace LuaAPI {
 		);
 
 		// Helper function to check if a monster type exists
-		lua["creatureExists"] = [](const std::string &name) -> bool {
+		lua["creatureExists"] = [](const std::string &name) {
 			return g_monsters[name] != nullptr;
 		};
 
 		// Helper function (NPCs always false in monster context)
-		lua["isNpcType"] = [](const std::string &) -> bool {
+		lua["isNpcType"] = [](const std::string &) {
 			return false;
 		};
 	}

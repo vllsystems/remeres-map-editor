@@ -28,6 +28,37 @@
 
 namespace LuaAPI {
 
+	static bool pointInPolygonImpl(float px, float py, sol::table vertices) {
+		std::vector<std::pair<float, float>> verts;
+		for (auto &kv : vertices) {
+			if (kv.second.get_type() == sol::type::table) {
+				sol::table pt = kv.second;
+				float x = pt.get_or(std::string("x"), pt.get_or(1, 0.0f));
+				float y = pt.get_or(std::string("y"), pt.get_or(2, 0.0f));
+				verts.push_back({ x, y });
+			}
+		}
+
+		if (verts.size() < 3) {
+			return false;
+		}
+
+		bool inside = false;
+		size_t n = verts.size();
+		for (size_t i = 0, j = n - 1; i < n; j = i++) {
+			float xi = verts[i].first;
+			float yi = verts[i].second;
+			float xj = verts[j].first;
+			float yj = verts[j].second;
+
+			if (((yi > py) != (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+				inside = !inside;
+			}
+		}
+
+		return inside;
+	}
+
 	void registerGeo(sol::state &lua) {
 		sol::table geoTable = lua.create_table();
 
@@ -735,26 +766,26 @@ namespace LuaAPI {
 		// ========================================
 
 		// geo.distance(x1, y1, x2, y2) -> number (Euclidean distance)
-		geoTable.set_function("distance", [](float x1, float y1, float x2, float y2) -> float {
+		geoTable.set_function("distance", [](float x1, float y1, float x2, float y2) {
 			float dx = x2 - x1;
 			float dy = y2 - y1;
 			return std::sqrt(dx * dx + dy * dy);
 		});
 
 		// geo.distanceSq(x1, y1, x2, y2) -> number (Squared distance, faster)
-		geoTable.set_function("distanceSq", [](float x1, float y1, float x2, float y2) -> float {
+		geoTable.set_function("distanceSq", [](float x1, float y1, float x2, float y2) {
 			float dx = x2 - x1;
 			float dy = y2 - y1;
 			return dx * dx + dy * dy;
 		});
 
 		// geo.distanceManhattan(x1, y1, x2, y2) -> number
-		geoTable.set_function("distanceManhattan", [](int x1, int y1, int x2, int y2) -> int {
+		geoTable.set_function("distanceManhattan", [](int x1, int y1, int x2, int y2) {
 			return std::abs(x2 - x1) + std::abs(y2 - y1);
 		});
 
 		// geo.distanceChebyshev(x1, y1, x2, y2) -> number (King's move distance)
-		geoTable.set_function("distanceChebyshev", [](int x1, int y1, int x2, int y2) -> int {
+		geoTable.set_function("distanceChebyshev", [](int x1, int y1, int x2, int y2) {
 			return std::max(std::abs(x2 - x1), std::abs(y2 - y1));
 		});
 
@@ -763,14 +794,14 @@ namespace LuaAPI {
 		// ========================================
 
 		// geo.pointInCircle(px, py, cx, cy, radius) -> boolean
-		geoTable.set_function("pointInCircle", [](float px, float py, float cx, float cy, float radius) -> bool {
+		geoTable.set_function("pointInCircle", [](float px, float py, float cx, float cy, float radius) {
 			float dx = px - cx;
 			float dy = py - cy;
 			return dx * dx + dy * dy <= radius * radius;
 		});
 
 		// geo.pointInRectangle(px, py, x1, y1, x2, y2) -> boolean
-		geoTable.set_function("pointInRectangle", [](float px, float py, float x1, float y1, float x2, float y2) -> bool {
+		geoTable.set_function("pointInRectangle", [](float px, float py, float x1, float y1, float x2, float y2) {
 			float minX = std::min(x1, x2);
 			float maxX = std::max(x1, x2);
 			float minY = std::min(y1, y2);
@@ -779,34 +810,7 @@ namespace LuaAPI {
 		});
 
 		// geo.pointInPolygon(px, py, vertices) -> boolean (Ray casting algorithm)
-		geoTable.set_function("pointInPolygon", [](float px, float py, sol::table vertices) -> bool {
-			std::vector<std::pair<float, float>> verts;
-			for (auto &kv : vertices) {
-				if (kv.second.get_type() == sol::type::table) {
-					sol::table pt = kv.second;
-					float x = pt.get_or(std::string("x"), pt.get_or(1, 0.0f));
-					float y = pt.get_or(std::string("y"), pt.get_or(2, 0.0f));
-					verts.push_back({ x, y });
-				}
-			}
-
-			if (verts.size() < 3) {
-				return false;
-			}
-
-			bool inside = false;
-			size_t n = verts.size();
-			for (size_t i = 0, j = n - 1; i < n; j = i++) {
-				float xi = verts[i].first, yi = verts[i].second;
-				float xj = verts[j].first, yj = verts[j].second;
-
-				if (((yi > py) != (yj > py)) && (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
-					inside = !inside;
-				}
-			}
-
-			return inside;
-		});
+		geoTable.set_function("pointInPolygon", &pointInPolygonImpl);
 
 		// ========================================
 		// RANDOM SCATTER

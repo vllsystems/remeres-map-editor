@@ -23,7 +23,7 @@
 namespace LuaAPI {
 
 	// Helper to get brush type as string
-	static std::string getBrushTypeName(Brush* brush) {
+	static std::string getBrushTypeName(const Brush* brush) {
 		if (!brush) {
 			return "unknown";
 		}
@@ -136,7 +136,7 @@ namespace LuaAPI {
 		sol::table brushes = lua.create_named_table("Brushes");
 
 		// Get brush by name
-		brushes["get"] = [](const std::string &name) -> Brush* {
+		brushes["get"] = [](const std::string &name) {
 			return g_brushes.getBrush(name);
 		};
 
@@ -156,12 +156,12 @@ namespace LuaAPI {
 		sol::table app = lua["app"];
 
 		// Current brush
-		app.set_function("getBrush", []() -> Brush* {
+		app.set_function("getBrush", []() {
 			return g_gui.GetCurrentBrush();
 		});
 
 		// Set brush by name
-		app.set_function("setBrush", [](const std::string &name) -> bool {
+		app.set_function("setBrush", [](const std::string &name) {
 			Brush* brush = g_brushes.getBrush(name);
 			if (brush) {
 				g_gui.SelectBrush(brush);

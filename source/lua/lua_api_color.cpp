@@ -41,7 +41,7 @@ namespace LuaAPI {
 			}
 			try {
 				value = std::stoul(h, nullptr, 16);
-			} catch (...) {
+			} catch (const std::exception &) {
 				value = 0;
 			}
 
