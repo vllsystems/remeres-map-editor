@@ -36,11 +36,10 @@ namespace LuaAPI {
 	public:
 		static constexpr size_t kMaxBufferedBytes = 4 * 1024 * 1024; // 4 MB
 
-		StreamSession() :
-			finished_(false), hasError_(false), statusCode_(0), bufferedBytes_(0) { }
+		StreamSession() = default;
 
 		bool appendChunk(const std::string &chunk) {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			if (bufferedBytes_ + chunk.size() > kMaxBufferedBytes) {
 				hasError_ = true;
 				finished_ = true;
@@ -55,7 +54,7 @@ namespace LuaAPI {
 		}
 
 		std::string getNextChunk() {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			if (chunks_.empty()) {
 				return "";
 			}
@@ -66,23 +65,23 @@ namespace LuaAPI {
 		}
 
 		bool hasChunks() {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			return !chunks_.empty();
 		}
 
 		void setFinished() {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			finished_ = true;
 			cv_.notify_all();
 		}
 
 		bool isFinished() {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			return finished_;
 		}
 
-		void setError(const std::string &error) {
-			std::lock_guard<std::mutex> lock(mutex_);
+		void setError(std::string_view error) {
+			std::scoped_lock lock(mutex_);
 			hasError_ = true;
 			errorMessage_ = error;
 			finished_ = true;
@@ -90,12 +89,12 @@ namespace LuaAPI {
 		}
 
 		bool hasError() {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			return hasError_;
 		}
 
 		std::string getError() {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			return errorMessage_;
 		}
 
@@ -108,12 +107,12 @@ namespace LuaAPI {
 		}
 
 		void setHeaders(const cpr::Header &headers) {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			responseHeaders_ = headers;
 		}
 
 		cpr::Header getHeaders() {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			return responseHeaders_;
 		}
 
@@ -127,10 +126,10 @@ namespace LuaAPI {
 		size_t bufferedBytes_ = 0;
 		std::mutex mutex_;
 		std::condition_variable cv_;
-		std::atomic<bool> finished_;
-		std::atomic<bool> hasError_;
+		std::atomic<bool> finished_ = false;
+		std::atomic<bool> hasError_ = false;
 		std::string errorMessage_;
-		std::atomic<int> statusCode_;
+		std::atomic<int> statusCode_ = 0;
 		cpr::Header responseHeaders_;
 	};
 
@@ -156,7 +155,7 @@ namespace LuaAPI {
 			return static_cast<char>(std::tolower(c));
 		});
 		// Block common localhost patterns
-		if (low.find("localhost") != std::string::npos || low.find("127.") != std::string::npos || low.find("0.0.0.0") != std::string::npos || low.find("[::1]") != std::string::npos || low.find("[::ffff:127.") != std::string::npos || low.find("//[::") != std::string::npos) {
+		if (low.contains("localhost") || low.contains("127.") || low.contains("0.0.0.0") || low.contains("[::1]") || low.contains("[::ffff:127.") || low.contains("//[::")) {
 			return false;
 		}
 		// Block file:// and other dangerous schemes
@@ -248,7 +247,7 @@ namespace LuaAPI {
 	}
 
 	// Helper function to convert Lua table to JSON
-	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<uintptr_t> &visited) {
+	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<const void*> &visited) {
 		if (obj.is<bool>()) {
 			return obj.as<bool>();
 		} else if (obj.is<int>()) {
@@ -259,9 +258,9 @@ namespace LuaAPI {
 			return obj.as<std::string>();
 		} else if (obj.is<sol::table>()) {
 			sol::table tbl = obj.as<sol::table>();
-			uintptr_t ptr = reinterpret_cast<uintptr_t>(tbl.pointer());
+			auto ptr = tbl.pointer();
 			if (!visited.insert(ptr).second) {
-				throw std::runtime_error("Cyclic table detected in JSON conversion");
+				throw sol::error("Cyclic table detected in JSON conversion");
 			}
 
 			// Check if it's an array (sequential integer keys starting at 1)
@@ -307,7 +306,7 @@ namespace LuaAPI {
 	static sol::table httpPostJson(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::unordered_set<uintptr_t> visited;
+		std::unordered_set<const void*> visited;
 		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
@@ -389,7 +388,7 @@ namespace LuaAPI {
 	static sol::table httpPostJsonStream(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::unordered_set<uintptr_t> visited;
+		std::unordered_set<const void*> visited;
 		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
