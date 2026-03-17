@@ -21,6 +21,7 @@
 
 #include <unordered_map>
 #include <mutex>
+#include <cmath>
 
 namespace LuaAPI {
 
@@ -29,7 +30,7 @@ namespace LuaAPI {
 	class NoiseGeneratorCache {
 	public:
 		FastNoiseLite &getGenerator(int seed) {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			auto it = generators_.find(seed);
 			if (it == generators_.end()) {
 				auto &gen = generators_[seed];
@@ -40,7 +41,7 @@ namespace LuaAPI {
 		}
 
 		void clear() {
-			std::lock_guard<std::mutex> lock(mutex_);
+			std::scoped_lock lock(mutex_);
 			generators_.clear();
 		}
 
@@ -289,37 +290,37 @@ namespace LuaAPI {
 
 		noiseTable.set_function("warp", warpNoise);
 
-		noiseTable.set_function("normalize", [](float value, sol::optional<float> minVal, sol::optional<float> maxVal) -> float {
-			float mn = minVal.value_or(0.0f);
+		noiseTable.set_function("normalize", [](float value, sol::optional<float> minVal, sol::optional<float> maxVal) {
+			float min = minVal.value_or(0.0f);
 			float mx = maxVal.value_or(1.0f);
 			float normalized = (value + 1.0f) * 0.5f;
-			return mn + normalized * (mx - mn);
+			return std::lerp(min, mx, normalized);
 		});
 
-		noiseTable.set_function("threshold", [](float value, float threshold) -> bool {
+		noiseTable.set_function("threshold", [](float value, float threshold) {
 			return value >= threshold;
 		});
 
-		noiseTable.set_function("map", [](float value, float inMin, float inMax, float outMin, float outMax) -> float {
+		noiseTable.set_function("map", [](float value, float inMin, float inMax, float outMin, float outMax) {
 			float t = (value - inMin) / (inMax - inMin);
-			return outMin + t * (outMax - outMin);
+			return std::lerp(outMin, outMax, t);
 		});
 
-		noiseTable.set_function("clamp", [](float value, float mn, float mx) -> float {
-			if (value < mn) {
-				return mn;
+		noiseTable.set_function("clamp", [](float value, float min, float max) {
+			if (value < min) {
+				return min;
 			}
-			if (value > mx) {
-				return mx;
+			if (value > max) {
+				return max;
 			}
 			return value;
 		});
 
-		noiseTable.set_function("lerp", [](float a, float b, float t) -> float {
-			return a + t * (b - a);
+		noiseTable.set_function("lerp", [](float a, float b, float t) {
+			return std::lerp(a, b, t);
 		});
 
-		noiseTable.set_function("smoothstep", [](float edge0, float edge1, float x) -> float {
+		noiseTable.set_function("smoothstep", [](float edge0, float edge1, float x) {
 			float t = (x - edge0) / (edge1 - edge0);
 			if (t < 0.0f) {
 				t = 0.0f;
