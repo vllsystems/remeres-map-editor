@@ -167,6 +167,9 @@ private:
 	wxWindow* getParentForWidget();
 	wxSizer* getSizerForWidget();
 
+	void applyInitialSizeAndPosition();
+	void setupDockablePanel(sol::table &options);
+
 	void updateValue(const std::string &id);
 	void collectAllValues();
 	void applyCommonOptions(wxWindow* widget, sol::table options);

@@ -62,7 +62,7 @@ public:
 	}
 
 	wxSize DoGetBestSize() const override {
-		wxClientDC dc(const_cast<CustomButton*>(this));
+		wxScreenDC dc;
 		dc.SetFont(GetFont());
 		wxSize labelSize = dc.GetTextExtent(m_label);
 		return wxSize(labelSize.x + 30, labelSize.y + 16);
@@ -75,7 +75,8 @@ public:
 
 private:
 	wxString m_label;
-	wxColour m_hoverBg, m_hoverFg;
+	wxColour m_hoverBg;
+	wxColour m_hoverFg;
 	wxColour m_parentBg;
 	bool m_rounded = false;
 	bool m_hasHover = false;
@@ -90,7 +91,7 @@ private:
 		dc.SetBackground(wxBrush(clearColor));
 		dc.Clear();
 
-		wxGraphicsContext* gc = wxGraphicsContext::Create(dc);
+		std::unique_ptr<wxGraphicsContext> gc(wxGraphicsContext::Create(dc));
 		if (gc) {
 			wxColour bg = GetBackgroundColour();
 			wxColour fg = GetForegroundColour();
@@ -99,15 +100,12 @@ private:
 				bg = wxSystemSettings::GetColour(wxSYS_COLOUR_BTNFACE);
 				fg = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
 			} else {
-				if (m_hasHover && m_hovered) {
-					if (m_hoverBg.IsOk()) {
-						bg = m_hoverBg;
-					}
-					if (m_hoverFg.IsOk()) {
-						fg = m_hoverFg;
-					}
+				if (m_hasHover && m_hovered && m_hoverBg.IsOk()) {
+					bg = m_hoverBg;
 				}
-
+				if (m_hasHover && m_hovered && m_hoverFg.IsOk()) {
+					fg = m_hoverFg;
+				}
 				if (m_pressed) {
 					bg = bg.ChangeLightness(85);
 				}
@@ -127,14 +125,13 @@ private:
 			}
 			gc->FillPath(path);
 
-			gc->SetFont(GetFont(), fg);
-
-			wxDouble tw, th;
-			gc->GetTextExtent(m_label, &tw, &th, nullptr, nullptr);
-			gc->DrawText(m_label, (w - tw) / 2.0, (h - th) / 2.0);
-
-			delete gc;
-		}
+			gc->SetFont(GetFont(), fg);  
+  
+			wxDouble tw;  
+			wxDouble th;  
+			gc->GetTextExtent(m_label, &tw, &th, nullptr, nullptr);  
+			gc->DrawText(m_label, (w - tw) / 2.0, (h - th) / 2.0);  
+		}  
 	}
 
 	void OnEnter(wxMouseEvent &e) {
@@ -179,19 +176,16 @@ END_EVENT_TABLE()
 class MapPreviewCanvas : public MapCanvas {
 public:
 	MapPreviewCanvas(wxWindow* parent, Editor &editor) :
-		MapCanvas(nullptr, editor, nullptr),
-		view_x(0),
-		view_y(0) {
+		MapCanvas(nullptr, editor, nullptr) {
 
 		ChangeFloor(7);
 		SetZoom(1.0);
 	}
 
-	virtual ~MapPreviewCanvas() {
-	}
+	~MapPreviewCanvas() override = default;
 
 	// Overrides to decouple from MapWindow
-	void SetZoom(double value) {
+	void SetZoom(double value) override {
 		if (value < 0.125) {
 			value = 0.125;
 		}
@@ -202,7 +196,7 @@ public:
 		wxGLCanvas::Refresh();
 	}
 
-	void GetViewBox(int* view_scroll_x, int* view_scroll_y, int* screensize_x, int* screensize_y) const {
+	void GetViewBox(int* view_scroll_x, int* view_scroll_y, int* screensize_x, int* screensize_y) const override {
 		wxSize size = GetClientSize();
 		*screensize_x = size.GetWidth();
 		*screensize_y = size.GetHeight();
@@ -210,7 +204,7 @@ public:
 		*view_scroll_y = view_y;
 	}
 
-	void ScreenToMap(int screen_x, int screen_y, int* map_x, int* map_y) {
+	void ScreenToMap(int screen_x, int screen_y, int* map_x, int* map_y) override {
 		screen_x *= GetContentScaleFactor();
 		screen_y *= GetContentScaleFactor();
 
@@ -232,7 +226,7 @@ public:
 		}
 	}
 
-	void GetScreenCenter(int* map_x, int* map_y) {
+	void GetScreenCenter(int* map_x, int* map_y) override {
 		wxSize size = GetClientSize();
 		ScreenToMap(size.GetWidth() / 2, size.GetHeight() / 2, map_x, map_y);
 	}
@@ -256,10 +250,13 @@ public:
 		Refresh();
 	}
 
-	// Disable status bar updates for preview canvases
-	void UpdatePositionStatus(int x = -1, int y = -1) { }
-	void UpdateZoomStatus() { }
-	void Refresh() {
+	void UpdatePositionStatus(int x = -1, int y = -1) {
+		// No-op: preview canvases do not update the status bar
+	}
+	void UpdateZoomStatus() {
+		// No-op: preview canvases do not update the status bar
+	}
+	void Refresh() override {
 		wxGLCanvas::Refresh();
 	}
 
@@ -280,18 +277,28 @@ public:
 	void OnMouseLeftClick(wxMouseEvent &event) {
 		SetFocus();
 	}
-	void OnMouseLeftRelease(wxMouseEvent &event) { }
-	void OnMouseRightClick(wxMouseEvent &event) { }
-	void OnMouseRightRelease(wxMouseEvent &event) { }
-	void OnMouseCenterClick(wxMouseEvent &event) { }
-	void OnMouseCenterRelease(wxMouseEvent &event) { }
+	void OnMouseLeftRelease(wxMouseEvent &event) {
+		// No-op: preview canvas does not handle this mouse event
+	}
+	void OnMouseRightClick(wxMouseEvent &event) {
+		// No-op: preview canvas does not handle this mouse event
+	}
+	void OnMouseRightRelease(wxMouseEvent &event) {
+		// No-op: preview canvas does not handle this mouse event
+	}
+	void OnMouseCenterClick(wxMouseEvent &event) {
+		// No-op: preview canvas does not handle this mouse event
+	}
+	void OnMouseCenterRelease(wxMouseEvent &event) {
+		// No-op: preview canvas does not handle this mouse event
+	}
 
 	void SetViewSize(int w, int h) {
 		client_w = w;
 		client_h = h;
 
 		// Auto-resize the window to fit the new client dimensions
-		int tile_pixel_size = static_cast<int>(32 / GetZoom());
+		auto tile_pixel_size = static_cast<int>(32 / GetZoom());
 		int req_w = w * tile_pixel_size;
 		int req_h = h * tile_pixel_size;
 
@@ -308,7 +315,7 @@ public:
 		Refresh();
 	}
 
-	void SetLight(bool on) {
+	void SetLight([[maybe_unused]] bool on) {
 		Refresh();
 	}
 
@@ -320,9 +327,10 @@ public:
 
 		MapTab* tab = g_gui.GetCurrentMapTab();
 		if (tab) {
-			int cx, cy;
+			int cx;
+			int cy;
 			tab->GetCanvas()->GetScreenCenter(&cx, &cy);
-			SetPosition(cx, cy, (int)tab->GetCanvas()->GetFloor());
+			SetPosition(cx, cy, tab->GetCanvas()->GetFloor());
 			SetZoom(tab->GetCanvas()->GetZoom());
 		}
 	}
@@ -347,8 +355,8 @@ public:
 	}
 
 private:
-	int view_x;
-	int view_y;
+	int view_x = 0;
+	int view_y = 0;
 
 	int client_w = 25;
 	int client_h = 25;
@@ -390,45 +398,54 @@ LuaDialog::LuaDialog(sol::table options, sol::this_state ts) :
 	reqX = options.get_or(std::string("x"), -1);
 	reqY = options.get_or(std::string("y"), -1);
 
-	if (reqWidth != -1 || reqHeight != -1) {
-		SetMinSize(wxSize(reqWidth != -1 ? reqWidth : 150, reqHeight != -1 ? reqHeight : 100));
-		SetSize(reqX != -1 ? reqX : -1, reqY != -1 ? reqY : -1, reqWidth, reqHeight);
-	} else if (reqX != -1 || reqY != -1) {
-		SetPosition(wxPoint(reqX != -1 ? reqX : GetPosition().x, reqY != -1 ? reqY : GetPosition().y));
-	}
-
-	if (options.get_or(std::string("dockable"), false)) {
-		dockPanel = new wxPanel(g_gui.root, wxID_ANY);
-
-		wxAuiPaneInfo info;
-		std::string title = options.get_or(std::string("title"), "Script Dialog"s);
-		std::string id = options.get_or(std::string("id"), title);
-
-		info.Name(id);
-		info.Caption(title);
-		info.Right().Layer(1).Position(1).CloseButton(true).MaximizeButton(true);
-
-		int minW = options.get_or(std::string("min_width"), reqWidth != -1 ? reqWidth : 200);
-		int minH = options.get_or(std::string("min_height"), reqHeight != -1 ? reqHeight : 150);
-		info.MinSize(wxSize(minW, minH));
-
-		if (reqWidth != -1 || reqHeight != -1) {
-			info.BestSize(wxSize(reqWidth != -1 ? reqWidth : 300, reqHeight != -1 ? reqHeight : 200));
-		} else {
-			info.BestSize(wxSize(300, 200));
-		}
-
-		info.Dockable(true).Floatable(true);
-
-		g_gui.aui_manager->AddPane(dockPanel, info);
-		g_gui.aui_manager->Update();
-	}
+	applyInitialSizeAndPosition();
+	setupDockablePanel(options);
 
 	if (options["onclose"].valid()) {
 		oncloseCallback = options["onclose"];
 	}
 
 	createLayout();
+}
+
+void LuaDialog::applyInitialSizeAndPosition() {
+	if (reqWidth != -1 || reqHeight != -1) {
+		SetMinSize(wxSize(reqWidth != -1 ? reqWidth : 150, reqHeight != -1 ? reqHeight : 100));
+		SetSize(reqX != -1 ? reqX : -1, reqY != -1 ? reqY : -1, reqWidth, reqHeight);
+	} else if (reqX != -1 || reqY != -1) {
+		SetPosition(wxPoint(reqX != -1 ? reqX : GetPosition().x, reqY != -1 ? reqY : GetPosition().y));
+	}
+}
+
+void LuaDialog::setupDockablePanel(sol::table &options) {
+	if (!options.get_or(std::string("dockable"), false)) {
+		return;
+	}
+
+	dockPanel = new wxPanel(g_gui.root, wxID_ANY);
+
+	wxAuiPaneInfo info;
+	std::string title = options.get_or(std::string("title"), "Script Dialog"s);
+	std::string id = options.get_or(std::string("id"), title);
+
+	info.Name(id);
+	info.Caption(title);
+	info.Right().Layer(1).Position(1).CloseButton(true).MaximizeButton(true);
+
+	int minW = options.get_or(std::string("min_width"), reqWidth != -1 ? reqWidth : 200);
+	int minH = options.get_or(std::string("min_height"), reqHeight != -1 ? reqHeight : 150);
+	info.MinSize(wxSize(minW, minH));
+
+	if (reqWidth != -1 || reqHeight != -1) {
+		info.BestSize(wxSize(reqWidth != -1 ? reqWidth : 300, reqHeight != -1 ? reqHeight : 200));
+	} else {
+		info.BestSize(wxSize(300, 200));
+	}
+
+	info.Dockable(true).Floatable(true);
+
+	g_gui.aui_manager->AddPane(dockPanel, info);
+	g_gui.aui_manager->Update();
 }
 
 LuaDialog::~LuaDialog() {
@@ -578,7 +595,7 @@ LuaDialog* LuaDialog::endbox() {
 LuaDialog* LuaDialog::panel(sol::table options) {
 	finishCurrentRow();
 
-	std::string id = options.get_or(std::string("id"), "panel_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), std::format("panel_{}", widgets.size()));
 	bool expand = options.get_or("expand", false);
 
 	wxPanel* panel = new wxPanel(getParentForWidget(), wxID_ANY);
