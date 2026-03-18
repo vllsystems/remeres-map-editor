@@ -125,13 +125,13 @@ private:
 			}
 			gc->FillPath(path);
 
-			gc->SetFont(GetFont(), fg);  
-  
-			wxDouble tw;  
-			wxDouble th;  
-			gc->GetTextExtent(m_label, &tw, &th, nullptr, nullptr);  
-			gc->DrawText(m_label, (w - tw) / 2.0, (h - th) / 2.0);  
-		}  
+			gc->SetFont(GetFont(), fg);
+
+			wxDouble tw;
+			wxDouble th;
+			gc->GetTextExtent(m_label, &tw, &th, nullptr, nullptr);
+			gc->DrawText(m_label, (w - tw) / 2.0, (h - th) / 2.0);
+		}
 	}
 
 	void OnEnter(wxMouseEvent &e) {
