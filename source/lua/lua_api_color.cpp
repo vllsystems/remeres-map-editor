@@ -41,7 +41,9 @@ namespace LuaAPI {
 			}
 			try {
 				value = std::stoul(h, nullptr, 16);
-			} catch (const std::exception &) {
+			} catch (const std::invalid_argument &) {
+				value = 0;
+			} catch (const std::out_of_range &) {
 				value = 0;
 			}
 

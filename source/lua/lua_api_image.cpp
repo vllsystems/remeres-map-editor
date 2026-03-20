@@ -26,9 +26,7 @@
 
 namespace LuaAPI {
 
-	LuaImage::LuaImage() {
-		// Empty image
-	}
+	LuaImage::LuaImage() = default;
 
 	LuaImage::LuaImage(const std::string &path) :
 		filePath(path) {

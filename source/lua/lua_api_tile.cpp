@@ -87,7 +87,7 @@ namespace LuaAPI {
 	}
 
 	// Remove item from tile
-	static bool removeItemFromTile(Tile* tile, Item* itemToRemove) {
+	static bool removeItemFromTile(Tile* tile, const Item* itemToRemove) {
 		if (!tile || !itemToRemove) {
 			return false;
 		}
@@ -138,14 +138,14 @@ namespace LuaAPI {
 		tile->monsters.clear();
 
 		// Create new monster
-		Monster* monster = newd Monster(type);
+		auto monster = newd Monster(type);
 
 		// Set spawn time
 		int spawnTime = spawnTimeOpt.value_or(g_settings.getInteger(Config::DEFAULT_SPAWN_MONSTER_TIME));
 		monster->setSpawnMonsterTime(spawnTime);
 
 		// Set direction (default NORTH)
-		Direction dir = static_cast<Direction>(directionOpt.value_or(NORTH));
+		auto dir = static_cast<Direction>(directionOpt.value_or(NORTH));
 		if (dir >= DIRECTION_FIRST && dir <= DIRECTION_LAST) {
 			monster->setDirection(dir);
 		}

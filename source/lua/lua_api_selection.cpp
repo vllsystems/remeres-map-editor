@@ -59,7 +59,7 @@ namespace LuaAPI {
 		sol::table result = lua.create_table();
 
 		Selection* sel = getCurrentSelection();
-		if (!sel || sel->size() == 0) {
+		if (!sel || sel->empty()) {
 			return result;
 		}
 
