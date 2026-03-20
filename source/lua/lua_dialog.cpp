@@ -172,7 +172,6 @@ EVT_LEFT_UP(CustomButton::OnUp)
 END_EVENT_TABLE()
 
 // Specialized Canvas for Lua Dialogs
-// Specialized Canvas for Lua Dialogs
 class MapPreviewCanvas : public MapCanvas {
 public:
 	MapPreviewCanvas(wxWindow* parent, Editor &editor) :
@@ -250,7 +249,7 @@ public:
 		Refresh();
 	}
 
-	void UpdatePositionStatus(int x = -1, int y = -1) {
+	void UpdatePositionStatus(int = -1, int = -1) {
 		// No-op: preview canvases do not update the status bar
 	}
 	void UpdateZoomStatus() {
@@ -595,7 +594,7 @@ LuaDialog* LuaDialog::endbox() {
 LuaDialog* LuaDialog::panel(sol::table options) {
 	finishCurrentRow();
 
-	std::string id = options.get_or(std::string("id"), std::format("panel_{}", widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("panel_{}", widgets.size()));
 	bool expand = options.get_or("expand", false);
 
 	wxPanel* panel = new wxPanel(getParentForWidget(), wxID_ANY);
@@ -666,7 +665,7 @@ LuaDialog* LuaDialog::mapCanvas(sol::table options) {
 		return this;
 	}
 
-	std::string id = options.get_or(std::string("id"), "map_c_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("map_c_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 
 	if (!labelText.empty()) {
@@ -675,7 +674,7 @@ LuaDialog* LuaDialog::mapCanvas(sol::table options) {
 	}
 
 	// Create the canvas
-	MapPreviewCanvas* canvas = new MapPreviewCanvas(getParentForWidget(), *editor);
+	auto canvas = new MapPreviewCanvas(getParentForWidget(), *editor);
 
 	// Smaller default size to keep the window compact
 	canvas->SetMinSize(wxSize(200, 150));
@@ -700,7 +699,7 @@ LuaDialog* LuaDialog::mapCanvas(sol::table options) {
 LuaDialog* LuaDialog::input(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "input_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("input_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	std::string text = options.get_or(std::string("text"), ""s);
 	bool focus = options.get_or(std::string("focus"), false);
@@ -750,7 +749,7 @@ LuaDialog* LuaDialog::input(sol::table options) {
 LuaDialog* LuaDialog::number(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "number_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("number_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	double value = options.get_or(std::string("text"), options.get_or(std::string("value"), 0.0));
 	int decimals = options.get_or(std::string("decimals"), 0);
@@ -788,7 +787,7 @@ LuaDialog* LuaDialog::number(sol::table options) {
 LuaDialog* LuaDialog::slider(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "slider_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("slider_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	int value = options.get_or(std::string("value"), 0);
 	int minVal = options.get_or(std::string("min"), 0);
@@ -824,7 +823,7 @@ LuaDialog* LuaDialog::slider(sol::table options) {
 LuaDialog* LuaDialog::check(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "check_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("check_{}", widgets.size()));
 	std::string text = options.get_or(std::string("text"), ""s);
 	bool selected = options.get_or(std::string("selected"), false);
 
@@ -857,7 +856,7 @@ LuaDialog* LuaDialog::check(sol::table options) {
 LuaDialog* LuaDialog::radio(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "radio_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("radio_{}", widgets.size()));
 	std::string text = options.get_or(std::string("text"), ""s);
 	bool selected = options.get_or(std::string("selected"), false);
 
@@ -887,7 +886,7 @@ LuaDialog* LuaDialog::radio(sol::table options) {
 LuaDialog* LuaDialog::combobox(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "combobox_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("combobox_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	std::string selected = options.get_or(std::string("option"), ""s);
 
@@ -942,7 +941,7 @@ LuaDialog* LuaDialog::combobox(sol::table options) {
 LuaDialog* LuaDialog::button(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "button_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("button_{}", widgets.size()));
 	std::string text = options.get_or(std::string("text"), "Button"s);
 	bool rounded = options.get_or("rounded", false);
 	bool hasHover = options["hover"].valid();
@@ -953,7 +952,7 @@ LuaDialog* LuaDialog::button(sol::table options) {
 	wxWindow* finalWidget = nullptr;
 
 	if (useCustom) {
-		CustomButton* btn = new CustomButton(getParentForWidget(), wxID_ANY, wxString(text));
+		auto btn = new CustomButton(getParentForWidget(), wxID_ANY, wxString(text));
 		if (rounded) {
 			btn->SetRounded(true);
 		}
@@ -980,7 +979,8 @@ LuaDialog* LuaDialog::button(sol::table options) {
 				return wxColour();
 			};
 
-			wxColour hBg, hFg;
+			wxColour hBg;
+			wxColour hFg;
 			if (hoverOpts["bgcolor"].valid()) {
 				hBg = parseColor(hoverOpts["bgcolor"]);
 			}
@@ -1022,7 +1022,7 @@ LuaDialog* LuaDialog::button(sol::table options) {
 LuaDialog* LuaDialog::color(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "color_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("color_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 
 	wxColour defaultColor = *wxBLACK;
@@ -1187,7 +1187,7 @@ public:
 		event.Skip();
 	}
 
-	virtual void OnDrawItem(wxDC &dc, const wxRect &rect, size_t n) const override {
+	void OnDrawItem(wxDC &dc, const wxRect &rect, size_t n) const override {
 		if (n >= items.size()) {
 			return;
 		}
@@ -1255,7 +1255,7 @@ public:
 	int cellWidth = -1;
 	int cellHeight = -1;
 
-	void AddTooltip(long item, const std::string &tip) {
+	void AddTooltip(long item, std::string_view tip) {
 		tooltips[item] = tip;
 	}
 
@@ -1277,7 +1277,7 @@ public:
 		long index = HitTest(event.GetPosition(), flags);
 		if (index != wxNOT_FOUND) {
 			if (index != lastTooltipItem) {
-				if (tooltips.count(index)) {
+				if (tooltips.contains(index)) {
 					SetToolTip(wxString(tooltips[index]));
 				} else {
 					UnsetToolTip();
@@ -1300,10 +1300,44 @@ public:
 	}
 };
 
+void LuaDialog::handleListClick(const std::string &id, LuaDialogListBox* listbox, const sol::function &callback, wxMouseEvent &event) {
+	if (!callback.valid() || !lua.lua_state() || !callback.lua_state()) {
+		event.Skip();
+		return;
+	}
+	int index = listbox->HitTest(event.GetPosition());
+	if (index == wxNOT_FOUND) {
+		event.Skip();
+		return;
+	}
+	const LuaListBoxItem* item = listbox->GetItem(index);
+	if (!item) {
+		event.Skip();
+		return;
+	}
+	listbox->SetSelection(index);
+	listbox->SetFocus();
+	values[id] = sol::make_object(lua, index + 1);
+	sol::table info = lua.create_table();
+	info["type"] = "list";
+	info["index"] = index + 1;
+	info["text"] = item->text;
+	if (!item->tooltip.empty()) {
+		info["tooltip"] = item->tooltip;
+	}
+	info["widget_id"] = id;
+	try {
+		callback(this, info);
+	} catch (const sol::error &e) {
+		wxMessageBox(wxString("Script error: ") + e.what(), "Lua Error", wxOK | wxICON_ERROR);
+	}
+	event.Skip();
+}
+
 LuaDialog* LuaDialog::list(sol::table options) {
 	finishCurrentRow();
 
-	std::string id = options.get_or(std::string("id"), "list_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("list_{}", widgets.size()));
 	int width = options.get_or(std::string("width"), 200);
 	int height = options.get_or(std::string("height"), 150);
 	int iconWidth = options.get_or(std::string("icon_width"), 16);
@@ -1318,7 +1352,7 @@ LuaDialog* LuaDialog::list(sol::table options) {
 		iconHeight = iconSize;
 	}
 
-	LuaDialogListBox* listbox = new LuaDialogListBox(getParentForWidget(), wxID_ANY, wxSize(width, height));
+	auto listbox = new LuaDialogListBox(getParentForWidget(), wxID_ANY, wxSize(width, height));
 	listbox->SetIconSize(iconWidth, iconHeight);
 	if (itemHeight > 0) {
 		listbox->SetItemHeight(itemHeight);
@@ -1389,72 +1423,12 @@ LuaDialog* LuaDialog::list(sol::table options) {
 
 	sol::function listLeftClick = widget.onleftclick;
 	listbox->Bind(wxEVT_LEFT_DOWN, [this, id, listbox, listLeftClick](wxMouseEvent &event) {
-		if (!listLeftClick.valid() || !lua.lua_state() || !listLeftClick.lua_state()) {
-			event.Skip();
-			return;
-		}
-		int index = listbox->HitTest(event.GetPosition());
-		if (index == wxNOT_FOUND) {
-			event.Skip();
-			return;
-		}
-		const LuaListBoxItem* item = listbox->GetItem(index);
-		if (!item) {
-			event.Skip();
-			return;
-		}
-		listbox->SetSelection(index);
-		listbox->SetFocus();
-		values[id] = sol::make_object(lua, index + 1);
-		sol::table info = lua.create_table();
-		info["type"] = "list";
-		info["index"] = index + 1;
-		info["text"] = item->text;
-		if (!item->tooltip.empty()) {
-			info["tooltip"] = item->tooltip;
-		}
-		info["widget_id"] = id;
-		try {
-			listLeftClick(this, info);
-		} catch (const sol::error &e) {
-			wxMessageBox(wxString("Script error: ") + e.what(), "Lua Error", wxOK | wxICON_ERROR);
-		}
-		event.Skip();
+		handleListClick(id, listbox, listLeftClick, event);
 	});
 
 	sol::function listRightClick = widget.onrightclick;
 	listbox->Bind(wxEVT_RIGHT_DOWN, [this, id, listbox, listRightClick](wxMouseEvent &event) {
-		if (!listRightClick.valid() || !lua.lua_state() || !listRightClick.lua_state()) {
-			event.Skip();
-			return;
-		}
-		int index = listbox->HitTest(event.GetPosition());
-		if (index == wxNOT_FOUND) {
-			event.Skip();
-			return;
-		}
-		const LuaListBoxItem* item = listbox->GetItem(index);
-		if (!item) {
-			event.Skip();
-			return;
-		}
-		listbox->SetSelection(index);
-		listbox->SetFocus();
-		values[id] = sol::make_object(lua, index + 1);
-		sol::table info = lua.create_table();
-		info["type"] = "list";
-		info["index"] = index + 1;
-		info["text"] = item->text;
-		if (!item->tooltip.empty()) {
-			info["tooltip"] = item->tooltip;
-		}
-		info["widget_id"] = id;
-		try {
-			listRightClick(this, info);
-		} catch (const sol::error &e) {
-			wxMessageBox(wxString("Script error: ") + e.what(), "Lua Error", wxOK | wxICON_ERROR);
-		}
-		event.Skip();
+		handleListClick(id, listbox, listRightClick, event);
 	});
 
 	// Bind context menu event
