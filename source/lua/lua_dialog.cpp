@@ -2442,6 +2442,32 @@ void LuaDialog::handleGridClick(const std::string &id, LuaGridCtrl* grid, const 
 	event.Skip();
 }
 
+void LuaDialog::handleGridContextMenu(const std::string &id, LuaGridCtrl* grid, const sol::function &callback, wxContextMenuEvent &event) {
+	if (!callback.valid() || !lua.lua_state() || !callback.lua_state()) {
+		return;
+	}
+	wxPoint screenPos = event.GetPosition();
+	if (screenPos == wxDefaultPosition) {
+		screenPos = wxGetMousePosition();
+	}
+	wxPoint clientPos = grid->ScreenToClient(screenPos);
+	int flags = 0;
+	long index = grid->HitTest(clientPos, flags);
+	if (index == wxNOT_FOUND) {
+		return;
+	}
+	sol::table info = lua.create_table();
+	info["type"] = "grid";
+	info["index"] = static_cast<int>(index + 1);
+	info["text"] = grid->GetItemText(index).ToStdString();
+	std::string tooltip = grid->GetTooltip(index);
+	if (!tooltip.empty()) {
+		info["tooltip"] = tooltip;
+	}
+	info["widget_id"] = id;
+	popupContextMenu(callback, info, grid, screenPos);
+}
+
 LuaDialog* LuaDialog::grid(sol::table options) {
 	ensureRowSizer();
 
@@ -2611,30 +2637,7 @@ LuaDialog* LuaDialog::grid(sol::table options) {
 
 	sol::function gridContextMenu = widget.oncontextmenu;
 	grid->Bind(wxEVT_CONTEXT_MENU, [this, id, grid, gridContextMenu](wxContextMenuEvent &event) {
-		if (!gridContextMenu.valid() || !lua.lua_state() || !gridContextMenu.lua_state()) {
-			return;
-		}
-		wxPoint screenPos = event.GetPosition();
-		if (screenPos == wxDefaultPosition) {
-			screenPos = wxGetMousePosition();
-		}
-		wxPoint clientPos = grid->ScreenToClient(screenPos);
-		int flags = 0;
-		long index = grid->HitTest(clientPos, flags);
-		if (index == wxNOT_FOUND) {
-			return;
-		}
-
-		sol::table info = lua.create_table();
-		info["type"] = "grid";
-		info["index"] = static_cast<int>(index + 1);
-		info["text"] = grid->GetItemText(index).ToStdString();
-		std::string tooltip = static_cast<LuaGridCtrl*>(grid)->GetTooltip(index);
-		if (!tooltip.empty()) {
-			info["tooltip"] = tooltip;
-		}
-		info["widget_id"] = id;
-		popupContextMenu(gridContextMenu, info, grid, screenPos);
+		handleGridContextMenu(id, grid, gridContextMenu, event);
 	});
 
 	applyCommonOptions(grid, options);
@@ -2729,66 +2732,67 @@ void LuaDialog::setBounds(sol::table bounds) {
 
 void LuaDialog::updateValue(const std::string &id) {
 	for (auto &widget : widgets) {
-		if (widget.id == id) {
-			if (widget.type == "input") {
-				wxTextCtrl* ctrl = static_cast<wxTextCtrl*>(widget.widget);
-				values[id] = sol::make_object(lua, ctrl->GetValue().ToStdString());
-			} else if (widget.type == "number") {
-				wxSpinCtrlDouble* ctrl = static_cast<wxSpinCtrlDouble*>(widget.widget);
-				values[id] = sol::make_object(lua, ctrl->GetValue());
-			} else if (widget.type == "slider") {
-				wxSlider* ctrl = static_cast<wxSlider*>(widget.widget);
-				values[id] = sol::make_object(lua, ctrl->GetValue());
-			} else if (widget.type == "check") {
-				wxCheckBox* ctrl = static_cast<wxCheckBox*>(widget.widget);
-				values[id] = sol::make_object(lua, ctrl->GetValue());
-			} else if (widget.type == "radio") {
-				wxRadioButton* ctrl = static_cast<wxRadioButton*>(widget.widget);
-				values[id] = sol::make_object(lua, ctrl->GetValue());
-			} else if (widget.type == "combobox") {
-				wxChoice* ctrl = static_cast<wxChoice*>(widget.widget);
-				values[id] = sol::make_object(lua, ctrl->GetStringSelection().ToStdString());
-			} else if (widget.type == "color") {
-				wxColourPickerCtrl* ctrl = static_cast<wxColourPickerCtrl*>(widget.widget);
-				wxColour c = ctrl->GetColour();
-				sol::table colorTable = lua.create_table();
-				colorTable["red"] = c.Red();
-				colorTable["green"] = c.Green();
-				colorTable["blue"] = c.Blue();
-				values[id] = colorTable;
-			} else if (widget.type == "file") {
-				wxFilePickerCtrl* ctrl = static_cast<wxFilePickerCtrl*>(widget.widget);
-				values[id] = sol::make_object(lua, ctrl->GetPath().ToStdString());
-			} else if (widget.type == "item") {
-				// Value is updated in the event handler
-			} else if (widget.type == "mapCanvas") {
-				MapPreviewCanvas* ctrl = static_cast<MapPreviewCanvas*>(widget.widget);
-				sol::table mapData = lua.create_table();
-				mapData["x"] = ctrl->GetMapX();
-				mapData["y"] = ctrl->GetMapY();
-				mapData["z"] = ctrl->GetFloor();
-				mapData["zoom"] = ctrl->GetZoom();
-				values[id] = mapData;
-			} else if (widget.type == "list") {
-				LuaDialogListBox* ctrl = static_cast<LuaDialogListBox*>(widget.widget);
-				values[id] = sol::make_object(lua, ctrl->GetSelection() + 1); // 1-based for Lua
-			} else if (widget.type == "grid") {
-				wxListCtrl* ctrl = static_cast<wxListCtrl*>(widget.widget);
-				long item = -1;
-				item = ctrl->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-				if (item != -1) {
-					values[id] = sol::make_object(lua, item + 1);
-				} else {
-					values[id] = sol::make_object(lua, 0);
-				}
-			}
-			break;
+		if (widget.id != id) {
+			continue;
 		}
+		if (widget.type == "input") {
+			wxTextCtrl* ctrl = static_cast<wxTextCtrl*>(widget.widget);
+			values[id] = sol::make_object(lua, ctrl->GetValue().ToStdString());
+		} else if (widget.type == "number") {
+			wxSpinCtrlDouble* ctrl = static_cast<wxSpinCtrlDouble*>(widget.widget);
+			values[id] = sol::make_object(lua, ctrl->GetValue());
+		} else if (widget.type == "slider") {
+			wxSlider* ctrl = static_cast<wxSlider*>(widget.widget);
+			values[id] = sol::make_object(lua, ctrl->GetValue());
+		} else if (widget.type == "check") {
+			wxCheckBox* ctrl = static_cast<wxCheckBox*>(widget.widget);
+			values[id] = sol::make_object(lua, ctrl->GetValue());
+		} else if (widget.type == "radio") {
+			wxRadioButton* ctrl = static_cast<wxRadioButton*>(widget.widget);
+			values[id] = sol::make_object(lua, ctrl->GetValue());
+		} else if (widget.type == "combobox") {
+			wxChoice* ctrl = static_cast<wxChoice*>(widget.widget);
+			values[id] = sol::make_object(lua, ctrl->GetStringSelection().ToStdString());
+		} else if (widget.type == "color") {
+			wxColourPickerCtrl* ctrl = static_cast<wxColourPickerCtrl*>(widget.widget);
+			wxColour c = ctrl->GetColour();
+			sol::table colorTable = lua.create_table();
+			colorTable["red"] = c.Red();
+			colorTable["green"] = c.Green();
+			colorTable["blue"] = c.Blue();
+			values[id] = colorTable;
+		} else if (widget.type == "file") {
+			wxFilePickerCtrl* ctrl = static_cast<wxFilePickerCtrl*>(widget.widget);
+			values[id] = sol::make_object(lua, ctrl->GetPath().ToStdString());
+		} else if (widget.type == "item") {
+			// Value is updated in the event handler
+		} else if (widget.type == "mapCanvas") {
+			auto ctrl = static_cast<MapPreviewCanvas*>(widget.widget);
+			sol::table mapData = lua.create_table();
+			mapData["x"] = ctrl->GetMapX();
+			mapData["y"] = ctrl->GetMapY();
+			mapData["z"] = ctrl->GetFloor();
+			mapData["zoom"] = ctrl->GetZoom();
+			values[id] = mapData;
+		} else if (widget.type == "list") {
+			auto ctrl = static_cast<LuaDialogListBox*>(widget.widget);
+			values[id] = sol::make_object(lua, ctrl->GetSelection() + 1);
+		} else if (widget.type == "grid") {
+			wxListCtrl* ctrl = static_cast<wxListCtrl*>(widget.widget);
+			long item = -1;
+			item = ctrl->GetNextItem(item, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+			if (item != -1) {
+				values[id] = sol::make_object(lua, item + 1);
+			} else {
+				values[id] = sol::make_object(lua, 0);
+			}
+		}
+		break;
 	}
 }
 
 void LuaDialog::collectAllValues() {
-	for (auto &widget : widgets) {
+	for (const auto &widget : widgets) {
 		updateValue(widget.id);
 	}
 }
@@ -2825,6 +2829,57 @@ int LuaDialog::getSizerBorder(sol::table options) {
 	return options.get_or("padding", 5) + options.get_or("margin", 0);
 }
 
+static wxColour parseColor(sol::object colorObj) {
+	if (colorObj.is<sol::table>()) {
+		sol::table c = colorObj.as<sol::table>();
+		int r = c.get_or("r", c.get_or(1, 255));
+		int g = c.get_or("g", c.get_or(2, 255));
+		int b = c.get_or("b", c.get_or(3, 255));
+		return wxColour(r, g, b);
+	} else if (colorObj.is<std::string>()) {
+		std::string colorStr = colorObj.as<std::string>();
+		if (!colorStr.empty() && colorStr[0] == '#') {
+			unsigned long hexValue = 0;
+			if (colorStr.length() == 7) {
+				hexValue = std::stoul(colorStr.substr(1), nullptr, 16);
+			} else if (colorStr.length() == 4) {
+				char r = colorStr[1], g = colorStr[2], b = colorStr[3];
+				std::string expanded = { r, r, g, g, b, b };
+				hexValue = std::stoul(expanded, nullptr, 16);
+			}
+			return wxColour((hexValue >> 16) & 0xFF, (hexValue >> 8) & 0xFF, hexValue & 0xFF);
+		}
+		return wxColour(wxString(colorStr));
+	}
+	return wxColour();
+}
+
+void LuaDialog::applyFontOptions(wxWindow* widget, sol::table options) {
+	wxFont font = widget->GetFont();
+	if (options["font_size"].valid()) {
+		font.SetPointSize(options.get<int>("font_size"));
+	}
+	if (options["font_weight"].valid()) {
+		std::string weight = options.get<std::string>("font_weight");
+		if (weight == "bold") {
+			font.SetWeight(wxFONTWEIGHT_BOLD);
+		} else if (weight == "light") {
+			font.SetWeight(wxFONTWEIGHT_LIGHT);
+		} else {
+			font.SetWeight(wxFONTWEIGHT_NORMAL);
+		}
+	}
+	if (options["font_style"].valid()) {
+		std::string style = options.get<std::string>("font_style");
+		if (style == "italic") {
+			font.SetStyle(wxFONTSTYLE_ITALIC);
+		} else {
+			font.SetStyle(wxFONTSTYLE_NORMAL);
+		}
+	}
+	widget->SetFont(font);
+}
+
 void LuaDialog::applyCommonOptions(wxWindow* widget, sol::table options) {
 	if (options["tooltip"].valid()) {
 		widget->SetToolTip(wxString(options.get<std::string>("tooltip")));
@@ -2835,31 +2890,6 @@ void LuaDialog::applyCommonOptions(wxWindow* widget, sol::table options) {
 	if (options["visible"].valid()) {
 		widget->Show(options.get<bool>("visible"));
 	}
-
-	auto parseColor = [](sol::object colorObj) -> wxColour {
-		if (colorObj.is<sol::table>()) {
-			sol::table c = colorObj.as<sol::table>();
-			int r = c.get_or("r", c.get_or(1, 255));
-			int g = c.get_or("g", c.get_or(2, 255));
-			int b = c.get_or("b", c.get_or(3, 255));
-			return wxColour(r, g, b);
-		} else if (colorObj.is<std::string>()) {
-			std::string colorStr = colorObj.as<std::string>();
-			if (!colorStr.empty() && colorStr[0] == '#') {
-				unsigned long hexValue = 0;
-				if (colorStr.length() == 7) {
-					hexValue = std::stoul(colorStr.substr(1), nullptr, 16);
-				} else if (colorStr.length() == 4) {
-					char r = colorStr[1], g = colorStr[2], b = colorStr[3];
-					std::string expanded = { r, r, g, g, b, b };
-					hexValue = std::stoul(expanded, nullptr, 16);
-				}
-				return wxColour((hexValue >> 16) & 0xFF, (hexValue >> 8) & 0xFF, hexValue & 0xFF);
-			}
-			return wxColour(wxString(colorStr));
-		}
-		return wxColour();
-	};
 
 	if (options["bgcolor"].valid()) {
 		wxColour colour = parseColor(options["bgcolor"]);
@@ -2876,39 +2906,14 @@ void LuaDialog::applyCommonOptions(wxWindow* widget, sol::table options) {
 	}
 
 	if (options["font_size"].valid() || options["font_weight"].valid() || options["font_style"].valid()) {
-		wxFont font = widget->GetFont();
-		if (options["font_size"].valid()) {
-			font.SetPointSize(options.get<int>("font_size"));
-		}
-		if (options["font_weight"].valid()) {
-			std::string weight = options.get<std::string>("font_weight");
-			if (weight == "bold") {
-				font.SetWeight(wxFONTWEIGHT_BOLD);
-			} else if (weight == "light") {
-				font.SetWeight(wxFONTWEIGHT_LIGHT);
-			} else {
-				font.SetWeight(wxFONTWEIGHT_NORMAL);
-			}
-		}
-		if (options["font_style"].valid()) {
-			std::string style = options.get<std::string>("font_style");
-			if (style == "italic") {
-				font.SetStyle(wxFONTSTYLE_ITALIC);
-			} else {
-				font.SetStyle(wxFONTSTYLE_NORMAL);
-			}
-		}
-		widget->SetFont(font);
+		applyFontOptions(widget, options);
 	}
 
-	// NEW SIZE PROPERTIES
 	if (options["width"].valid() || options["height"].valid()) {
 		int w = options.get_or("width", -1);
 		int h = options.get_or("height", -1);
 		wxSize size(w, h);
-
 		widget->SetMinSize(size);
-		// If expand is false, we also limit the maximum size to be strict
 		if (!options.get_or("expand", true)) {
 			widget->SetMaxSize(size);
 		}

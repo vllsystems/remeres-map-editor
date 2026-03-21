@@ -88,9 +88,10 @@ private:
 	std::string author; // Author
 	std::string version; // Version
 	std::string shortcut; // Keyboard shortcut
-	bool enabled;
-	bool autorun;
+	bool enabled = true;
+	bool autorun = false;
 	bool isPackageScript; // True if loaded from directory with manifest.json
+	bool scanAutorunValue(const std::string &content);
 };
 
 #endif // RME_LUA_SCRIPT_H

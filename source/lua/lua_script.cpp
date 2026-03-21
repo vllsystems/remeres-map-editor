@@ -21,17 +21,15 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <array>
 
 // Constructor for single .lua file
 LuaScript::LuaScript(const std::string &filepath) :
 	filepath(filepath),
-	enabled(true),
-	autorun(false),
 	isPackageScript(false) {
 
 	// Extract filename from path
-	size_t lastSlash = filepath.find_last_of("/\\");
-	if (lastSlash != std::string::npos) {
+	if (size_t lastSlash = filepath.find_last_of("/\\"); lastSlash != std::string::npos) {
 		filename = filepath.substr(lastSlash + 1);
 		directory = filepath.substr(0, lastSlash);
 	} else {
@@ -40,8 +38,7 @@ LuaScript::LuaScript(const std::string &filepath) :
 	}
 
 	// Default display name is filename without extension
-	size_t lastDot = filename.find_last_of('.');
-	if (lastDot != std::string::npos) {
+	if (size_t lastDot = filename.find_last_of('.'); lastDot != std::string::npos) {
 		displayName = filename.substr(0, lastDot);
 	} else {
 		displayName = filename;
@@ -55,15 +52,12 @@ LuaScript::LuaScript(const std::string &filepath) :
 }
 
 // Constructor for directory with manifest.lua
-LuaScript::LuaScript(const std::string &dir, bool isDirectory) :
+LuaScript::LuaScript(const std::string &dir, bool /*isDirectory*/) :
 	directory(dir),
-	enabled(true),
-	autorun(false),
 	isPackageScript(true) {
 
 	// Extract folder name for default display name
-	size_t lastSlash = dir.find_last_of("/\\");
-	if (lastSlash != std::string::npos) {
+	if (size_t lastSlash = dir.find_last_of("/\\"); lastSlash != std::string::npos) {
 		displayName = dir.substr(lastSlash + 1);
 	} else {
 		displayName = dir;
@@ -82,6 +76,84 @@ void LuaScript::parseMetadata() {
 	} else {
 		parseMetadataFromComments();
 	}
+}
+
+bool LuaScript::scanAutorunValue(const std::string &content) {
+	bool inBlockComment = false;
+	std::istringstream stream(content);
+	std::string line;
+	while (std::getline(stream, line)) {
+		size_t bcStart = line.find("--[[");
+		size_t bcEnd = line.find("]]");
+		if (inBlockComment) {
+			if (bcEnd != std::string::npos) {
+				inBlockComment = false;
+				line = line.substr(bcEnd + 2);
+			} else {
+				continue;
+			}
+		}
+		if (bcStart != std::string::npos && bcEnd == std::string::npos) {
+			inBlockComment = true;
+			line = line.substr(0, bcStart);
+		}
+		if (auto commentPos = line.find("--"); commentPos != std::string::npos) {
+			line = line.substr(0, commentPos);
+		}
+		if (auto pos = line.find("autorun"); pos != std::string::npos) {
+			bool validBefore = (pos == 0) || (!std::isalnum(static_cast<unsigned char>(line[pos - 1])) && line[pos - 1] != '_');
+			size_t afterPos = pos + 7;
+			bool validAfter = (afterPos >= line.size()) || (!std::isalnum(static_cast<unsigned char>(line[afterPos])) && line[afterPos] != '_');
+			if (validBefore && validAfter) {
+				std::string rest = line.substr(afterPos);
+				rest.erase(0, rest.find_first_not_of(" \t"));
+				if (!rest.empty() && rest[0] == '=') {
+					rest = rest.substr(1);
+					rest.erase(0, rest.find_first_not_of(" \t"));
+					if (rest.substr(0, 4) == "true") {
+						return true;
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
+static std::string getManifestValue(const std::string &content, const std::string &key) {
+	const std::array<std::string, 4> patterns = {
+		key + " = \"", key + " = '", key + "=\"", key + "='"
+	};
+	const std::array<char, 4> quotes = { '"', '\'', '"', '\'' };
+
+	size_t pos = std::string::npos;
+	char quote = '"';
+	for (int i = 0; i < 4; ++i) {
+		size_t found = content.find(patterns[i]);
+		while (found != std::string::npos) {
+			if (bool validBefore = (found == 0) || (!std::isalnum(static_cast<unsigned char>(content[found - 1])) && content[found - 1] != '_'); validBefore) {
+				pos = found;
+				quote = quotes[i];
+				break;
+			}
+			found = content.find(patterns[i], found + 1);
+		}
+		if (pos != std::string::npos) {
+			break;
+		}
+	}
+
+	if (pos == std::string::npos) {
+		return "";
+	}
+
+	size_t valueStart = content.find(quote, pos) + 1;
+	size_t valueEnd = content.find(quote, valueStart);
+	if (valueEnd == std::string::npos) {
+		return "";
+	}
+
+	return content.substr(valueStart, valueEnd - valueStart);
 }
 
 void LuaScript::parseMetadataFromManifest() {
@@ -108,131 +180,42 @@ void LuaScript::parseMetadataFromManifest() {
 	std::stringstream buffer;
 	buffer << file.rdbuf();
 	std::string content = buffer.str();
-	file.close();
-
-	// Simple Lua table parser for manifest
-	auto getValue = [&content](const std::string &key) -> std::string {
-		// Look for: key = "value" or key = 'value' with word boundary
-		const std::string patterns[] = {
-			key + " = \"", key + " = '", key + "=\"", key + "='"
-		};
-		const char quotes[] = { '"', '\'', '"', '\'' };
-
-		size_t pos = std::string::npos;
-		char quote = '"';
-		for (int i = 0; i < 4; ++i) {
-			size_t found = content.find(patterns[i]);
-			while (found != std::string::npos) {
-				// Check word boundary before key
-				bool validBefore = (found == 0) || (!std::isalnum(static_cast<unsigned char>(content[found - 1])) && content[found - 1] != '_');
-				if (validBefore) {
-					pos = found;
-					quote = quotes[i];
-					break;
-				}
-				found = content.find(patterns[i], found + 1);
-			}
-			if (pos != std::string::npos) {
-				break;
-			}
-		}
-
-		if (pos == std::string::npos) {
-			return "";
-		}
-
-		size_t valueStart = content.find(quote, pos) + 1;
-		size_t valueEnd = content.find(quote, valueStart);
-		if (valueEnd == std::string::npos) {
-			return "";
-		}
-
-		return content.substr(valueStart, valueEnd - valueStart);
-	};
 
 	std::string val;
 
-	val = getValue("name");
+	val = getManifestValue(content, "name");
 	if (!val.empty()) {
 		displayName = val;
 	}
 
-	val = getValue("description");
+	val = getManifestValue(content, "description");
 	if (!val.empty()) {
 		description = val;
 	}
 
-	val = getValue("author");
+	val = getManifestValue(content, "author");
 	if (!val.empty()) {
 		author = val;
 	}
 
-	val = getValue("version");
+	val = getManifestValue(content, "version");
 	if (!val.empty()) {
 		version = val;
 	}
 
-	val = getValue("shortcut");
+	val = getManifestValue(content, "shortcut");
 	if (!val.empty()) {
 		shortcut = val;
 	}
 
-	val = getValue("autorun");
+	val = getManifestValue(content, "autorun");
 	if (!val.empty()) {
-		if (val == "true") {
-			autorun = true;
-		}
+		autorun = (val == "true");
 	} else {
-		// Scan line-by-line for standalone "autorun = true", ignoring comments
-		bool inBlockComment = false;
-		std::istringstream stream(content);
-		std::string line;
-		while (std::getline(stream, line)) {
-			// Handle block comments --[[ ... ]]
-			size_t bcStart = line.find("--[[");
-			size_t bcEnd = line.find("]]");
-			if (inBlockComment) {
-				if (bcEnd != std::string::npos) {
-					inBlockComment = false;
-					line = line.substr(bcEnd + 2);
-				} else {
-					continue;
-				}
-			}
-			if (bcStart != std::string::npos && bcEnd == std::string::npos) {
-				inBlockComment = true;
-				line = line.substr(0, bcStart);
-			}
-			// Strip single-line comment
-			size_t commentPos = line.find("--");
-			if (commentPos != std::string::npos) {
-				line = line.substr(0, commentPos);
-			}
-			// Match standalone "autorun" with word boundary
-			size_t pos = line.find("autorun");
-			if (pos != std::string::npos) {
-				// Check it's not part of a larger identifier
-				bool validBefore = (pos == 0) || (!std::isalnum(line[pos - 1]) && line[pos - 1] != '_');
-				size_t afterPos = pos + 7; // length of "autorun"
-				bool validAfter = (afterPos >= line.size()) || (!std::isalnum(line[afterPos]) && line[afterPos] != '_');
-				if (validBefore && validAfter) {
-					// Check if the rest matches "= true"
-					std::string rest = line.substr(afterPos);
-					rest.erase(0, rest.find_first_not_of(" \t"));
-					if (rest.size() >= 1 && rest[0] == '=') {
-						rest = rest.substr(1);
-						rest.erase(0, rest.find_first_not_of(" \t"));
-						if (rest.substr(0, 4) == "true") {
-							autorun = true;
-							break;
-						}
-					}
-				}
-			}
-		}
+		autorun = scanAutorunValue(content);
 	}
 
-	val = getValue("main");
+	val = getManifestValue(content, "main");
 	if (!val.empty()) {
 		// Add .lua extension if not present
 		if (val.size() < 4 || val.substr(val.size() - 4) != ".lua") {

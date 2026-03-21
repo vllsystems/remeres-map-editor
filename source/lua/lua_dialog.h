@@ -190,6 +190,8 @@ private:
 	void handleListClick(const std::string &id, LuaDialogListBox* listbox, const sol::function &callback, wxMouseEvent &event);
 	void handleListContextMenu(const std::string &id, LuaDialogListBox* listbox, const sol::function &callback, wxContextMenuEvent &event);
 	void handleGridClick(const std::string &id, LuaGridCtrl* grid, const sol::function &callback, wxMouseEvent &event);
+	void handleGridContextMenu(const std::string &id, LuaGridCtrl* grid, const sol::function &callback, wxContextMenuEvent &event);
+	void applyFontOptions(wxWindow* widget, sol::table options);
 
 	// Event handlers
 	void OnClose(wxCloseEvent &event);
