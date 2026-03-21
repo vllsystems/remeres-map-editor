@@ -1334,6 +1334,34 @@ void LuaDialog::handleListClick(const std::string &id, LuaDialogListBox* listbox
 	event.Skip();
 }
 
+void LuaDialog::handleListContextMenu(const std::string &id, LuaDialogListBox* listbox, const sol::function &callback, wxContextMenuEvent &event) {
+	if (!callback.valid() || !lua.lua_state() || !callback.lua_state()) {
+		return;
+	}
+	wxPoint screenPos = event.GetPosition();
+	if (screenPos == wxDefaultPosition) {
+		screenPos = wxGetMousePosition();
+	}
+	wxPoint clientPos = listbox->ScreenToClient(screenPos);
+	int index = listbox->HitTest(clientPos);
+	if (index == wxNOT_FOUND) {
+		return;
+	}
+	const LuaListBoxItem* item = listbox->GetItem(index);
+	if (!item) {
+		return;
+	}
+	sol::table info = lua.create_table();
+	info["type"] = "list";
+	info["index"] = index + 1;
+	info["text"] = item->text;
+	if (!item->tooltip.empty()) {
+		info["tooltip"] = item->tooltip;
+	}
+	info["widget_id"] = id;
+	popupContextMenu(callback, info, listbox, screenPos);
+}
+
 LuaDialog* LuaDialog::list(sol::table options) {
 	finishCurrentRow();
 
@@ -1434,33 +1462,7 @@ LuaDialog* LuaDialog::list(sol::table options) {
 	// Bind context menu event
 	sol::function listContextMenu = widget.oncontextmenu;
 	listbox->Bind(wxEVT_CONTEXT_MENU, [this, id, listbox, listContextMenu](wxContextMenuEvent &event) {
-		if (!listContextMenu.valid() || !lua.lua_state() || !listContextMenu.lua_state()) {
-			return;
-		}
-		wxPoint screenPos = event.GetPosition();
-		if (screenPos == wxDefaultPosition) {
-			screenPos = wxGetMousePosition();
-		}
-		wxPoint clientPos = listbox->ScreenToClient(screenPos);
-		int index = listbox->HitTest(clientPos);
-		if (index == wxNOT_FOUND) {
-			return;
-		}
-
-		const LuaListBoxItem* item = listbox->GetItem(index);
-		if (!item) {
-			return;
-		}
-
-		sol::table info = lua.create_table();
-		info["type"] = "list";
-		info["index"] = index + 1;
-		info["text"] = item->text;
-		if (!item->tooltip.empty()) {
-			info["tooltip"] = item->tooltip;
-		}
-		info["widget_id"] = id;
-		popupContextMenu(listContextMenu, info, listbox, screenPos);
+		handleListContextMenu(id, listbox, listContextMenu, event);
 	});
 
 	applyCommonOptions(listbox, options);
@@ -1470,7 +1472,7 @@ LuaDialog* LuaDialog::list(sol::table options) {
 LuaDialog* LuaDialog::file(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "file_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("file_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	std::string filename = options.get_or(std::string("filename"), ""s);
 	std::string filetypes = options.get_or(std::string("filetypes"), "*.*"s);
@@ -1511,7 +1513,7 @@ LuaDialog* LuaDialog::file(sol::table options) {
 LuaDialog* LuaDialog::image(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "image_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("image_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	int width = options.get_or(std::string("width"), -1);
 	int height = options.get_or(std::string("height"), -1);
@@ -1550,12 +1552,12 @@ LuaDialog* LuaDialog::image(sol::table options) {
 		} else if (width > 0) {
 			// Scale proportionally based on width
 			double factor = static_cast<double>(width) / luaImage.getWidth();
-			int newHeight = static_cast<int>(luaImage.getHeight() * factor);
+			auto newHeight = static_cast<int>(luaImage.getHeight() * factor);
 			bmp = luaImage.getBitmap(width, newHeight, smooth);
 		} else if (height > 0) {
 			// Scale proportionally based on height
 			double factor = static_cast<double>(height) / luaImage.getHeight();
-			int newWidth = static_cast<int>(luaImage.getWidth() * factor);
+			auto newWidth = static_cast<int>(luaImage.getWidth() * factor);
 			bmp = luaImage.getBitmap(newWidth, height, smooth);
 		} else {
 			bmp = luaImage.getBitmap();
@@ -1593,7 +1595,7 @@ LuaDialog* LuaDialog::image(sol::table options) {
 LuaDialog* LuaDialog::item(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "item_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("item_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	int itemId = options.get_or(std::string("itemid"), 0);
 
@@ -1603,7 +1605,7 @@ LuaDialog* LuaDialog::item(sol::table options) {
 	}
 
 	int clientId = (itemId > 100 && itemId <= g_items.getMaxID()) ? g_items[itemId].clientID : 0;
-	ItemButton* btn = new ItemButton(getParentForWidget(), RENDER_SIZE_32x32, clientId);
+	auto btn = new ItemButton(getParentForWidget(), RENDER_SIZE_32x32, clientId);
 	currentRowSizer->Add(btn, 0, getSizerFlags(options, wxALIGN_CENTER_VERTICAL | wxRIGHT), getSizerBorder(options));
 
 	LuaDialogWidget widget;
@@ -1671,7 +1673,7 @@ LuaDialog* LuaDialog::newrow() {
 LuaDialog* LuaDialog::tab(sol::table options) {
 	finishCurrentRow();
 
-	std::string id = options.get_or(std::string("id"), "tab_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("tab_{}", widgets.size()));
 	std::string text = options.get_or(std::string("text"), "Tab"s);
 	bool isButton = options.get_or(std::string("button"), false) || options.get_or(std::string("is_button"), false);
 	int insertIndex = options.get_or(std::string("index"), -1);
@@ -1698,22 +1700,24 @@ LuaDialog* LuaDialog::tab(sol::table options) {
 		notebookEventsBound = true;
 		currentNotebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGING, [this](wxNotebookEvent &event) {
 			int newSelection = event.GetSelection();
-			if (newSelection != wxNOT_FOUND && newSelection < static_cast<int>(tabInfos.size())) {
-				if (tabInfos[newSelection].isButton) {
-					if (suppressTabButtonClick && suppressTabButtonIndex == newSelection) {
-						suppressTabButtonClick = false;
-						suppressTabButtonIndex = -1;
-						event.Veto();
-						return;
-					}
-					CallAfter([this, newSelection]() {
-						handleTabButtonClick(newSelection);
-					});
-					event.Veto();
-					return;
-				}
+			if (newSelection == wxNOT_FOUND || newSelection >= static_cast<int>(tabInfos.size())) {
+				event.Skip();
+				return;
 			}
-			event.Skip();
+			if (!tabInfos[newSelection].isButton) {
+				event.Skip();
+				return;
+			}
+			if (suppressTabButtonClick && suppressTabButtonIndex == newSelection) {
+				suppressTabButtonClick = false;
+				suppressTabButtonIndex = -1;
+				event.Veto();
+				return;
+			}
+			CallAfter([this, newSelection]() {
+				handleTabButtonClick(newSelection);
+			});
+			event.Veto();
 		});
 
 		currentNotebook->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &event) {
@@ -1724,24 +1728,22 @@ LuaDialog* LuaDialog::tab(sol::table options) {
 			wxPoint pos = event.GetPosition();
 			long flags = 0;
 			int index = activeNotebook->HitTest(pos, &flags);
-			if (index != wxNOT_FOUND && index < static_cast<int>(tabInfos.size())) {
-				if (tabInfos[index].isButton) {
-					suppressTabButtonClick = true;
-					suppressTabButtonIndex = index;
-					CallAfter([this, index]() {
-						handleTabButtonClick(index);
-					});
-					CallAfter([this, index]() {
-						if (suppressTabButtonClick && suppressTabButtonIndex == index) {
-							suppressTabButtonClick = false;
-							suppressTabButtonIndex = -1;
-						}
-					});
-					event.StopPropagation();
-					return;
-				}
+			if (index == wxNOT_FOUND || index >= static_cast<int>(tabInfos.size()) || !tabInfos[index].isButton) {
+				event.Skip();
+				return;
 			}
-			event.Skip();
+			suppressTabButtonClick = true;
+			suppressTabButtonIndex = index;
+			CallAfter([this, index]() {
+				handleTabButtonClick(index);
+			});
+			CallAfter([this, index]() {
+				if (suppressTabButtonClick && suppressTabButtonIndex == index) {
+					suppressTabButtonClick = false;
+					suppressTabButtonIndex = -1;
+				}
+			});
+			event.StopPropagation();
 		});
 
 		currentNotebook->Bind(wxEVT_CONTEXT_MENU, [this](wxContextMenuEvent &event) {
@@ -2409,10 +2411,41 @@ LuaDialog* LuaDialog::modify(sol::table options) {
 	return this;
 }
 
+void LuaDialog::handleGridClick(const std::string &id, LuaGridCtrl* grid, const sol::function &callback, wxMouseEvent &event) {
+	if (!callback.valid() || !lua.lua_state() || !callback.lua_state()) {
+		event.Skip();
+		return;
+	}
+	int flags = 0;
+	long index = grid->HitTest(event.GetPosition(), flags);
+	if (index == wxNOT_FOUND) {
+		event.Skip();
+		return;
+	}
+	grid->SetItemState(index, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+	grid->SetFocus();
+	values[id] = sol::make_object(lua, static_cast<int>(index + 1));
+	sol::table info = lua.create_table();
+	info["type"] = "grid";
+	info["index"] = static_cast<int>(index + 1);
+	info["text"] = grid->GetItemText(index).ToStdString();
+	std::string tooltip = grid->GetTooltip(index);
+	if (!tooltip.empty()) {
+		info["tooltip"] = tooltip;
+	}
+	info["widget_id"] = id;
+	try {
+		callback(this, info);
+	} catch (const sol::error &e) {
+		wxMessageBox(wxString("Script error: ") + e.what(), "Lua Error", wxOK | wxICON_ERROR);
+	}
+	event.Skip();
+}
+
 LuaDialog* LuaDialog::grid(sol::table options) {
 	ensureRowSizer();
 
-	std::string id = options.get_or(std::string("id"), "grid_"s + std::to_string(widgets.size()));
+	std::string id = options.get_or(std::string("id"), fmt::format("grid_{}", widgets.size()));
 	std::string labelText = options.get_or(std::string("label"), ""s);
 	int iconWidth = options.get_or(std::string("icon_width"), 32);
 	int iconHeight = options.get_or(std::string("icon_height"), 32);
@@ -2457,7 +2490,7 @@ LuaDialog* LuaDialog::grid(sol::table options) {
 	}
 
 	// Use LuaGridCtrl in Icon mode for grid view
-	LuaGridCtrl* grid = new LuaGridCtrl(getParentForWidget(), wxID_ANY, wxDefaultPosition, wxSize(300, 200), wxLC_ICON | wxLC_AUTOARRANGE | wxLC_SINGLE_SEL);
+	auto grid = new LuaGridCtrl(getParentForWidget(), wxID_ANY, wxDefaultPosition, wxSize(300, 200), wxLC_ICON | wxLC_AUTOARRANGE | wxLC_SINGLE_SEL);
 
 	// Create an image list
 	wxImageList* imageList = new wxImageList(iconWidth, iconHeight, true);
@@ -2568,66 +2601,12 @@ LuaDialog* LuaDialog::grid(sol::table options) {
 
 	sol::function gridLeftClick = widget.onleftclick;
 	grid->Bind(wxEVT_LEFT_DOWN, [this, id, grid, gridLeftClick](wxMouseEvent &event) {
-		if (!gridLeftClick.valid() || !lua.lua_state() || !gridLeftClick.lua_state()) {
-			event.Skip();
-			return;
-		}
-		int flags = 0;
-		long index = grid->HitTest(event.GetPosition(), flags);
-		if (index == wxNOT_FOUND) {
-			event.Skip();
-			return;
-		}
-		grid->SetItemState(index, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
-		grid->SetFocus();
-		values[id] = sol::make_object(lua, static_cast<int>(index + 1));
-		sol::table info = lua.create_table();
-		info["type"] = "grid";
-		info["index"] = static_cast<int>(index + 1);
-		info["text"] = grid->GetItemText(index).ToStdString();
-		std::string tooltip = static_cast<LuaGridCtrl*>(grid)->GetTooltip(index);
-		if (!tooltip.empty()) {
-			info["tooltip"] = tooltip;
-		}
-		info["widget_id"] = id;
-		try {
-			gridLeftClick(this, info);
-		} catch (const sol::error &e) {
-			wxMessageBox(wxString("Script error: ") + e.what(), "Lua Error", wxOK | wxICON_ERROR);
-		}
-		event.Skip();
+		handleGridClick(id, grid, gridLeftClick, event);
 	});
 
 	sol::function gridRightClick = widget.onrightclick;
 	grid->Bind(wxEVT_RIGHT_DOWN, [this, id, grid, gridRightClick](wxMouseEvent &event) {
-		if (!gridRightClick.valid() || !lua.lua_state() || !gridRightClick.lua_state()) {
-			event.Skip();
-			return;
-		}
-		int flags = 0;
-		long index = grid->HitTest(event.GetPosition(), flags);
-		if (index == wxNOT_FOUND) {
-			event.Skip();
-			return;
-		}
-		grid->SetItemState(index, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
-		grid->SetFocus();
-		values[id] = sol::make_object(lua, static_cast<int>(index + 1));
-		sol::table info = lua.create_table();
-		info["type"] = "grid";
-		info["index"] = static_cast<int>(index + 1);
-		info["text"] = grid->GetItemText(index).ToStdString();
-		std::string tooltip = static_cast<LuaGridCtrl*>(grid)->GetTooltip(index);
-		if (!tooltip.empty()) {
-			info["tooltip"] = tooltip;
-		}
-		info["widget_id"] = id;
-		try {
-			gridRightClick(this, info);
-		} catch (const sol::error &e) {
-			wxMessageBox(wxString("Script error: ") + e.what(), "Lua Error", wxOK | wxICON_ERROR);
-		}
-		event.Skip();
+		handleGridClick(id, grid, gridRightClick, event);
 	});
 
 	sol::function gridContextMenu = widget.oncontextmenu;

@@ -47,6 +47,7 @@
 // Forward declaration
 class LuaDialog;
 class LuaDialogListBox;
+class LuaGridCtrl;
 
 // Widget info stored for each widget added to the dialog
 struct LuaDialogWidget {
@@ -187,6 +188,8 @@ private:
 	void onButtonClick(const std::string &id);
 	void onWidgetDoubleClick(const std::string &id);
 	void handleListClick(const std::string &id, LuaDialogListBox* listbox, const sol::function &callback, wxMouseEvent &event);
+	void handleListContextMenu(const std::string &id, LuaDialogListBox* listbox, const sol::function &callback, wxContextMenuEvent &event);
+	void handleGridClick(const std::string &id, LuaGridCtrl* grid, const sol::function &callback, wxMouseEvent &event);
 
 	// Event handlers
 	void OnClose(wxCloseEvent &event);
