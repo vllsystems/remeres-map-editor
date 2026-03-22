@@ -96,19 +96,14 @@ namespace LuaAPI {
 		markTileForUndo(tile);
 
 		// Find and remove the item
-		for (auto it = tile->items.begin(); it != tile->items.end(); ++it) {
-			if (*it == itemToRemove) {
-				delete *it;
-				tile->items.erase(it);
-				tile->modify();
-				return true;
-			}
+		if (tile->removeItem(itemToRemove)) {
+			tile->modify();
+			return true;
 		}
 
 		// Check if it's the ground
 		if (tile->ground == itemToRemove) {
-			delete tile->ground;
-			tile->ground = nullptr;
+			tile->clearGround();
 			tile->modify();
 			return true;
 		}
@@ -132,10 +127,7 @@ namespace LuaAPI {
 		markTileForUndo(tile);
 
 		// Remove existing monsters
-		for (Monster* m : tile->monsters) {
-			delete m;
-		}
-		tile->monsters.clear();
+		tile->clearMonsters();
 
 		// Create new monster
 		auto monster = newd Monster(type);
@@ -161,10 +153,7 @@ namespace LuaAPI {
 			return false;
 		}
 		markTileForUndo(tile);
-		for (Monster* m : tile->monsters) {
-			delete m;
-		}
-		tile->monsters.clear();
+		tile->clearMonsters();
 		tile->modify();
 		return true;
 	}
@@ -188,8 +177,7 @@ namespace LuaAPI {
 		// Remove existing spawn from map metadata
 		if (tile->spawnMonster) {
 			map.removeSpawnMonster(tile);
-			delete tile->spawnMonster;
-			tile->spawnMonster = nullptr;
+			tile->clearSpawnMonster();
 		}
 
 		// Create new spawn with given size (default 3)
@@ -229,8 +217,7 @@ namespace LuaAPI {
 		// Remove spawn from map metadata
 		map.removeSpawnMonster(tile);
 
-		delete tile->spawnMonster;
-		tile->spawnMonster = nullptr;
+		tile->clearSpawnMonster();
 		tile->modify();
 		return true;
 	}
@@ -268,11 +255,7 @@ namespace LuaAPI {
 		markTileForUndo(tile);
 
 		// Replace ground
-		if (tile->ground) {
-			delete tile->ground;
-			tile->ground = nullptr;
-		}
-		tile->ground = newGround;
+		tile->replaceGround(newGround);
 
 		tile->modify();
 	}

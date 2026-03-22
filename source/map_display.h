@@ -108,8 +108,8 @@ public:
 	void EnterSelectionMode();
 	void EnterDrawingMode();
 
-	void UpdatePositionStatus(int x = -1, int y = -1);
-	void UpdateZoomStatus();
+	virtual void UpdatePositionStatus(int x = -1, int y = -1);
+	virtual void UpdateZoomStatus();
 
 	void ChangeFloor(int new_floor);
 	int GetFloor() const noexcept {

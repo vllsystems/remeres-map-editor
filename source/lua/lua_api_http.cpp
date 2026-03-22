@@ -252,7 +252,7 @@ namespace LuaAPI {
 	}
 
 	// Helper function to convert Lua table to JSON
-	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<uintptr_t> &visited) {
+	static nlohmann::json luaToJson(sol::object obj, std::unordered_set<const void*> &visited) {
 		if (obj.is<bool>()) {
 			return obj.as<bool>();
 		} else if (obj.is<int>()) {
@@ -263,7 +263,7 @@ namespace LuaAPI {
 			return obj.as<std::string>();
 		} else if (obj.is<sol::table>()) {
 			sol::table tbl = obj.as<sol::table>();
-			auto ptr = reinterpret_cast<uintptr_t>(tbl.pointer());
+			auto ptr = tbl.pointer();
 			if (!visited.insert(ptr).second) {
 				throw sol::error("Cyclic table detected in JSON conversion");
 			}
@@ -311,7 +311,7 @@ namespace LuaAPI {
 	static sol::table httpPostJson(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::unordered_set<uintptr_t> visited;
+		std::unordered_set<const void*> visited;
 		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
@@ -393,7 +393,7 @@ namespace LuaAPI {
 	static sol::table httpPostJsonStream(sol::this_state ts, const std::string &url, sol::table jsonBody, sol::optional<sol::table> optHeaders) {
 		sol::state_view lua(ts);
 
-		std::unordered_set<uintptr_t> visited;
+		std::unordered_set<const void*> visited;
 		std::string jsonStr = luaToJson(jsonBody, visited).dump();
 
 		// Add Content-Type header if not present
@@ -466,8 +466,7 @@ namespace LuaAPI {
 	// Close and cleanup a stream session
 	static bool httpStreamClose(int sessionId) {
 		std::scoped_lock lock(sessionsMutex());
-		auto it = streamSessions().find(sessionId);
-		if (it != streamSessions().end()) {
+		if (auto it = streamSessions().find(sessionId); it != streamSessions().end()) {
 			it->second->cancel();
 			streamSessions().erase(it);
 			return true;

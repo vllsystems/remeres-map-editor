@@ -41,7 +41,7 @@ namespace LuaAPI {
 
 	void registerItem(sol::state &lua) {
 		// Helper to validate uint16_t range
-		auto require_u16 = [](int value, const char* field) -> uint16_t {
+		auto require_u16 = [](int value, const char* field) {
 			if (value < 0 || value > 65535) {
 				throw sol::error(std::string(field) + " must be between 0 and 65535");
 			}

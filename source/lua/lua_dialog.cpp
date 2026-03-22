@@ -178,7 +178,7 @@ public:
 		MapCanvas(nullptr, editor, nullptr) {
 
 		ChangeFloor(7);
-		SetZoom(1.0);
+		MapPreviewCanvas::SetZoom(1.0);
 	}
 
 	~MapPreviewCanvas() override = default;
@@ -249,10 +249,10 @@ public:
 		Refresh();
 	}
 
-	void UpdatePositionStatus(int = -1, int = -1) {
+	void UpdatePositionStatus(int = -1, int = -1) override {
 		// No-op: preview canvases do not update the status bar
 	}
-	void UpdateZoomStatus() {
+	void UpdateZoomStatus() override {
 		// No-op: preview canvases do not update the status bar
 	}
 	void Refresh() override {
@@ -1670,6 +1670,108 @@ LuaDialog* LuaDialog::newrow() {
 	return this;
 }
 
+void LuaDialog::ensureNotebook() {
+	if (currentNotebook) {
+		return;
+	}
+	wxWindow* parent = dockPanel ? static_cast<wxWindow*>(dockPanel) : static_cast<wxWindow*>(this);
+	currentNotebook = new wxNotebook(parent, wxID_ANY);
+	mainSizer->Add(currentNotebook, 1, wxEXPAND | wxALL, 5);
+	activeNotebook = currentNotebook;
+	tabInfos.clear();
+	notebookEventsBound = false;
+}
+
+void LuaDialog::onNotebookPageChanging(wxNotebookEvent &event) {
+	int newSelection = event.GetSelection();
+	if (newSelection == wxNOT_FOUND || newSelection >= static_cast<int>(tabInfos.size())) {
+		event.Skip();
+		return;
+	}
+	if (!tabInfos[newSelection].isButton) {
+		event.Skip();
+		return;
+	}
+	if (suppressTabButtonClick && suppressTabButtonIndex == newSelection) {
+		suppressTabButtonClick = false;
+		suppressTabButtonIndex = -1;
+		event.Veto();
+		return;
+	}
+	CallAfter([this, newSelection]() {
+		handleTabButtonClick(newSelection);
+	});
+	event.Veto();
+}
+
+void LuaDialog::onNotebookLeftDown(wxMouseEvent &event) {
+	if (!activeNotebook || tabInfos.empty()) {
+		event.Skip();
+		return;
+	}
+	wxPoint pos = event.GetPosition();
+	long flags = 0;
+	int index = activeNotebook->HitTest(pos, &flags);
+	if (index == wxNOT_FOUND || index >= static_cast<int>(tabInfos.size()) || !tabInfos[index].isButton) {
+		event.Skip();
+		return;
+	}
+	suppressTabButtonClick = true;
+	suppressTabButtonIndex = index;
+	CallAfter([this, index]() {
+		handleTabButtonClick(index);
+	});
+	CallAfter([this, index]() {
+		if (suppressTabButtonClick && suppressTabButtonIndex == index) {
+			suppressTabButtonClick = false;
+			suppressTabButtonIndex = -1;
+		}
+	});
+	event.StopPropagation();
+}
+
+void LuaDialog::onNotebookContextMenu(wxContextMenuEvent &event) {
+	if (!activeNotebook || tabInfos.empty()) {
+		return;
+	}
+	wxPoint screenPos = event.GetPosition();
+	if (screenPos == wxDefaultPosition) {
+		screenPos = wxGetMousePosition();
+	}
+	wxPoint clientPos = activeNotebook->ScreenToClient(screenPos);
+	long flags = 0;
+	int index = activeNotebook->HitTest(clientPos, &flags);
+	if (index == wxNOT_FOUND || index >= static_cast<int>(tabInfos.size())) {
+		return;
+	}
+	handleTabContextMenu(index, screenPos);
+}
+
+void LuaDialog::bindNotebookEvents() {
+	if (notebookEventsBound) {
+		return;
+	}
+	notebookEventsBound = true;
+	currentNotebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGING, &LuaDialog::onNotebookPageChanging, this);
+	currentNotebook->Bind(wxEVT_LEFT_DOWN, &LuaDialog::onNotebookLeftDown, this);
+	currentNotebook->Bind(wxEVT_CONTEXT_MENU, &LuaDialog::onNotebookContextMenu, this);
+}
+
+int LuaDialog::insertTabPanel(const std::string &text, int insertIndex) {
+	currentTabPanel = new wxPanel(currentNotebook);
+	currentTabSizer = new wxBoxSizer(wxVERTICAL);
+	currentTabPanel->SetSizer(currentTabSizer);
+
+	if (insertIndex > 0) {
+		int zeroBased = std::clamp(insertIndex - 1, 0, static_cast<int>(currentNotebook->GetPageCount()));
+		currentNotebook->InsertPage(zeroBased, currentTabPanel, wxString(text));
+		return zeroBased;
+	}
+
+	currentNotebook->AddPage(currentTabPanel, wxString(text));
+	return static_cast<int>(currentNotebook->GetPageCount()) - 1;
+}
+
 LuaDialog* LuaDialog::tab(sol::table options) {
 	finishCurrentRow();
 
@@ -1686,103 +1788,10 @@ LuaDialog* LuaDialog::tab(sol::table options) {
 		oncontextmenu = options["oncontextmenu"];
 	}
 
-	// Create notebook if needed
-	if (!currentNotebook) {
-		wxWindow* parent = dockPanel ? static_cast<wxWindow*>(dockPanel) : static_cast<wxWindow*>(this);
-		currentNotebook = new wxNotebook(parent, wxID_ANY);
-		mainSizer->Add(currentNotebook, 1, wxEXPAND | wxALL, 5);
-		activeNotebook = currentNotebook;
-		tabInfos.clear();
-		notebookEventsBound = false;
-	}
+	ensureNotebook();
+	bindNotebookEvents();
 
-	if (!notebookEventsBound) {
-		notebookEventsBound = true;
-		currentNotebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGING, [this](wxNotebookEvent &event) {
-			int newSelection = event.GetSelection();
-			if (newSelection == wxNOT_FOUND || newSelection >= static_cast<int>(tabInfos.size())) {
-				event.Skip();
-				return;
-			}
-			if (!tabInfos[newSelection].isButton) {
-				event.Skip();
-				return;
-			}
-			if (suppressTabButtonClick && suppressTabButtonIndex == newSelection) {
-				suppressTabButtonClick = false;
-				suppressTabButtonIndex = -1;
-				event.Veto();
-				return;
-			}
-			CallAfter([this, newSelection]() {
-				handleTabButtonClick(newSelection);
-			});
-			event.Veto();
-		});
-
-		currentNotebook->Bind(wxEVT_LEFT_DOWN, [this](wxMouseEvent &event) {
-			if (!activeNotebook || tabInfos.empty()) {
-				event.Skip();
-				return;
-			}
-			wxPoint pos = event.GetPosition();
-			long flags = 0;
-			int index = activeNotebook->HitTest(pos, &flags);
-			if (index == wxNOT_FOUND || index >= static_cast<int>(tabInfos.size()) || !tabInfos[index].isButton) {
-				event.Skip();
-				return;
-			}
-			suppressTabButtonClick = true;
-			suppressTabButtonIndex = index;
-			CallAfter([this, index]() {
-				handleTabButtonClick(index);
-			});
-			CallAfter([this, index]() {
-				if (suppressTabButtonClick && suppressTabButtonIndex == index) {
-					suppressTabButtonClick = false;
-					suppressTabButtonIndex = -1;
-				}
-			});
-			event.StopPropagation();
-		});
-
-		currentNotebook->Bind(wxEVT_CONTEXT_MENU, [this](wxContextMenuEvent &event) {
-			if (!activeNotebook || tabInfos.empty()) {
-				return;
-			}
-			wxPoint screenPos = event.GetPosition();
-			if (screenPos == wxDefaultPosition) {
-				screenPos = wxGetMousePosition();
-			}
-			wxPoint clientPos = activeNotebook->ScreenToClient(screenPos);
-			long flags = 0;
-			int index = activeNotebook->HitTest(clientPos, &flags);
-			if (index == wxNOT_FOUND || index >= static_cast<int>(tabInfos.size())) {
-				return;
-			}
-			handleTabContextMenu(index, screenPos);
-		});
-	}
-
-	// Create new tab panel
-	currentTabPanel = new wxPanel(currentNotebook);
-	currentTabSizer = new wxBoxSizer(wxVERTICAL);
-	currentTabPanel->SetSizer(currentTabSizer);
-	int pageIndex = -1;
-	if (insertIndex > 0) {
-		int zeroBased = insertIndex - 1;
-		int pageCount = currentNotebook->GetPageCount();
-		if (zeroBased < 0) {
-			zeroBased = 0;
-		} else if (zeroBased > pageCount) {
-			zeroBased = pageCount;
-		}
-		currentNotebook->InsertPage(zeroBased, currentTabPanel, wxString(text));
-		pageIndex = zeroBased;
-	} else {
-		currentNotebook->AddPage(currentTabPanel, wxString(text));
-		pageIndex = currentNotebook->GetPageCount() - 1;
-	}
+	int pageIndex = insertTabPanel(text, insertIndex);
 
 	LuaDialogTab tabInfo;
 	tabInfo.id = id;

@@ -184,6 +184,14 @@ private:
 	void handleTabContextMenu(int index, const wxPoint &screenPos);
 	void popupContextMenu(const sol::function &callback, sol::table info, wxWindow* window, const wxPoint &screenPos);
 
+	// Tab helpers (extracted from tab() to reduce cognitive complexity)
+	void ensureNotebook();
+	void bindNotebookEvents();
+	void onNotebookPageChanging(wxNotebookEvent &event);
+	void onNotebookLeftDown(wxMouseEvent &event);
+	void onNotebookContextMenu(wxContextMenuEvent &event);
+	int insertTabPanel(const std::string &text, int insertIndex);
+
 	void onWidgetChange(const std::string &id);
 	void onButtonClick(const std::string &id);
 	void onWidgetDoubleClick(const std::string &id);
