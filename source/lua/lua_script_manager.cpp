@@ -29,7 +29,7 @@
 #include <spdlog/spdlog.h>
 
 #ifdef _WIN32
-	#include <windows.h>
+	#include <Windows.h>
 	#include <shellapi.h>
 #endif
 
@@ -190,7 +190,7 @@ bool LuaScriptManager::addMapOverlay(const std::string &id, sol::table options) 
 	return true;
 }
 
-bool LuaScriptManager::removeMapOverlay(const std::string &id) {
+bool LuaScriptManager::removeMapOverlay(std::string_view id) {
 	for (auto it = mapOverlays.begin(); it != mapOverlays.end(); ++it) {
 		if (it->id == id) {
 			mapOverlays.erase(it);
@@ -200,19 +200,18 @@ bool LuaScriptManager::removeMapOverlay(const std::string &id) {
 	return false;
 }
 
-bool LuaScriptManager::setMapOverlayEnabled(const std::string &id, bool enabled) {
-	for (auto &overlay : mapOverlays) {
-		if (overlay.id == id) {
-			overlay.enabled = enabled;
-			for (auto &showItem : mapOverlayShows) {
-				if (showItem.overlayId == id) {
-					showItem.enabled = enabled;
-				}
-			}
-			return true;
+bool LuaScriptManager::setMapOverlayEnabled(std::string_view id, bool enabled) {
+	auto it = std::find_if(mapOverlays.begin(), mapOverlays.end(), [&](const MapOverlay &o) { return o.id == id; });
+	if (it == mapOverlays.end()) {
+		return false;
+	}
+	it->enabled = enabled;
+	for (auto &showItem : mapOverlayShows) {
+		if (showItem.overlayId == id) {
+			showItem.enabled = enabled;
 		}
 	}
-	return false;
+	return true;
 }
 
 bool LuaScriptManager::registerMapOverlayShow(const std::string &label, const std::string &overlayId, bool enabled, sol::function ontoggle) {
@@ -272,13 +271,26 @@ bool LuaScriptManager::setMapOverlayShowEnabled(const std::string &overlayId, bo
 	return updated;
 }
 
-bool LuaScriptManager::isMapOverlayEnabled(const std::string &id) const {
+bool LuaScriptManager::isMapOverlayEnabled(std::string_view id) const {
 	for (const auto &overlay : mapOverlays) {
 		if (overlay.id == id) {
 			return overlay.enabled;
 		}
 	}
 	return false;
+}
+
+static sol::table getOptsTable(sol::variadic_args va) {
+	for (size_t i = 0; i < va.size(); ++i) {
+		if (va[i].is<sol::table>()) {
+			sol::table t = va[i].as<sol::table>();
+			if (t["view"].valid() && t["rect"].valid()) {
+				continue;
+			}
+			return t;
+		}
+	}
+	return sol::table();
 }
 
 void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::vector<MapOverlayCommand> &out) {
@@ -300,21 +312,7 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::v
 	viewTable["screenHeight"] = view.screen_height;
 	ctx["view"] = viewTable;
 
-	auto getOptsTable = [](sol::variadic_args va) -> sol::table {
-		for (size_t i = 0; i < va.size(); ++i) {
-			if (va[i].is<sol::table>()) {
-				sol::table t = va[i].as<sol::table>();
-				// Skip the ctx table (it has 'view', 'rect', 'line', 'text' fields)
-				if (t["view"].valid() && t["rect"].valid()) {
-					continue;
-				}
-				return t;
-			}
-		}
-		return sol::table();
-	};
-
-	ctx["rect"] = [&, getOptsTable](sol::variadic_args va) {
+	ctx["rect"] = [&](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
 		if (!opts.valid()) {
 			return;
@@ -335,7 +333,7 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::v
 		out.push_back(cmd);
 	};
 
-	ctx["line"] = [&, getOptsTable](sol::variadic_args va) {
+	ctx["line"] = [&](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
 		if (!opts.valid()) {
 			return;
@@ -356,7 +354,7 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::v
 		out.push_back(cmd);
 	};
 
-	ctx["text"] = [&, getOptsTable](sol::variadic_args va) {
+	ctx["text"] = [&](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
 		if (!opts.valid()) {
 			return;
@@ -374,7 +372,7 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::v
 		}
 	};
 
-	ctx["image"] = [&, getOptsTable](sol::variadic_args va) {
+	ctx["image"] = [&](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
 		if (!opts.valid()) {
 			return;
@@ -420,6 +418,44 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::v
 	}
 }
 
+static bool parseHoverHighlight(const sol::table &table, MapOverlayCommand &highlight, int map_x, int map_y, int map_z) {
+	if (!table["highlight"].valid()) {
+		return false;
+	}
+	sol::table h = table["highlight"];
+	highlight.type = MapOverlayCommand::Type::Rect;
+	highlight.x = h.get_or(std::string("x"), map_x);
+	highlight.y = h.get_or(std::string("y"), map_y);
+	highlight.z = h.get_or(std::string("z"), map_z);
+	highlight.w = h.get_or(std::string("w"), 1);
+	highlight.h = h.get_or(std::string("h"), 1);
+	highlight.filled = h.get_or(std::string("filled"), false);
+	highlight.width = h.get_or(std::string("width"), 1);
+	highlight.color = parseColor(h["color"], wxColor(255, 255, 0, 128));
+	return true;
+}
+
+static bool parseHoverTooltip(const sol::table &table, MapOverlayTooltip &tooltip, int map_x, int map_y, int map_z) {
+	if (!table["tooltip"].valid()) {
+		return false;
+	}
+	if (table["tooltip"].is<std::string>()) {
+		tooltip.text = table["tooltip"].get<std::string>();
+		tooltip.color = wxColor(255, 255, 255, 255);
+	} else if (table["tooltip"].is<sol::table>()) {
+		sol::table t = table["tooltip"];
+		tooltip.text = t.get_or(std::string("text"), std::string());
+		tooltip.color = parseColor(t["color"], wxColor(255, 255, 255, 255));
+	}
+	if (tooltip.text.empty()) {
+		return false;
+	}
+	tooltip.x = map_x;
+	tooltip.y = map_y;
+	tooltip.z = map_z;
+	return true;
+}
+
 void LuaScriptManager::updateMapOverlayHover(int map_x, int map_y, int map_z, int screen_x, int screen_y, Tile* tile, Item* topItem) {
 	mapOverlayHover = MapOverlayHoverState {};
 	if (!initialized) {
@@ -462,45 +498,16 @@ void LuaScriptManager::updateMapOverlayHover(int map_x, int map_y, int map_z, in
 			bool hasTooltip = false;
 
 			if (result.is<std::string>()) {
-				hasTooltip = true;
 				tooltip.text = result.as<std::string>();
 				tooltip.color = wxColor(255, 255, 255, 255);
 				tooltip.x = map_x;
 				tooltip.y = map_y;
 				tooltip.z = map_z;
+				hasTooltip = true;
 			} else if (result.is<sol::table>()) {
 				sol::table table = result.as<sol::table>();
-				if (table["highlight"].valid()) {
-					sol::table h = table["highlight"];
-					highlight.type = MapOverlayCommand::Type::Rect;
-					highlight.x = h.get_or(std::string("x"), map_x);
-					highlight.y = h.get_or(std::string("y"), map_y);
-					highlight.z = h.get_or(std::string("z"), map_z);
-					highlight.w = h.get_or(std::string("w"), 1);
-					highlight.h = h.get_or(std::string("h"), 1);
-					highlight.filled = h.get_or(std::string("filled"), false);
-					highlight.width = h.get_or(std::string("width"), 1);
-					highlight.color = parseColor(h["color"], wxColor(255, 255, 0, 128));
-					hasHighlight = true;
-				}
-
-				if (table["tooltip"].valid()) {
-					if (table["tooltip"].is<std::string>()) {
-						tooltip.text = table["tooltip"].get<std::string>();
-						tooltip.color = wxColor(255, 255, 255, 255);
-					} else if (table["tooltip"].is<sol::table>()) {
-						sol::table t = table["tooltip"];
-						tooltip.text = t.get_or(std::string("text"), std::string());
-						tooltip.color = parseColor(t["color"], wxColor(255, 255, 255, 255));
-					}
-
-					if (!tooltip.text.empty()) {
-						tooltip.x = map_x;
-						tooltip.y = map_y;
-						tooltip.z = map_z;
-						hasTooltip = true;
-					}
-				}
+				hasHighlight = parseHoverHighlight(table, highlight, map_x, map_y, map_z);
+				hasTooltip = parseHoverTooltip(table, tooltip, map_x, map_y, map_z);
 			}
 
 			if (hasHighlight) {
@@ -615,7 +622,7 @@ bool LuaScriptManager::executeScript(const std::string &filepath) {
 	return result;
 }
 
-bool LuaScriptManager::executeScript(LuaScript* script) {
+bool LuaScriptManager::executeScript(const LuaScript* script) {
 	if (!script) {
 		lastError = "Invalid script";
 		return false;
@@ -635,7 +642,7 @@ bool LuaScriptManager::executeScript(size_t index, std::string &errorOut) {
 		return false;
 	}
 
-	LuaScript* script = scripts[index].get();
+	const LuaScript* script = scripts[index].get();
 	if (!script->isEnabled()) {
 		errorOut = "Script is disabled";
 		return false;
@@ -663,7 +670,7 @@ bool LuaScriptManager::isScriptEnabled(size_t index) const {
 
 void LuaScriptManager::setOutputCallback(LuaOutputCallback callback) {
 	{
-		std::lock_guard<std::mutex> lock(outputCallbackMutex);
+		std::scoped_lock lock(outputCallbackMutex);
 		outputCallback = std::move(callback);
 	}
 
@@ -676,7 +683,7 @@ void LuaScriptManager::setOutputCallback(LuaOutputCallback callback) {
 void LuaScriptManager::logOutput(const std::string &message, bool isError) {
 	LuaOutputCallback cb;
 	{
-		std::lock_guard<std::mutex> lock(outputCallbackMutex);
+		std::scoped_lock lock(outputCallbackMutex);
 		cb = outputCallback;
 	}
 	if (cb) {
@@ -684,8 +691,8 @@ void LuaScriptManager::logOutput(const std::string &message, bool isError) {
 	}
 }
 
-LuaScript* LuaScriptManager::getScript(const std::string &filepath) {
-	for (auto &script : scripts) {
+LuaScript* LuaScriptManager::getScript(std::string_view filepath) {
+	for (const auto &script : scripts) {
 		if (script->getFilePath() == filepath) {
 			return script.get();
 		}

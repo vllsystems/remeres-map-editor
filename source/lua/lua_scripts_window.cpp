@@ -36,13 +36,7 @@ EVT_BUTTON(SCRIPT_MANAGER_RUN_SCRIPT, LuaScriptsWindow::OnRunScript)
 END_EVENT_TABLE()
 
 LuaScriptsWindow::LuaScriptsWindow(wxWindow* parent) :
-	wxPanel(parent, wxID_ANY),
-	script_list(nullptr),
-	console_output(nullptr),
-	reload_button(nullptr),
-	open_folder_button(nullptr),
-	clear_console_button(nullptr),
-	run_script_button(nullptr) {
+	wxPanel(parent, wxID_ANY) {
 	instance = this;
 	BuildUI();
 	RefreshScriptList();
@@ -158,7 +152,7 @@ void LuaScriptsWindow::RefreshScriptList() {
 	}
 
 	// Auto-resize columns if needed
-	if (scripts.size() > 0) {
+	if (!scripts.empty()) {
 		script_list->SetColumnWidth(1, wxLIST_AUTOSIZE);
 		// Description (index 2) keeps fixed width
 		script_list->SetColumnWidth(3, wxLIST_AUTOSIZE);
@@ -206,7 +200,7 @@ void LuaScriptsWindow::UpdateScriptState(long index) {
 		return;
 	}
 
-	size_t scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
+	auto scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
 	const auto &scripts = g_luaScripts.getScripts();
 
 	if (scriptIndex < scripts.size()) {
@@ -232,7 +226,7 @@ void LuaScriptsWindow::OnScriptActivated(wxListEvent &event) {
 		return;
 	}
 
-	size_t scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
+	auto scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
 	const auto &scripts = g_luaScripts.getScripts();
 
 	if (scriptIndex < scripts.size()) {
@@ -255,7 +249,7 @@ void LuaScriptsWindow::OnScriptSelected(wxListEvent &event) {
 		run_script_button->Enable(false);
 		return;
 	}
-	size_t scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
+	auto scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
 	const auto &scripts = g_luaScripts.getScripts();
 	bool canRun = (scriptIndex < scripts.size() && scripts[scriptIndex]->isEnabled());
 	run_script_button->Enable(canRun);
@@ -306,7 +300,7 @@ void LuaScriptsWindow::OnScriptCheckToggle(wxListEvent &event) {
 		return;
 	}
 
-	size_t scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
+	auto scriptIndex = static_cast<size_t>(script_list->GetItemData(index));
 	g_luaScripts.setScriptEnabled(scriptIndex, !g_luaScripts.isScriptEnabled(scriptIndex));
 	UpdateScriptState(index);
 }

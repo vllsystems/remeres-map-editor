@@ -23,7 +23,7 @@
 
 class LuaScriptsWindow : public wxPanel {
 public:
-	LuaScriptsWindow(wxWindow* parent);
+	explicit LuaScriptsWindow(wxWindow* parent);
 	virtual ~LuaScriptsWindow();
 
 	// Refresh the script list from LuaScriptManager
@@ -60,12 +60,12 @@ protected:
 	void UpdateScriptState(long index);
 
 private:
-	wxListCtrl* script_list;
-	wxTextCtrl* console_output;
-	wxButton* reload_button;
-	wxButton* open_folder_button;
-	wxButton* clear_console_button;
-	wxButton* run_script_button;
+	wxListCtrl* script_list = nullptr;
+	wxTextCtrl* console_output = nullptr;
+	wxButton* reload_button = nullptr;
+	wxButton* open_folder_button = nullptr;
+	wxButton* clear_console_button = nullptr;
+	wxButton* run_script_button = nullptr;
 
 	static LuaScriptsWindow* instance;
 

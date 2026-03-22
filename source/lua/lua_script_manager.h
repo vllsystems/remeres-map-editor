@@ -22,6 +22,7 @@
 #include "lua_script.h"
 
 #include <string>
+#include <string_view>
 #include <vector>
 #include <memory>
 #include <map>
@@ -53,14 +54,14 @@ public:
 
 	// Script execution
 	bool executeScript(const std::string &filepath);
-	bool executeScript(LuaScript* script);
+	bool executeScript(const LuaScript* script);
 	bool executeScript(size_t index, std::string &errorOut);
 
 	// Access scripts
 	const std::vector<std::unique_ptr<LuaScript>> &getScripts() const {
 		return scripts;
 	}
-	LuaScript* getScript(const std::string &filepath);
+	LuaScript* getScript(std::string_view filepath);
 
 	// Enable/disable scripts
 	void setScriptEnabled(size_t index, bool enabled);
@@ -171,11 +172,11 @@ public:
 		sol::function ontoggle;
 	};
 	bool addMapOverlay(const std::string &id, sol::table options);
-	bool removeMapOverlay(const std::string &id);
-	bool setMapOverlayEnabled(const std::string &id, bool enabled);
+	bool removeMapOverlay(std::string_view id);
+	bool setMapOverlayEnabled(std::string_view id, bool enabled);
 	bool registerMapOverlayShow(const std::string &label, const std::string &overlayId, bool enabled, sol::function ontoggle);
 	bool setMapOverlayShowEnabled(const std::string &overlayId, bool enabled);
-	bool isMapOverlayEnabled(const std::string &id) const;
+	bool isMapOverlayEnabled(std::string_view id) const;
 	const std::vector<MapOverlayShowItem> &getMapOverlayShows() const {
 		return mapOverlayShows;
 	}
