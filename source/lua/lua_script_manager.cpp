@@ -400,10 +400,7 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::v
 
 	std::vector<MapOverlay> sorted = mapOverlays;
 	std::sort(sorted.begin(), sorted.end(), [](const MapOverlay &a, const MapOverlay &b) {
-		if (a.order == b.order) {
-			return a.id < b.id;
-		}
-		return a.order < b.order;
+		return std::tie(a.order, a.id) < std::tie(b.order, b.id);
 	});
 
 	for (const auto &overlay : sorted) {

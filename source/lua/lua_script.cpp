@@ -78,43 +78,68 @@ void LuaScript::parseMetadata() {
 	}
 }
 
-bool LuaScript::scanAutorunValue(const std::string &content) {
+static std::string stripLuaComments(std::string line, bool &inBlockComment) {
+	size_t bcEnd = line.find("]]");
+	if (inBlockComment) {
+		if (bcEnd != std::string::npos) {
+			inBlockComment = false;
+			line = line.substr(bcEnd + 2);
+		} else {
+			return {};
+		}
+	}
+	if (size_t bcStart = line.find("--[["); bcStart != std::string::npos && bcEnd == std::string::npos) {
+		inBlockComment = true;
+		line = line.substr(0, bcStart);
+	}
+	if (auto commentPos = line.find("--"); commentPos != std::string::npos) {
+		line = line.substr(0, commentPos);
+	}
+	return line;
+}
+
+static bool isAutorunTrue(const std::string &line) {
+	auto pos = line.find("autorun");
+	if (pos == std::string::npos) {
+		return false;
+	}
+	bool validBefore = (pos == 0) || (!std::isalnum(static_cast<unsigned char>(line[pos - 1])) && line[pos - 1] != '_');
+	size_t afterPos = pos + 7;
+	bool validAfter = (afterPos >= line.size()) || (!std::isalnum(static_cast<unsigned char>(line[afterPos])) && line[afterPos] != '_');
+	if (!validBefore || !validAfter) {
+		return false;
+	}
+	std::string rest = line.substr(afterPos);
+	rest.erase(0, rest.find_first_not_of(" \t"));
+	if (rest.empty() || rest[0] != '=') {
+		return false;
+	}
+	rest = rest.substr(1);
+	rest.erase(0, rest.find_first_not_of(" \t"));
+	return rest.starts_with("true");
+}
+
+static std::string extractTagValue(const std::string &comment, std::string_view tag) {
+	if (!comment.starts_with(tag)) {
+		return {};
+	}
+	std::string value = comment.substr(tag.size());
+	auto s = value.find_first_not_of(" \t");
+	if (s == std::string::npos) {
+		return {};
+	}
+	auto e = value.find_last_not_of(" \t");
+	return value.substr(s, e - s + 1);
+}
+
+bool LuaScript::scanAutorunValue(const std::string &content) const {
 	bool inBlockComment = false;
 	std::istringstream stream(content);
 	std::string line;
 	while (std::getline(stream, line)) {
-		size_t bcStart = line.find("--[[");
-		size_t bcEnd = line.find("]]");
-		if (inBlockComment) {
-			if (bcEnd != std::string::npos) {
-				inBlockComment = false;
-				line = line.substr(bcEnd + 2);
-			} else {
-				continue;
-			}
-		}
-		if (bcStart != std::string::npos && bcEnd == std::string::npos) {
-			inBlockComment = true;
-			line = line.substr(0, bcStart);
-		}
-		if (auto commentPos = line.find("--"); commentPos != std::string::npos) {
-			line = line.substr(0, commentPos);
-		}
-		if (auto pos = line.find("autorun"); pos != std::string::npos) {
-			bool validBefore = (pos == 0) || (!std::isalnum(static_cast<unsigned char>(line[pos - 1])) && line[pos - 1] != '_');
-			size_t afterPos = pos + 7;
-			bool validAfter = (afterPos >= line.size()) || (!std::isalnum(static_cast<unsigned char>(line[afterPos])) && line[afterPos] != '_');
-			if (validBefore && validAfter) {
-				std::string rest = line.substr(afterPos);
-				rest.erase(0, rest.find_first_not_of(" \t"));
-				if (!rest.empty() && rest[0] == '=') {
-					rest = rest.substr(1);
-					rest.erase(0, rest.find_first_not_of(" \t"));
-					if (rest.substr(0, 4) == "true") {
-						return true;
-					}
-				}
-			}
+		line = stripLuaComments(std::move(line), inBlockComment);
+		if (!line.empty() && isAutorunTrue(line)) {
+			return true;
 		}
 	}
 	return false;
@@ -218,7 +243,7 @@ void LuaScript::parseMetadataFromManifest() {
 	val = getManifestValue(content, "main");
 	if (!val.empty()) {
 		// Add .lua extension if not present
-		if (val.size() < 4 || val.substr(val.size() - 4) != ".lua") {
+		if (!val.ends_with(".lua")) {
 			val += ".lua";
 		}
 		filepath = directory + "/" + val;
@@ -230,16 +255,61 @@ void LuaScript::parseMetadataFromManifest() {
 	}
 }
 
-void LuaScript::parseMetadataFromComments() {
-	// Try to read script header comments for metadata
-	// Format:
-	// -- @Title: Script Name
-	// -- @Description: Description...
-	// -- @Author: Author Name
-	// -- @Version: Version Number
-	// -- @Shortcut: Ctrl+K
-	// -- Or implicit: First line name, subsequent lines description
+// Static helper — trim leading whitespace
+static std::string trimLeading(const std::string &str) {
+	if (auto s = str.find_first_not_of(" \t"); s != std::string::npos) {
+		return str.substr(s);
+	}
+	return {};
+}
 
+// Static helper — trim leading + trailing whitespace
+static std::string trimBoth(const std::string &str) {
+	auto start = str.find_first_not_of(" \t");
+	if (start == std::string::npos) {
+		return {};
+	}
+	auto end = str.find_last_not_of(" \t");
+	return str.substr(start, end - start + 1);
+}
+
+// Helper — process a metadata tag, returns true if a tag was found
+bool LuaScript::processMetadataTag(const std::string &comment, bool &foundName, std::ostringstream &descBuilder) {
+	if (comment.starts_with("@Title:")) {
+		displayName = trimLeading(comment.substr(7));
+		foundName = true;
+		return true;
+	}
+	if (comment.starts_with("@Description:")) {
+		std::string descPart = trimLeading(comment.substr(13));
+		if (descBuilder.tellp() > 0) {
+			descBuilder << " ";
+		}
+		descBuilder << descPart;
+		return true;
+	}
+	if (comment.starts_with("@Author:")) {
+		author = trimLeading(comment.substr(8));
+		return true;
+	}
+	if (comment.starts_with("@Version:")) {
+		version = trimLeading(comment.substr(9));
+		return true;
+	}
+	if (comment.starts_with("@Shortcut:")) {
+		shortcut = trimLeading(comment.substr(10));
+		return true;
+	}
+	if (comment.starts_with("@AutoRun:") || comment.starts_with("@Autorun:")) {
+		if (trimBoth(comment.substr(9)) == "true") {
+			autorun = true;
+		}
+		return true;
+	}
+	return false;
+}
+
+void LuaScript::parseMetadataFromComments() {
 	std::ifstream file(filepath);
 	if (!file.is_open()) {
 		return;
@@ -249,99 +319,40 @@ void LuaScript::parseMetadataFromComments() {
 	bool foundName = false;
 	std::ostringstream descBuilder;
 	int lineNum = 0;
-	const int maxHeaderLines = 20; // Only check first 20 lines for metadata
+	const int maxHeaderLines = 20;
 
 	while (std::getline(file, line) && lineNum < maxHeaderLines) {
 		lineNum++;
 
-		// Trim whitespace
-		size_t start = line.find_first_not_of(" \t");
-		if (start == std::string::npos) {
+		if (auto start = line.find_first_not_of(" \t"); start != std::string::npos) {
+			line = line.substr(start);
+		} else {
 			continue;
 		}
-		line = line.substr(start);
 
-		// Check if it's a comment
-		if (line.substr(0, 2) != "--") {
-			// Stop at first non-comment line
+		if (!line.starts_with("--")) {
 			break;
 		}
 
-		// Remove comment prefix and trim
 		std::string comment = line.substr(2);
-		start = comment.find_first_not_of(" \t");
-		if (start == std::string::npos) {
+		if (auto start = comment.find_first_not_of(" \t"); start != std::string::npos) {
+			comment = comment.substr(start);
+		} else {
 			continue;
 		}
-		comment = comment.substr(start);
 
-		// Skip empty comments
 		if (comment.empty()) {
 			continue;
 		}
 
-		// Check for tags
-		if (comment.size() > 7 && comment.substr(0, 7) == "@Title:") {
-			displayName = comment.substr(7);
-			size_t s = displayName.find_first_not_of(" \t");
-			if (s != std::string::npos) {
-				displayName = displayName.substr(s);
-			}
-			foundName = true;
-			continue;
-		} else if (comment.size() > 13 && comment.substr(0, 13) == "@Description:") {
-			std::string descPart = comment.substr(13);
-			size_t s = descPart.find_first_not_of(" \t");
-			if (s != std::string::npos) {
-				descPart = descPart.substr(s);
-			}
-
-			if (descBuilder.tellp() > 0) {
-				descBuilder << " ";
-			}
-			descBuilder << descPart;
-			continue;
-		} else if (comment.size() > 8 && comment.substr(0, 8) == "@Author:") {
-			author = comment.substr(8);
-			size_t s = author.find_first_not_of(" \t");
-			if (s != std::string::npos) {
-				author = author.substr(s);
-			}
-			continue;
-		} else if (comment.size() > 9 && comment.substr(0, 9) == "@Version:") {
-			version = comment.substr(9);
-			size_t s = version.find_first_not_of(" \t");
-			if (s != std::string::npos) {
-				version = version.substr(s);
-			}
-			continue;
-		} else if (comment.size() > 10 && comment.substr(0, 10) == "@Shortcut:") {
-			shortcut = comment.substr(10);
-			size_t s = shortcut.find_first_not_of(" \t");
-			if (s != std::string::npos) {
-				shortcut = shortcut.substr(s);
-			}
-			continue;
-		} else if (comment.size() > 9 && (comment.substr(0, 9) == "@AutoRun:" || comment.substr(0, 9) == "@Autorun:")) {
-			std::string ar = comment.substr(9);
-			// Trim leading/trailing whitespace
-			size_t arStart = ar.find_first_not_of(" \t");
-			size_t arEnd = ar.find_last_not_of(" \t");
-			if (arStart != std::string::npos) {
-				ar = ar.substr(arStart, arEnd - arStart + 1);
-			}
-			if (ar == "true") {
-				autorun = true;
-			}
+		if (processMetadataTag(comment, foundName, descBuilder)) {
 			continue;
 		}
 
-		// First meaningful comment line (that isn't a tag) is the name
 		if (!foundName) {
 			displayName = comment;
 			foundName = true;
 		} else {
-			// Subsequent lines are description
 			if (descBuilder.tellp() > 0) {
 				descBuilder << " ";
 			}

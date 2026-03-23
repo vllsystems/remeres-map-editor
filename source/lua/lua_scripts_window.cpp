@@ -275,9 +275,8 @@ void LuaScriptsWindow::OnRunScript(wxCommandEvent &event) {
 	if (selected < 0) {
 		return;
 	}
-
-	size_t scriptIndex = static_cast<size_t>(script_list->GetItemData(selected));
-	const auto &scripts = g_luaScripts.getScripts();
+	auto scriptIndex = static_cast<size_t>(script_list->GetItemData(selected));
+	auto &scripts = g_luaScripts.getScripts();
 
 	if (scriptIndex < scripts.size()) {
 		const auto &script = scripts[scriptIndex];

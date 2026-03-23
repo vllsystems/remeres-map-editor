@@ -30,6 +30,7 @@
 #include <tuple>
 
 #include "../map_overlay.h"
+#include "lua_overlay_manager.h"
 
 class Tile;
 class Item;
@@ -157,33 +158,12 @@ public:
 	// Clear all registered callbacks (called before script reload)
 	void clearAllCallbacks();
 
-	// Map Overlay System
-	struct MapOverlay {
-		std::string id;
-		bool enabled = true;
-		int order = 0;
-		sol::function ondraw;
-		sol::function onhover;
-	};
-	struct MapOverlayShowItem {
-		std::string label;
-		std::string overlayId;
-		bool enabled = true;
-		sol::function ontoggle;
-	};
-	bool addMapOverlay(const std::string &id, sol::table options);
-	bool removeMapOverlay(std::string_view id);
-	bool setMapOverlayEnabled(std::string_view id, bool enabled);
-	bool registerMapOverlayShow(const std::string &label, const std::string &overlayId, bool enabled, sol::function ontoggle);
-	bool setMapOverlayShowEnabled(const std::string &overlayId, bool enabled);
-	bool isMapOverlayEnabled(std::string_view id) const;
-	const std::vector<MapOverlayShowItem> &getMapOverlayShows() const {
-		return mapOverlayShows;
+	// Map Overlay System (delegated to LuaOverlayManager)
+	LuaOverlayManager &getOverlayManager() {
+		return overlayManager;
 	}
-	void collectMapOverlayCommands(const MapViewInfo &view, std::vector<MapOverlayCommand> &out);
-	void updateMapOverlayHover(int map_x, int map_y, int map_z, int screen_x, int screen_y, Tile* tile, Item* topItem);
-	const MapOverlayHoverState &getMapOverlayHover() const {
-		return mapOverlayHover;
+	const LuaOverlayManager &getOverlayManager() const {
+		return overlayManager;
 	}
 
 private:
@@ -201,9 +181,7 @@ private:
 	std::vector<ContextMenuItem> contextMenuItems;
 	std::vector<EventListener> eventListeners;
 	int nextListenerId = 1;
-	std::vector<MapOverlay> mapOverlays;
-	std::vector<MapOverlayShowItem> mapOverlayShows;
-	MapOverlayHoverState mapOverlayHover;
+	LuaOverlayManager overlayManager;
 
 	void registerAPIs();
 	void scanDirectory(const std::string &directory);

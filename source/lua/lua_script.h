@@ -24,7 +24,7 @@
 class LuaScript {
 public:
 	// Constructor for single .lua file
-	LuaScript(const std::string &filepath);
+	explicit LuaScript(const std::string &filepath);
 
 	// Constructor for directory with manifest.json
 	LuaScript(const std::string &directory, bool isDirectory);
@@ -35,6 +35,8 @@ public:
 	const std::string &getFilePath() const {
 		return filepath;
 	}
+	bool processMetadataTag(const std::string &comment, bool &foundName, std::ostringstream &descBuilder);
+
 	const std::string &getDirectory() const {
 		return directory;
 	}
@@ -91,7 +93,7 @@ private:
 	bool enabled = true;
 	bool autorun = false;
 	bool isPackageScript; // True if loaded from directory with manifest.json
-	bool scanAutorunValue(const std::string &content);
+	bool scanAutorunValue(const std::string &content) const;
 };
 
 #endif // RME_LUA_SCRIPT_H
