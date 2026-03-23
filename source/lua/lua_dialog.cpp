@@ -1626,27 +1626,7 @@ LuaDialog* LuaDialog::item(sol::table options) {
 
 	// Bind click event
 	btn->Bind(wxEVT_BUTTON, [this, id, btn, readonly](wxCommandEvent &) {
-		// Check if we have a custom click handler
-		bool handled = false;
-		for (auto &w : widgets) {
-			if (w.id == id && w.onclick.valid()) {
-				onButtonClick(id);
-				handled = true;
-				break;
-			}
-		}
-
-		if (!handled && !readonly) {
-			FindItemDialog dlg(this, "Select Item", false);
-			if (dlg.ShowModal() == wxID_OK) {
-				int newItemId = dlg.getResultID();
-				int newClientId = (newItemId > 100 && newItemId <= g_items.getMaxID()) ? g_items[newItemId].clientID : 0;
-				btn->SetSprite(newClientId);
-				btn->Refresh(); // Ensure visual update holding the new sprite
-				values[id] = sol::make_object(lua, newItemId);
-				onWidgetChange(id);
-			}
-		}
+		handleItemButtonClick(id, btn, readonly);
 	});
 
 	applyCommonOptions(btn, options);
@@ -1845,6 +1825,29 @@ sol::table LuaDialog::makeTabInfoTable(int index) {
 	info["id"] = tab.id;
 	info["is_button"] = tab.isButton;
 	return info;
+}
+
+void LuaDialog::handleItemButtonClick(const std::string &id, ItemButton* btn, bool readonly) {
+	bool handled = false;
+	for (auto &w : widgets) {
+		if (w.id == id && w.onclick.valid()) {
+			onButtonClick(id);
+			handled = true;
+			break;
+		}
+	}
+
+	if (!handled && !readonly) {
+		FindItemDialog dlg(this, "Select Item", false);
+		if (dlg.ShowModal() == wxID_OK) {
+			int newItemId = dlg.getResultID();
+			int newClientId = (newItemId > 100 && newItemId <= g_items.getMaxID()) ? g_items[newItemId].clientID : 0;
+			btn->SetSprite(newClientId);
+			btn->Refresh();
+			values[id] = sol::make_object(lua, newItemId);
+			onWidgetChange(id);
+		}
+	}
 }
 
 void LuaDialog::handleTabButtonClick(int index) {
@@ -2852,7 +2855,9 @@ static wxColour parseColor(sol::object colorObj) {
 			if (colorStr.length() == 7) {
 				hexValue = std::stoul(colorStr.substr(1), nullptr, 16);
 			} else if (colorStr.length() == 4) {
-				char r = colorStr[1], g = colorStr[2], b = colorStr[3];
+				char r = colorStr[1];
+				char g = colorStr[2];
+				char b = colorStr[3];
 				std::string expanded = { r, r, g, g, b, b };
 				hexValue = std::stoul(expanded, nullptr, 16);
 			}

@@ -104,9 +104,8 @@ static bool isAutorunTrue(const std::string &line) {
 		return false;
 	}
 	bool validBefore = (pos == 0) || (!std::isalnum(static_cast<unsigned char>(line[pos - 1])) && line[pos - 1] != '_');
-	size_t afterPos = pos + 7;
-	bool validAfter = (afterPos >= line.size()) || (!std::isalnum(static_cast<unsigned char>(line[afterPos])) && line[afterPos] != '_');
-	if (!validBefore || !validAfter) {
+	size_t afterPos = pos + 7; // length of "autorun"
+	if (bool validAfter = (afterPos >= line.size()) || (!std::isalnum(line[afterPos]) && line[afterPos] != '_'); validBefore && validAfter) {
 		return false;
 	}
 	std::string rest = line.substr(afterPos);

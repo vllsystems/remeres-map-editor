@@ -375,28 +375,23 @@ void LuaOverlayManager::collectMapOverlayCommands(LuaEngine &engine, const MapVi
 
 	ctx["image"] = [&](sol::variadic_args va) {
 		sol::table opts = getOptsTable(va);
-		if (!opts.valid()) {
+		if (!opts.valid() || !opts["image"].valid() || !opts["image"].is<LuaAPI::LuaImage>()) {
 			return;
 		}
-
-		if (opts["image"].valid() && opts["image"].is<LuaAPI::LuaImage>()) {
-			LuaAPI::LuaImage img = opts["image"].get<LuaAPI::LuaImage>();
-			if (img.isSpriteSource()) {
-				MapOverlayCommand cmd;
-				cmd.type = MapOverlayCommand::Type::Sprite;
-				cmd.sprite_id = img.getSpriteId();
-				cmd.screen_space = opts.get_or(std::string("screen"), false);
-				cmd.x = opts.get_or(std::string("x"), 0);
-				cmd.y = opts.get_or(std::string("y"), 0);
-				cmd.z = opts.get_or(std::string("z"), view.floor);
-
-				// Opacity handling
-				double opacity = opts.get_or(std::string("opacity"), 1.0);
-				cmd.color = wxColor(255, 255, 255, static_cast<uint8_t>(opacity * 255));
-
-				out.push_back(cmd);
-			}
+		LuaAPI::LuaImage img = opts["image"].get<LuaAPI::LuaImage>();
+		if (!img.isSpriteSource()) {
+			return;
 		}
+		MapOverlayCommand cmd;
+		cmd.type = MapOverlayCommand::Type::Sprite;
+		cmd.sprite_id = img.getSpriteId();
+		cmd.screen_space = opts.get_or(std::string("screen"), false);
+		cmd.x = opts.get_or(std::string("x"), 0);
+		cmd.y = opts.get_or(std::string("y"), 0);
+		cmd.z = opts.get_or(std::string("z"), view.floor);
+		double opacity = opts.get_or(std::string("opacity"), 1.0);
+		cmd.color = wxColor(255, 255, 255, static_cast<uint8_t>(opacity * 255));
+		out.push_back(cmd);
 	};
 
 	std::vector<MapOverlay> sorted = mapOverlays;

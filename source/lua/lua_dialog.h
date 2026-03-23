@@ -48,6 +48,7 @@
 class LuaDialog;
 class LuaDialogListBox;
 class LuaGridCtrl;
+class ItemButton;
 
 // Widget info stored for each widget added to the dialog
 struct LuaDialogWidget {
@@ -180,6 +181,7 @@ private:
 	void suspendHotkeys();
 	void resumeHotkeys();
 	sol::table makeTabInfoTable(int index);
+	void handleItemButtonClick(const std::string &id, ItemButton* btn, bool readonly);
 	void handleTabButtonClick(int index);
 	void handleTabContextMenu(int index, const wxPoint &screenPos);
 	void popupContextMenu(const sol::function &callback, sol::table info, wxWindow* window, const wxPoint &screenPos);
