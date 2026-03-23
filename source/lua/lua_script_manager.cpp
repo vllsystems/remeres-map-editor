@@ -118,9 +118,7 @@ void LuaScriptManager::clearAllCallbacks() {
 	contextMenuItems.clear();
 	eventListeners.clear();
 	nextListenerId = 1;
-	mapOverlays.clear();
-	mapOverlayShows.clear();
-	mapOverlayHover = MapOverlayHoverState {};
+	overlayManager.clear();
 }
 
 void LuaScriptManager::registerAPIs() {
@@ -157,7 +155,13 @@ static wxColor parseColor(const sol::object &obj, const wxColor &fallback) {
 	return fallback;
 }
 
-bool LuaScriptManager::addMapOverlay(const std::string &id, sol::table options) {
+void LuaOverlayManager::clear() {
+	mapOverlays.clear();
+	mapOverlayShows.clear();
+	mapOverlayHover = MapOverlayHoverState {};
+}
+
+bool LuaOverlayManager::addMapOverlay(const std::string &id, sol::table options) {
 	if (id.empty()) {
 		return false;
 	}
@@ -190,7 +194,7 @@ bool LuaScriptManager::addMapOverlay(const std::string &id, sol::table options) 
 	return true;
 }
 
-bool LuaScriptManager::removeMapOverlay(std::string_view id) {
+bool LuaOverlayManager::removeMapOverlay(std::string_view id) {
 	for (auto it = mapOverlays.begin(); it != mapOverlays.end(); ++it) {
 		if (it->id == id) {
 			mapOverlays.erase(it);
@@ -200,7 +204,7 @@ bool LuaScriptManager::removeMapOverlay(std::string_view id) {
 	return false;
 }
 
-bool LuaScriptManager::setMapOverlayEnabled(std::string_view id, bool enabled) {
+bool LuaOverlayManager::setMapOverlayEnabled(std::string_view id, bool enabled) {
 	auto it = std::find_if(mapOverlays.begin(), mapOverlays.end(), [&](const MapOverlay &o) { return o.id == id; });
 	if (it == mapOverlays.end()) {
 		return false;
@@ -214,7 +218,7 @@ bool LuaScriptManager::setMapOverlayEnabled(std::string_view id, bool enabled) {
 	return true;
 }
 
-bool LuaScriptManager::registerMapOverlayShow(const std::string &label, const std::string &overlayId, bool enabled, sol::function ontoggle) {
+bool LuaOverlayManager::registerMapOverlayShow(const std::string &label, const std::string &overlayId, bool enabled, sol::function ontoggle) {
 	if (label.empty() || overlayId.empty()) {
 		return false;
 	}
@@ -250,7 +254,7 @@ bool LuaScriptManager::registerMapOverlayShow(const std::string &label, const st
 	return true;
 }
 
-bool LuaScriptManager::setMapOverlayShowEnabled(const std::string &overlayId, bool enabled) {
+bool LuaOverlayManager::setMapOverlayShowEnabled(const std::string &overlayId, bool enabled) {
 	bool updated = setMapOverlayEnabled(overlayId, enabled);
 	for (auto &item : mapOverlayShows) {
 		if (item.overlayId == overlayId) {
@@ -259,7 +263,7 @@ bool LuaScriptManager::setMapOverlayShowEnabled(const std::string &overlayId, bo
 				try {
 					item.ontoggle(enabled);
 				} catch (const sol::error &e) {
-					logOutput("Overlay show '" + item.label + "' error: " + std::string(e.what()), true);
+					log("Overlay show '" + item.label + "' error: " + std::string(e.what()), true);
 				}
 			}
 			if (g_gui.root) {
@@ -271,7 +275,7 @@ bool LuaScriptManager::setMapOverlayShowEnabled(const std::string &overlayId, bo
 	return updated;
 }
 
-bool LuaScriptManager::isMapOverlayEnabled(std::string_view id) const {
+bool LuaOverlayManager::isMapOverlayEnabled(std::string_view id) const {
 	for (const auto &overlay : mapOverlays) {
 		if (overlay.id == id) {
 			return overlay.enabled;
@@ -293,11 +297,8 @@ static sol::table getOptsTable(sol::variadic_args va) {
 	return sol::table();
 }
 
-void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::vector<MapOverlayCommand> &out) {
+void LuaOverlayManager::collectMapOverlayCommands(LuaEngine &engine, const MapViewInfo &view, std::vector<MapOverlayCommand> &out) {
 	out.clear();
-	if (!initialized) {
-		return;
-	}
 
 	sol::state &lua = engine.getState();
 	sol::table ctx = lua.create_table();
@@ -410,7 +411,7 @@ void LuaScriptManager::collectMapOverlayCommands(const MapViewInfo &view, std::v
 		try {
 			overlay.ondraw(ctx);
 		} catch (const sol::error &e) {
-			logOutput("Overlay '" + overlay.id + "' error: " + std::string(e.what()), true);
+			log("Overlay '" + overlay.id + "' error: " + std::string(e.what()), true);
 		}
 	}
 }
@@ -453,11 +454,8 @@ static bool parseHoverTooltip(const sol::table &table, MapOverlayTooltip &toolti
 	return true;
 }
 
-void LuaScriptManager::updateMapOverlayHover(int map_x, int map_y, int map_z, int screen_x, int screen_y, Tile* tile, Item* topItem) {
+void LuaOverlayManager::updateMapOverlayHover(LuaEngine &engine, int map_x, int map_y, int map_z, int screen_x, int screen_y, Tile* tile, Item* topItem) {
 	mapOverlayHover = MapOverlayHoverState {};
-	if (!initialized) {
-		return;
-	}
 	if (map_x < 0 || map_y < 0) {
 		return;
 	}
@@ -516,7 +514,7 @@ void LuaScriptManager::updateMapOverlayHover(int map_x, int map_y, int map_z, in
 				any = true;
 			}
 		} catch (const sol::error &e) {
-			logOutput("Overlay hover '" + overlay.id + "' error: " + std::string(e.what()), true);
+			log("Overlay hover '" + overlay.id + "' error: " + std::string(e.what()), true);
 		}
 	}
 

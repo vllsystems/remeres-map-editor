@@ -595,7 +595,7 @@ namespace LuaAPI {
 			return false;
 		}
 
-		return g_luaScripts.registerMapOverlayShow(label, overlayId, enabled, ontoggle);
+		return g_luaScripts.getOverlayManager().registerMapOverlayShow(label, overlayId, enabled, ontoggle);
 	}
 
 	static void setupMapView(sol::table &app) {
@@ -603,28 +603,28 @@ namespace LuaAPI {
 		sol::table mapView = lua.create_table();
 		mapView["addOverlay"] = [](sol::variadic_args va) -> bool {
 			if (va.size() == 2 && va[0].is<std::string>() && va[1].is<sol::table>()) {
-				return g_luaScripts.addMapOverlay(va[0].as<std::string>(), va[1].as<sol::table>());
+				return g_luaScripts.getOverlayManager().addMapOverlay(va[0].as<std::string>(), va[1].as<sol::table>());
 			}
 			if (va.size() == 3 && va[1].is<std::string>() && va[2].is<sol::table>()) {
-				return g_luaScripts.addMapOverlay(va[1].as<std::string>(), va[2].as<sol::table>());
+				return g_luaScripts.getOverlayManager().addMapOverlay(va[1].as<std::string>(), va[2].as<sol::table>());
 			}
 			return false;
 		};
 		mapView["removeOverlay"] = [](sol::variadic_args va) -> bool {
 			if (va.size() == 1 && va[0].is<std::string>()) {
-				return g_luaScripts.removeMapOverlay(va[0].as<std::string>());
+				return g_luaScripts.getOverlayManager().removeMapOverlay(va[0].as<std::string>());
 			}
 			if (va.size() == 2 && va[1].is<std::string>()) {
-				return g_luaScripts.removeMapOverlay(va[1].as<std::string>());
+				return g_luaScripts.getOverlayManager().removeMapOverlay(va[1].as<std::string>());
 			}
 			return false;
 		};
 		mapView["setEnabled"] = [](sol::variadic_args va) -> bool {
 			if (va.size() == 2 && va[0].is<std::string>() && va[1].is<bool>()) {
-				return g_luaScripts.setMapOverlayEnabled(va[0].as<std::string>(), va[1].as<bool>());
+				return g_luaScripts.getOverlayManager().setMapOverlayEnabled(va[0].as<std::string>(), va[1].as<bool>());
 			}
 			if (va.size() == 3 && va[1].is<std::string>() && va[2].is<bool>()) {
-				return g_luaScripts.setMapOverlayEnabled(va[1].as<std::string>(), va[2].as<bool>());
+				return g_luaScripts.getOverlayManager().setMapOverlayEnabled(va[1].as<std::string>(), va[2].as<bool>());
 			}
 			return false;
 		};
