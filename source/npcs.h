@@ -55,6 +55,7 @@ public:
 
 	bool loadFromXML(const FileName &filename, bool standard, wxString &error, wxArrayString &warnings);
 	bool importXMLFromOT(const FileName &filename, wxString &error, wxArrayString &warnings);
+	bool loadFromLuaDir(const FileName &directory, bool standard, wxString &error, wxArrayString &warnings);
 
 	bool saveToXML(const FileName &filename);
 	wxArrayString getMissingNpcNames() const;
@@ -77,6 +78,11 @@ public:
 
 	static NpcType* loadFromXML(pugi::xml_node node, wxArrayString &warnings);
 	static NpcType* loadFromOTXML(const FileName &filename, pugi::xml_document &node, wxArrayString &warnings);
+	static NpcType* loadFromLuaFile(const std::string &filepath, wxArrayString &warnings);
+
+private:
+	static std::string extractQuotedString(const std::string &line, const std::string &pattern);
+	static int extractLuaInt(const std::string &content, const std::string &fieldName);
 };
 
 extern NpcDatabase g_npcs;

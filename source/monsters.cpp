@@ -364,6 +364,186 @@ bool MonsterDatabase::saveToXML(const FileName &filename) {
 	return doc.save_file(filename.GetFullPath().mb_str(), "\t", pugi::format_default, pugi::encoding_utf8);
 }
 
+bool MonsterDatabase::loadFromLuaDir(const FileName &directory, bool standard, wxString &error, wxArrayString &warnings) {
+	wxString dirPath = directory.GetFullPath();
+	if (!wxDirExists(dirPath)) {
+		error = "Monster Lua directory not found: " + dirPath;
+		return false;
+	}
+
+	wxArrayString luaFiles;
+	wxDir::GetAllFiles(dirPath, &luaFiles, "*.lua", wxDIR_FILES | wxDIR_DIRS);
+
+	if (luaFiles.IsEmpty()) {
+		warnings.push_back("No .lua monster files found in: " + dirPath);
+		return true;
+	}
+
+	int loadedCount = 0;
+	for (const auto &luaFile : luaFiles) {
+		MonsterType* monsterType = MonsterType::loadFromLuaFile(luaFile.ToStdString(), warnings);
+		if (monsterType) {
+			monsterType->standard = standard;
+			if ((*this)[monsterType->name]) {
+				// Skip duplicates silently - Canary has many files
+				delete monsterType;
+			} else {
+				monster_map[as_lower_str(monsterType->name)] = monsterType;
+				loadedCount++;
+			}
+		}
+	}
+
+	spdlog::info("Loaded {} monsters from Lua files in: {}", loadedCount, dirPath.ToStdString());
+	return true;
+}
+
+std::string MonsterType::extractQuotedString(const std::string &line, const std::string &pattern) {
+	size_t pos = line.find(pattern);
+	if (pos == std::string::npos) {
+		return "";
+	}
+	size_t start = line.find('"', pos + pattern.length());
+	if (start == std::string::npos) {
+		return "";
+	}
+	start++;
+	size_t end = line.find('"', start);
+	if (end == std::string::npos) {
+		return "";
+	}
+	return line.substr(start, end - start);
+}
+
+int MonsterType::extractLuaInt(const std::string &content, const std::string &fieldName) {
+	size_t pos = content.find(fieldName);
+	while (pos != std::string::npos) {
+		// Make sure this is the field name and not part of another word
+		if (pos > 0 && (std::isalnum(content[pos - 1]) || content[pos - 1] == '_')) {
+			pos = content.find(fieldName, pos + 1);
+			continue;
+		}
+		size_t eqPos = content.find('=', pos + fieldName.length());
+		if (eqPos == std::string::npos) {
+			break;
+		}
+		// Check there's only whitespace between field name and '='
+		bool onlySpaces = true;
+		for (size_t i = pos + fieldName.length(); i < eqPos; i++) {
+			if (!std::isspace(static_cast<unsigned char>(content[i]))) {
+				onlySpaces = false;
+				break;
+			}
+		}
+		if (!onlySpaces) {
+			pos = content.find(fieldName, pos + 1);
+			continue;
+		}
+		// Find the number after '='
+		size_t numStart = eqPos + 1;
+		while (numStart < content.size() && std::isspace(static_cast<unsigned char>(content[numStart]))) {
+			numStart++;
+		}
+		if (numStart < content.size() && (std::isdigit(static_cast<unsigned char>(content[numStart])) || content[numStart] == '-')) {
+			size_t numEnd = numStart + 1;
+			while (numEnd < content.size() && std::isdigit(static_cast<unsigned char>(content[numEnd]))) {
+				numEnd++;
+			}
+			try {
+				return std::stoi(content.substr(numStart, numEnd - numStart));
+			} catch (...) {
+				return 0;
+			}
+		}
+		pos = content.find(fieldName, pos + 1);
+	}
+	return 0;
+}
+
+MonsterType* MonsterType::loadFromLuaFile(const std::string &filepath, wxArrayString &warnings) {
+	std::ifstream file(filepath);
+	if (!file.is_open()) {
+		return nullptr;
+	}
+
+	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	file.close();
+
+	if (content.empty()) {
+		return nullptr;
+	}
+
+	// Extract monster name from Game.createMonsterType("Name")
+	std::string name;
+	size_t createPos = content.find("Game.createMonsterType(");
+	if (createPos != std::string::npos) {
+		size_t quoteStart = content.find('"', createPos);
+		if (quoteStart != std::string::npos) {
+			quoteStart++;
+			size_t quoteEnd = content.find('"', quoteStart);
+			if (quoteEnd != std::string::npos) {
+				name = content.substr(quoteStart, quoteEnd - quoteStart);
+			}
+		}
+	}
+
+	if (name.empty()) {
+		return nullptr;
+	}
+
+	// Find the outfit block
+	size_t outfitPos = content.find(".outfit");
+	if (outfitPos == std::string::npos) {
+		return nullptr;
+	}
+
+	size_t braceStart = content.find('{', outfitPos);
+	if (braceStart == std::string::npos) {
+		return nullptr;
+	}
+
+	// Find matching closing brace
+	int braceCount = 1;
+	size_t braceEnd = braceStart + 1;
+	while (braceEnd < content.size() && braceCount > 0) {
+		if (content[braceEnd] == '{') {
+			braceCount++;
+		} else if (content[braceEnd] == '}') {
+			braceCount--;
+		}
+		braceEnd++;
+	}
+
+	std::string outfitBlock = content.substr(braceStart, braceEnd - braceStart);
+
+	MonsterType* ct = newd MonsterType();
+	ct->name = name;
+	ct->outfit.name = ct->name;
+
+	ct->outfit.lookType = extractLuaInt(outfitBlock, "lookType");
+	ct->outfit.lookHead = extractLuaInt(outfitBlock, "lookHead");
+	ct->outfit.lookBody = extractLuaInt(outfitBlock, "lookBody");
+	ct->outfit.lookLegs = extractLuaInt(outfitBlock, "lookLegs");
+	ct->outfit.lookFeet = extractLuaInt(outfitBlock, "lookFeet");
+	ct->outfit.lookAddon = extractLuaInt(outfitBlock, "lookAddons");
+	ct->outfit.lookMount = extractLuaInt(outfitBlock, "lookMount");
+
+	// lookTypeEx in Canary maps to lookItem in RME
+	int lookTypeEx = extractLuaInt(outfitBlock, "lookTypeEx");
+	if (lookTypeEx > 0) {
+		ct->outfit.lookItem = lookTypeEx;
+	}
+
+	// Validate: must have either lookType or lookItem
+	if (ct->outfit.lookType == 0 && ct->outfit.lookItem == 0) {
+		warnings.push_back("Monster \"" + wxstr(name) + "\" has no lookType or lookTypeEx in: " + wxstr(filepath));
+		delete ct;
+		return nullptr;
+	}
+
+	return ct;
+}
+
 wxArrayString MonsterDatabase::getMissingMonsterNames() const {
 	wxArrayString missingMonsters;
 	for (const auto &monsterEntry : monster_map) {

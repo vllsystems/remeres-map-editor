@@ -341,7 +341,22 @@ bool GUI::LoadDataFiles(wxString &error, wxArrayString &warnings) {
 		g_monsters.loadFromXML(cdb, false, nerr, nwarn);
 	}
 
-	g_gui.SetLoadDone(45, "Loading npcs.xml ...");
+	// Load monsters from Canary Lua files (data/creatures/monster/)
+	g_gui.SetLoadDone(46, "Loading Lua monsters ...");
+	spdlog::info("Loading Lua monsters");
+	{
+		FileName monstersLuaDir(exec_directory);
+		monstersLuaDir.AppendDir("data");
+		monstersLuaDir.AppendDir("creatures");
+		monstersLuaDir.AppendDir("monster");
+		wxString luaErr;
+		wxArrayString luaWarn;
+		if (wxDirExists(monstersLuaDir.GetFullPath())) {
+			g_monsters.loadFromLuaDir(monstersLuaDir, true, luaErr, luaWarn);
+		}
+	}
+
+	g_gui.SetLoadDone(47, "Loading npcs.xml ...");
 	spdlog::info("Loading npcs");
 	FileName npcsPath(exec_directory);
 	npcsPath.AppendDir("data");
@@ -353,7 +368,7 @@ bool GUI::LoadDataFiles(wxString &error, wxArrayString &warnings) {
 		spdlog::warn("[GUI::LoadDataFiles] {}: {}", npcsPath.GetFullPath().ToStdString(), error.ToStdString());
 	}
 
-	g_gui.SetLoadDone(45, "Loading user npcs.xml ...");
+	g_gui.SetLoadDone(47, "Loading user npcs.xml ...");
 	spdlog::info("Loading user npcs");
 	{
 		FileName cdb = ClientAssets::getLocalPath();
@@ -362,6 +377,21 @@ bool GUI::LoadDataFiles(wxString &error, wxArrayString &warnings) {
 		wxString nerr;
 		wxArrayString nwarn;
 		g_npcs.loadFromXML(cdb, false, nerr, warnings);
+	}
+
+	// Load NPCs from Canary Lua files (data/creatures/npc/)
+	g_gui.SetLoadDone(48, "Loading Lua NPCs ...");
+	spdlog::info("Loading Lua NPCs");
+	{
+		FileName npcsLuaDir(exec_directory);
+		npcsLuaDir.AppendDir("data");
+		npcsLuaDir.AppendDir("creatures");
+		npcsLuaDir.AppendDir("npc");
+		wxString luaErr;
+		wxArrayString luaWarn;
+		if (wxDirExists(npcsLuaDir.GetFullPath())) {
+			g_npcs.loadFromLuaDir(npcsLuaDir, true, luaErr, luaWarn);
+		}
 	}
 
 	g_gui.SetLoadDone(50, "Loading materials.xml ...");
