@@ -23,6 +23,10 @@
 #include "monsters.h"
 #include "monster_brush.h"
 
+#include <wx/dir.h>
+#include <wx/textfile.h>
+#include <regex>
+
 MonsterDatabase g_monsters;
 
 MonsterType::MonsterType() :
@@ -372,4 +376,91 @@ wxArrayString MonsterDatabase::getMissingMonsterNames() const {
 		}
 	}
 	return missingMonsters;
+}
+
+bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxArrayString &warnings) {
+	if (directory.IsEmpty() || !wxDir::Exists(directory)) {
+		return true;
+	}
+
+	wxArrayString luaFiles;
+	wxDir::GetAllFiles(directory, &luaFiles, "*.lua", wxDIR_FILES | wxDIR_DIRS);
+
+	std::regex nameRegex(R"re(Game\.createMonsterType\(\s*"([^"]+)"\s*\))re");
+	std::regex lookTypeRegex(R"re(lookType\s*=\s*(\d+))re");
+	std::regex lookTypeExRegex(R"re(lookTypeEx\s*=\s*(\d+))re");
+	std::regex lookHeadRegex(R"re(lookHead\s*=\s*(\d+))re");
+	std::regex lookBodyRegex(R"re(lookBody\s*=\s*(\d+))re");
+	std::regex lookLegsRegex(R"re(lookLegs\s*=\s*(\d+))re");
+	std::regex lookFeetRegex(R"re(lookFeet\s*=\s*(\d+))re");
+	std::regex lookAddonsRegex(R"re(lookAddons\s*=\s*(\d+))re");
+	std::regex lookMountRegex(R"re(lookMount\s*=\s*(\d+))re");
+
+	for (const auto &filePath : luaFiles) {
+		wxTextFile file;
+		if (!file.Open(filePath)) {
+			warnings.push_back("Could not open: " + filePath);
+			continue;
+		}
+
+		std::string content;
+		for (wxString line = file.GetFirstLine(); !file.Eof(); line = file.GetNextLine()) {
+			content += line.ToStdString() + "\n";
+		}
+		file.Close();
+
+		std::smatch match;
+		if (!std::regex_search(content, match, nameRegex)) {
+			continue;
+		}
+		std::string name = match[1].str();
+
+		if ((*this)[name]) {
+			continue;
+		}
+
+		size_t outfitPos = content.find(".outfit");
+		if (outfitPos == std::string::npos) {
+			continue;
+		}
+		size_t braceStart = content.find('{', outfitPos);
+		size_t braceEnd = content.find('}', braceStart);
+		if (braceStart == std::string::npos || braceEnd == std::string::npos) {
+			continue;
+		}
+		std::string outfitBlock = content.substr(braceStart, braceEnd - braceStart + 1);
+
+		MonsterType* ct = newd MonsterType();
+		ct->name = name;
+		ct->outfit.name = name;
+		ct->standard = false;
+
+		if (std::regex_search(outfitBlock, match, lookTypeRegex)) {
+			ct->outfit.lookType = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookTypeExRegex)) {
+			ct->outfit.lookItem = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookHeadRegex)) {
+			ct->outfit.lookHead = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookBodyRegex)) {
+			ct->outfit.lookBody = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookLegsRegex)) {
+			ct->outfit.lookLegs = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookFeetRegex)) {
+			ct->outfit.lookFeet = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookAddonsRegex)) {
+			ct->outfit.lookAddon = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookMountRegex)) {
+			ct->outfit.lookMount = std::stoi(match[1].str());
+		}
+
+		monster_map[as_lower_str(ct->name)] = ct;
+	}
+	return true;
 }

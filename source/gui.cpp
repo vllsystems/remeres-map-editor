@@ -364,6 +364,36 @@ bool GUI::LoadDataFiles(wxString &error, wxArrayString &warnings) {
 		g_npcs.loadFromXML(cdb, false, nerr, warnings);
 	}
 
+	{
+		std::string monstersLuaDir = g_settings.getString(Config::MONSTERS_LUA_DIRECTORY);
+		if (!monstersLuaDir.empty()) {
+			g_gui.SetLoadDone(47, "Loading Canary monster Lua files...");
+			wxString luaErr;
+			wxArrayString luaWarn;
+			if (!g_monsters.loadFromLuaDir(wxString(monstersLuaDir), luaErr, luaWarn)) {
+				warnings.push_back("Error loading Canary monster Lua files: " + luaErr);
+			}
+			for (const auto &w : luaWarn) {
+				warnings.push_back(w);
+			}
+		}
+	}
+
+	{
+		std::string npcsLuaDir = g_settings.getString(Config::NPCS_LUA_DIRECTORY);
+		if (!npcsLuaDir.empty()) {
+			g_gui.SetLoadDone(48, "Loading Canary NPC Lua files...");
+			wxString luaErr;
+			wxArrayString luaWarn;
+			if (!g_npcs.loadFromLuaDir(wxString(npcsLuaDir), luaErr, luaWarn)) {
+				warnings.push_back("Error loading Canary NPC Lua files: " + luaErr);
+			}
+			for (const auto &w : luaWarn) {
+				warnings.push_back(w);
+			}
+		}
+	}
+
 	g_gui.SetLoadDone(50, "Loading materials.xml ...");
 	spdlog::info("Loading materials");
 	auto materialsPath = wxString(data_path.GetPath(wxPATH_GET_VOLUME | wxPATH_GET_SEPARATOR) + "materials/materials.xml");

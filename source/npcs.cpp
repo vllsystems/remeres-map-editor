@@ -23,6 +23,10 @@
 #include "npcs.h"
 #include "npc_brush.h"
 
+#include <wx/dir.h>
+#include <wx/textfile.h>
+#include <regex>
+
 NpcDatabase g_npcs;
 
 NpcType::NpcType() :
@@ -319,4 +323,104 @@ wxArrayString NpcDatabase::getMissingNpcNames() const {
 		}
 	}
 	return missingNpcs;
+}
+
+bool NpcDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxArrayString &warnings) {
+	if (directory.IsEmpty() || !wxDir::Exists(directory)) {
+		return true;
+	}
+
+	wxArrayString luaFiles;
+	wxDir::GetAllFiles(directory, &luaFiles, "*.lua", wxDIR_FILES | wxDIR_DIRS);
+
+	std::regex nameRegex(R"re(Game\.createNpcType\(\s*"([^"]+)"\s*\))re");
+	std::regex nameVarRegex(R"re(Game\.createNpcType\(\s*(\w+)\s*\))re");
+	std::regex internalNameRegex(R"re(local\s+internalNpcName\s*=\s*"([^"]+)")re");
+	std::regex lookTypeRegex(R"re(lookType\s*=\s*(\d+))re");
+	std::regex lookTypeExRegex(R"re(lookTypeEx\s*=\s*(\d+))re");
+	std::regex lookHeadRegex(R"re(lookHead\s*=\s*(\d+))re");
+	std::regex lookBodyRegex(R"re(lookBody\s*=\s*(\d+))re");
+	std::regex lookLegsRegex(R"re(lookLegs\s*=\s*(\d+))re");
+	std::regex lookFeetRegex(R"re(lookFeet\s*=\s*(\d+))re");
+	std::regex lookAddonsRegex(R"re(lookAddons\s*=\s*(\d+))re");
+	std::regex lookMountRegex(R"re(lookMount\s*=\s*(\d+))re");
+
+	for (const auto &filePath : luaFiles) {
+		wxTextFile file;
+		if (!file.Open(filePath)) {
+			warnings.push_back("Could not open: " + filePath);
+			continue;
+		}
+
+		std::string content;
+		for (wxString line = file.GetFirstLine(); !file.Eof(); line = file.GetNextLine()) {
+			content += line.ToStdString() + "\n";
+		}
+		file.Close();
+
+		std::smatch match;
+		std::string name;
+
+		if (std::regex_search(content, match, nameRegex)) {
+			name = match[1].str();
+		} else if (std::regex_search(content, match, nameVarRegex)) {
+			std::smatch internalMatch;
+			if (std::regex_search(content, internalMatch, internalNameRegex)) {
+				name = internalMatch[1].str();
+			}
+		}
+
+		if (name.empty()) {
+			continue;
+		}
+
+		if ((*this)[name]) {
+			continue;
+		}
+
+		std::string outfitBlock;
+		size_t outfitPos = content.find(".outfit");
+		if (outfitPos == std::string::npos) {
+			continue;
+		}
+		size_t braceStart = content.find('{', outfitPos);
+		size_t braceEnd = content.find('}', braceStart);
+		if (braceStart == std::string::npos || braceEnd == std::string::npos) {
+			continue;
+		}
+		outfitBlock = content.substr(braceStart, braceEnd - braceStart + 1);
+
+		NpcType* npcType = newd NpcType();
+		npcType->name = name;
+		npcType->outfit.name = name;
+		npcType->standard = false;
+
+		if (std::regex_search(outfitBlock, match, lookTypeRegex)) {
+			npcType->outfit.lookType = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookTypeExRegex)) {
+			npcType->outfit.lookItem = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookHeadRegex)) {
+			npcType->outfit.lookHead = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookBodyRegex)) {
+			npcType->outfit.lookBody = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookLegsRegex)) {
+			npcType->outfit.lookLegs = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookFeetRegex)) {
+			npcType->outfit.lookFeet = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookAddonsRegex)) {
+			npcType->outfit.lookAddon = std::stoi(match[1].str());
+		}
+		if (std::regex_search(outfitBlock, match, lookMountRegex)) {
+			npcType->outfit.lookMount = std::stoi(match[1].str());
+		}
+
+		npcMap[as_lower_str(npcType->name)] = npcType;
+	}
+	return true;
 }
