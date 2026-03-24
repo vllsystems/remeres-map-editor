@@ -311,6 +311,192 @@ bool NpcDatabase::saveToXML(const FileName &filename) {
 	return doc.save_file(filename.GetFullPath().mb_str(), "\t", pugi::format_default, pugi::encoding_utf8);
 }
 
+bool NpcDatabase::loadFromLuaDir(const FileName &directory, bool standard, wxString &error, wxArrayString &warnings) {
+	wxString dirPath = directory.GetFullPath();
+	if (!wxDirExists(dirPath)) {
+		error = "NPC Lua directory not found: " + dirPath;
+		return false;
+	}
+
+	wxArrayString luaFiles;
+	wxDir::GetAllFiles(dirPath, &luaFiles, "*.lua", wxDIR_FILES | wxDIR_DIRS);
+
+	if (luaFiles.IsEmpty()) {
+		warnings.push_back("No .lua NPC files found in: " + dirPath);
+		return true;
+	}
+
+	int loadedCount = 0;
+	for (const auto &luaFile : luaFiles) {
+		NpcType* npcType = NpcType::loadFromLuaFile(luaFile.ToStdString(), warnings);
+		if (npcType) {
+			npcType->standard = standard;
+			if ((*this)[npcType->name]) {
+				delete npcType;
+			} else {
+				npcMap[as_lower_str(npcType->name)] = npcType;
+				loadedCount++;
+			}
+		}
+	}
+
+	spdlog::info("Loaded {} NPCs from Lua files in: {}", loadedCount, dirPath.ToStdString());
+	return true;
+}
+
+std::string NpcType::extractQuotedString(const std::string &line, const std::string &pattern) {
+	size_t pos = line.find(pattern);
+	if (pos == std::string::npos) {
+		return "";
+	}
+	size_t start = line.find('"', pos + pattern.length());
+	if (start == std::string::npos) {
+		return "";
+	}
+	start++;
+	size_t end = line.find('"', start);
+	if (end == std::string::npos) {
+		return "";
+	}
+	return line.substr(start, end - start);
+}
+
+int NpcType::extractLuaInt(const std::string &content, const std::string &fieldName) {
+	size_t pos = content.find(fieldName);
+	while (pos != std::string::npos) {
+		if (pos > 0 && (std::isalnum(content[pos - 1]) || content[pos - 1] == '_')) {
+			pos = content.find(fieldName, pos + 1);
+			continue;
+		}
+		size_t eqPos = content.find('=', pos + fieldName.length());
+		if (eqPos == std::string::npos) {
+			break;
+		}
+		bool onlySpaces = true;
+		for (size_t i = pos + fieldName.length(); i < eqPos; i++) {
+			if (!std::isspace(static_cast<unsigned char>(content[i]))) {
+				onlySpaces = false;
+				break;
+			}
+		}
+		if (!onlySpaces) {
+			pos = content.find(fieldName, pos + 1);
+			continue;
+		}
+		size_t numStart = eqPos + 1;
+		while (numStart < content.size() && std::isspace(static_cast<unsigned char>(content[numStart]))) {
+			numStart++;
+		}
+		if (numStart < content.size() && (std::isdigit(static_cast<unsigned char>(content[numStart])) || content[numStart] == '-')) {
+			size_t numEnd = numStart + 1;
+			while (numEnd < content.size() && std::isdigit(static_cast<unsigned char>(content[numEnd]))) {
+				numEnd++;
+			}
+			try {
+				return std::stoi(content.substr(numStart, numEnd - numStart));
+			} catch (...) {
+				return 0;
+			}
+		}
+		pos = content.find(fieldName, pos + 1);
+	}
+	return 0;
+}
+
+NpcType* NpcType::loadFromLuaFile(const std::string &filepath, wxArrayString &warnings) {
+	std::ifstream file(filepath);
+	if (!file.is_open()) {
+		return nullptr;
+	}
+
+	std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+	file.close();
+
+	if (content.empty()) {
+		return nullptr;
+	}
+
+	// Extract NPC name - try Game.createNpcType("Name") first
+	std::string name;
+	size_t createPos = content.find("Game.createNpcType(");
+	if (createPos != std::string::npos) {
+		// Check if argument is a direct string literal
+		size_t argStart = createPos + std::string("Game.createNpcType(").length();
+		// Skip whitespace
+		while (argStart < content.size() && std::isspace(static_cast<unsigned char>(content[argStart]))) {
+			argStart++;
+		}
+		if (argStart < content.size() && content[argStart] == '"') {
+			argStart++;
+			size_t quoteEnd = content.find('"', argStart);
+			if (quoteEnd != std::string::npos) {
+				name = content.substr(argStart, quoteEnd - argStart);
+			}
+		}
+	}
+
+	// If name is still empty, try internalNpcName = "Name"
+	if (name.empty()) {
+		name = extractQuotedString(content, "internalNpcName");
+	}
+
+	if (name.empty()) {
+		return nullptr;
+	}
+
+	// Find the outfit block
+	size_t outfitPos = content.find(".outfit");
+	if (outfitPos == std::string::npos) {
+		return nullptr;
+	}
+
+	size_t braceStart = content.find('{', outfitPos);
+	if (braceStart == std::string::npos) {
+		return nullptr;
+	}
+
+	// Find matching closing brace
+	int braceCount = 1;
+	size_t braceEnd = braceStart + 1;
+	while (braceEnd < content.size() && braceCount > 0) {
+		if (content[braceEnd] == '{') {
+			braceCount++;
+		} else if (content[braceEnd] == '}') {
+			braceCount--;
+		}
+		braceEnd++;
+	}
+
+	std::string outfitBlock = content.substr(braceStart, braceEnd - braceStart);
+
+	NpcType* npcType = newd NpcType();
+	npcType->name = name;
+	npcType->outfit.name = npcType->name;
+
+	npcType->outfit.lookType = extractLuaInt(outfitBlock, "lookType");
+	npcType->outfit.lookHead = extractLuaInt(outfitBlock, "lookHead");
+	npcType->outfit.lookBody = extractLuaInt(outfitBlock, "lookBody");
+	npcType->outfit.lookLegs = extractLuaInt(outfitBlock, "lookLegs");
+	npcType->outfit.lookFeet = extractLuaInt(outfitBlock, "lookFeet");
+	npcType->outfit.lookAddon = extractLuaInt(outfitBlock, "lookAddons");
+	npcType->outfit.lookMount = extractLuaInt(outfitBlock, "lookMount");
+
+	// lookTypeEx in Canary maps to lookItem in RME
+	int lookTypeEx = extractLuaInt(outfitBlock, "lookTypeEx");
+	if (lookTypeEx > 0) {
+		npcType->outfit.lookItem = lookTypeEx;
+	}
+
+	// Validate: must have either lookType or lookItem
+	if (npcType->outfit.lookType == 0 && npcType->outfit.lookItem == 0) {
+		warnings.push_back("NPC \"" + wxstr(name) + "\" has no lookType or lookTypeEx in: " + wxstr(filepath));
+		delete npcType;
+		return nullptr;
+	}
+
+	return npcType;
+}
+
 wxArrayString NpcDatabase::getMissingNpcNames() const {
 	wxArrayString missingNpcs;
 	for (const auto &ncpEntry : npcMap) {
