@@ -24,7 +24,8 @@
 #include "npc_brush.h"
 
 #include <wx/dir.h>
-#include <fstream>
+
+#include "lua_parser.h"
 
 NpcDatabase g_npcs;
 
@@ -324,106 +325,6 @@ wxArrayString NpcDatabase::getMissingNpcNames() const {
 	return missingNpcs;
 }
 
-static std::string parseLuaCreateCall(const std::string &content, const std::string &funcName) {
-	size_t pos = content.find(funcName);
-	if (pos == std::string::npos) {
-		return "";
-	}
-	pos += funcName.size();
-	while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t')) {
-		++pos;
-	}
-	if (pos >= content.size() || content[pos] != '(') {
-		return "";
-	}
-	++pos;
-	while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t' || content[pos] == '\n' || content[pos] == '\r')) {
-		++pos;
-	}
-	if (pos >= content.size() || content[pos] != '"') {
-		return "";
-	}
-	++pos;
-	size_t nameStart = pos;
-	while (pos < content.size() && content[pos] != '"') {
-		++pos;
-	}
-	if (pos >= content.size()) {
-		return "";
-	}
-	return content.substr(nameStart, pos - nameStart);
-}
-
-static std::string parseLuaLocalString(const std::string &content, const std::string &varName) {
-	std::string pattern = "local " + varName;
-	size_t pos = content.find(pattern);
-	if (pos == std::string::npos) {
-		return "";
-	}
-	pos += pattern.size();
-	while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t')) {
-		++pos;
-	}
-	if (pos >= content.size() || content[pos] != '=') {
-		return "";
-	}
-	++pos;
-	while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t')) {
-		++pos;
-	}
-	if (pos >= content.size() || content[pos] != '"') {
-		return "";
-	}
-	++pos;
-	size_t nameStart = pos;
-	while (pos < content.size() && content[pos] != '"') {
-		++pos;
-	}
-	if (pos >= content.size()) {
-		return "";
-	}
-	return content.substr(nameStart, pos - nameStart);
-}
-
-static int parseLuaField(const std::string &block, const std::string &key) {
-	size_t searchFrom = 0;
-	while (searchFrom < block.size()) {
-		size_t pos = block.find(key, searchFrom);
-		if (pos == std::string::npos) {
-			return -1;
-		}
-		size_t afterKey = pos + key.size();
-		if (afterKey < block.size() && (std::isalnum(block[afterKey]) || block[afterKey] == '_')) {
-			searchFrom = afterKey;
-			continue;
-		}
-		pos = afterKey;
-		while (pos < block.size() && (block[pos] == ' ' || block[pos] == '\t')) {
-			++pos;
-		}
-		if (pos >= block.size() || block[pos] != '=') {
-			searchFrom = pos;
-			continue;
-		}
-		++pos;
-		while (pos < block.size() && (block[pos] == ' ' || block[pos] == '\t')) {
-			++pos;
-		}
-		int val = 0;
-		bool found = false;
-		while (pos < block.size() && block[pos] >= '0' && block[pos] <= '9') {
-			val = val * 10 + (block[pos] - '0');
-			found = true;
-			++pos;
-		}
-		if (found) {
-			return val;
-		}
-		searchFrom = pos;
-	}
-	return -1;
-}
-
 bool NpcDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxArrayString &warnings) {
 	if (directory.IsEmpty() || !wxDir::Exists(directory)) {
 		return true;
@@ -437,20 +338,15 @@ bool NpcDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxA
 		if (++fileCount % 50 == 0) {
 			wxSafeYield();
 		}
-		std::ifstream ifs(filePath.ToStdString(), std::ios::binary | std::ios::ate);
-		if (!ifs.is_open()) {
+		std::string content = LuaParser::readFileContent(filePath.ToStdString());
+		if (content.empty()) {
 			warnings.push_back("Could not open: " + filePath);
 			continue;
 		}
-		auto fileSize = ifs.tellg();
-		ifs.seekg(0, std::ios::beg);
-		std::string content(fileSize, '\0');
-		ifs.read(&content[0], fileSize);
-		ifs.close();
 
-		std::string name = parseLuaCreateCall(content, "Game.createNpcType");
+		std::string name = LuaParser::parseCreateCall(content, "Game.createNpcType");
 		if (name.empty()) {
-			name = parseLuaLocalString(content, "internalNpcName");
+			name = LuaParser::parseLocalString(content, "internalNpcName");
 		}
 		if (name.empty()) {
 			continue;
@@ -461,49 +357,14 @@ bool NpcDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxA
 		}
 
 		std::string outfitBlock;
-		size_t outfitPos = content.find(".outfit");
-		if (outfitPos == std::string::npos) {
-			outfitPos = content.find(":outfit(");
-		}
-		if (outfitPos == std::string::npos) {
-			continue;
-		}
-		size_t braceStart = content.find('{', outfitPos);
-		size_t braceEnd = content.find('}', braceStart);
-		if (braceStart == std::string::npos || braceEnd == std::string::npos) {
-			continue;
-		}
-		outfitBlock = content.substr(braceStart, braceEnd - braceStart + 1);
-
 		NpcType* npcType = newd NpcType();
 		npcType->name = name;
 		npcType->outfit.name = name;
 		npcType->standard = false;
 
-		int val;
-		if ((val = parseLuaField(outfitBlock, "lookType")) >= 0) {
-			npcType->outfit.lookType = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookTypeEx")) >= 0) {
-			npcType->outfit.lookItem = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookHead")) >= 0) {
-			npcType->outfit.lookHead = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookBody")) >= 0) {
-			npcType->outfit.lookBody = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookLegs")) >= 0) {
-			npcType->outfit.lookLegs = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookFeet")) >= 0) {
-			npcType->outfit.lookFeet = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookAddons")) >= 0) {
-			npcType->outfit.lookAddon = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookMount")) >= 0) {
-			npcType->outfit.lookMount = val;
+		if (!LuaParser::parseOutfit(content, npcType->outfit)) {
+			delete npcType;
+			continue;
 		}
 
 		npcMap[as_lower_str(npcType->name)] = npcType;

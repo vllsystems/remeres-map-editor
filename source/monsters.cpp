@@ -24,7 +24,8 @@
 #include "monster_brush.h"
 
 #include <wx/dir.h>
-#include <fstream>
+
+#include "lua_parser.h"
 
 MonsterDatabase g_monsters;
 
@@ -377,75 +378,6 @@ wxArrayString MonsterDatabase::getMissingMonsterNames() const {
 	return missingMonsters;
 }
 
-static std::string parseLuaCreateCall(const std::string &content, const std::string &funcName) {
-	size_t pos = content.find(funcName);
-	if (pos == std::string::npos) {
-		return "";
-	}
-	pos += funcName.size();
-	while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t')) {
-		++pos;
-	}
-	if (pos >= content.size() || content[pos] != '(') {
-		return "";
-	}
-	++pos;
-	while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t' || content[pos] == '\n' || content[pos] == '\r')) {
-		++pos;
-	}
-	if (pos >= content.size() || content[pos] != '"') {
-		return "";
-	}
-	++pos;
-	size_t nameStart = pos;
-	while (pos < content.size() && content[pos] != '"') {
-		++pos;
-	}
-	if (pos >= content.size()) {
-		return "";
-	}
-	return content.substr(nameStart, pos - nameStart);
-}
-
-static int parseLuaField(const std::string &block, const std::string &key) {
-	size_t searchFrom = 0;
-	while (searchFrom < block.size()) {
-		size_t pos = block.find(key, searchFrom);
-		if (pos == std::string::npos) {
-			return -1;
-		}
-		size_t afterKey = pos + key.size();
-		if (afterKey < block.size() && (std::isalnum(block[afterKey]) || block[afterKey] == '_')) {
-			searchFrom = afterKey;
-			continue;
-		}
-		pos = afterKey;
-		while (pos < block.size() && (block[pos] == ' ' || block[pos] == '\t')) {
-			++pos;
-		}
-		if (pos >= block.size() || block[pos] != '=') {
-			searchFrom = pos;
-			continue;
-		}
-		++pos;
-		while (pos < block.size() && (block[pos] == ' ' || block[pos] == '\t')) {
-			++pos;
-		}
-		int val = 0;
-		bool found = false;
-		while (pos < block.size() && block[pos] >= '0' && block[pos] <= '9') {
-			val = val * 10 + (block[pos] - '0');
-			found = true;
-			++pos;
-		}
-		if (found) {
-			return val;
-		}
-		searchFrom = pos;
-	}
-	return -1;
-}
-
 bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxArrayString &warnings) {
 	if (directory.IsEmpty() || !wxDir::Exists(directory)) {
 		return true;
@@ -459,18 +391,13 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 		if (++fileCount % 50 == 0) {
 			wxSafeYield();
 		}
-		std::ifstream ifs(filePath.ToStdString(), std::ios::binary | std::ios::ate);
-		if (!ifs.is_open()) {
+		std::string content = LuaParser::readFileContent(filePath.ToStdString());
+		if (content.empty()) {
 			warnings.push_back("Could not open: " + filePath);
 			continue;
 		}
-		auto fileSize = ifs.tellg();
-		ifs.seekg(0, std::ios::beg);
-		std::string content(fileSize, '\0');
-		ifs.read(&content[0], fileSize);
-		ifs.close();
 
-		std::string name = parseLuaCreateCall(content, "Game.createMonsterType");
+		std::string name = LuaParser::parseCreateCall(content, "Game.createMonsterType");
 		if (name.empty()) {
 			continue;
 		}
@@ -479,49 +406,14 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 			continue;
 		}
 
-		size_t outfitPos = content.find(".outfit");
-		if (outfitPos == std::string::npos) {
-			outfitPos = content.find(":outfit(");
-		}
-		if (outfitPos == std::string::npos) {
-			continue;
-		}
-		size_t braceStart = content.find('{', outfitPos);
-		size_t braceEnd = content.find('}', braceStart);
-		if (braceStart == std::string::npos || braceEnd == std::string::npos) {
-			continue;
-		}
-		std::string outfitBlock = content.substr(braceStart, braceEnd - braceStart + 1);
-
 		MonsterType* ct = newd MonsterType();
 		ct->name = name;
 		ct->outfit.name = name;
 		ct->standard = false;
 
-		int val;
-		if ((val = parseLuaField(outfitBlock, "lookType")) >= 0) {
-			ct->outfit.lookType = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookTypeEx")) >= 0) {
-			ct->outfit.lookItem = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookHead")) >= 0) {
-			ct->outfit.lookHead = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookBody")) >= 0) {
-			ct->outfit.lookBody = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookLegs")) >= 0) {
-			ct->outfit.lookLegs = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookFeet")) >= 0) {
-			ct->outfit.lookFeet = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookAddons")) >= 0) {
-			ct->outfit.lookAddon = val;
-		}
-		if ((val = parseLuaField(outfitBlock, "lookMount")) >= 0) {
-			ct->outfit.lookMount = val;
+		if (!LuaParser::parseOutfit(content, ct->outfit)) {
+			delete ct;
+			continue;
 		}
 
 		monster_map[as_lower_str(ct->name)] = ct;
