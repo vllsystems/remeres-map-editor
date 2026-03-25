@@ -356,7 +356,6 @@ bool NpcDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxA
 			continue;
 		}
 
-		std::string outfitBlock;
 		NpcType* npcType = newd NpcType();
 		npcType->name = name;
 		npcType->outfit.name = name;

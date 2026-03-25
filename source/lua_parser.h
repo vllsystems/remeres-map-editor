@@ -19,12 +19,13 @@
 #define RME_LUA_PARSER_H_
 
 #include <string>
+#include <string_view>
 #include <fstream>
 #include "outfit.h"
 
 namespace LuaParser {
 
-	inline std::string parseCreateCall(const std::string &content, const std::string &funcName) {
+	inline std::string parseCreateCall(std::string_view content, std::string_view funcName) {
 		size_t pos = content.find(funcName);
 		if (pos == std::string::npos) {
 			return "";
@@ -51,7 +52,7 @@ namespace LuaParser {
 		if (pos >= content.size()) {
 			return "";
 		}
-		return content.substr(nameStart, pos - nameStart);
+		return std::string(content.substr(nameStart, pos - nameStart));
 	}
 
 	inline std::string parseLocalString(const std::string &content, const std::string &varName) {
@@ -85,7 +86,7 @@ namespace LuaParser {
 		return content.substr(nameStart, pos - nameStart);
 	}
 
-	inline int parseField(const std::string &block, const std::string &key) {
+	inline int parseField(std::string_view block, std::string_view key) {
 		size_t searchFrom = 0;
 		while (searchFrom < block.size()) {
 			size_t pos = block.find(key, searchFrom);
@@ -130,13 +131,18 @@ namespace LuaParser {
 			return "";
 		}
 		auto fileSize = ifs.tellg();
+		if (fileSize < 0) {
+			return "";
+		}
 		ifs.seekg(0, std::ios::beg);
-		std::string content(fileSize, '\0');
-		ifs.read(&content[0], fileSize);
+		std::string content(static_cast<size_t>(fileSize), '\0');
+		if (!ifs.read(&content[0], fileSize)) {
+			return "";
+		}
 		return content;
 	}
 
-	inline bool parseOutfit(const std::string &content, Outfit &outfit) {
+	inline bool parseOutfit(std::string_view content, Outfit &outfit) {
 		size_t outfitPos = content.find(".outfit");
 		if (outfitPos == std::string::npos) {
 			outfitPos = content.find(":outfit(");
@@ -145,11 +151,24 @@ namespace LuaParser {
 			return false;
 		}
 		size_t braceStart = content.find('{', outfitPos);
-		size_t braceEnd = content.find('}', braceStart);
-		if (braceStart == std::string::npos || braceEnd == std::string::npos) {
+		if (braceStart == std::string::npos) {
 			return false;
 		}
-		std::string block = content.substr(braceStart, braceEnd - braceStart + 1);
+		int depth = 1;
+		size_t braceEnd = braceStart + 1;
+		while (braceEnd < content.size() && depth > 0) {
+			if (content[braceEnd] == '{') {
+				++depth;
+			} else if (content[braceEnd] == '}') {
+				--depth;
+			}
+			++braceEnd;
+		}
+		if (depth != 0) {
+			return false;
+		}
+		--braceEnd;
+		std::string block(content.substr(braceStart, braceEnd - braceStart + 1));
 
 		int val;
 		if ((val = parseField(block, "lookType")) >= 0) {
