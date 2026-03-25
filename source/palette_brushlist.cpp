@@ -23,6 +23,8 @@
 #include "add_tileset_window.h"
 #include "add_item_window.h"
 #include "materials.h"
+#include "monsters.h"
+#include "npcs.h"
 
 // ============================================================================
 // Brush Palette Panel
@@ -805,6 +807,18 @@ void BrushListBox::OnDrawItem(wxDC &dc, const wxRect &rect, size_t index) const 
 	ASSERT(index < tileset->size());
 	if (const auto sprite = g_gui.gfx.getSprite(tileset->brushlist[index]->getLookID()); sprite) {
 		sprite->DrawTo(&dc, SPRITE_SIZE_32x32, rect.GetX(), rect.GetY(), rect.GetWidth(), rect.GetHeight());
+	} else {
+		auto monsterType = g_monsters[tileset->brushlist[index]->getName()];
+		NpcType* npcType = nullptr;
+		if (!monsterType) {
+			npcType = g_npcs[tileset->brushlist[index]->getName()];
+		}
+		auto lookType = monsterType ? monsterType->outfit.lookType : npcType ? npcType->outfit.lookType
+																			 : 0;
+		auto creatureSprite = g_gui.gfx.getCreatureSprite(lookType);
+		if (creatureSprite) {
+			creatureSprite->DrawTo(&dc, SPRITE_SIZE_32x32, rect.GetX(), rect.GetY(), rect.GetWidth(), rect.GetHeight());
+		}
 	}
 	if (IsSelected(index)) {
 		if (HasFocus()) {

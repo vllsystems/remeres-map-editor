@@ -24,8 +24,7 @@
 #include "monster_brush.h"
 
 #include <wx/dir.h>
-#include <wx/textfile.h>
-#include <regex>
+#include <fstream>
 
 MonsterDatabase g_monsters;
 
@@ -378,6 +377,75 @@ wxArrayString MonsterDatabase::getMissingMonsterNames() const {
 	return missingMonsters;
 }
 
+static std::string parseLuaCreateCall(const std::string &content, const std::string &funcName) {
+	size_t pos = content.find(funcName);
+	if (pos == std::string::npos) {
+		return "";
+	}
+	pos += funcName.size();
+	while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t')) {
+		++pos;
+	}
+	if (pos >= content.size() || content[pos] != '(') {
+		return "";
+	}
+	++pos;
+	while (pos < content.size() && (content[pos] == ' ' || content[pos] == '\t' || content[pos] == '\n' || content[pos] == '\r')) {
+		++pos;
+	}
+	if (pos >= content.size() || content[pos] != '"') {
+		return "";
+	}
+	++pos;
+	size_t nameStart = pos;
+	while (pos < content.size() && content[pos] != '"') {
+		++pos;
+	}
+	if (pos >= content.size()) {
+		return "";
+	}
+	return content.substr(nameStart, pos - nameStart);
+}
+
+static int parseLuaField(const std::string &block, const std::string &key) {
+	size_t searchFrom = 0;
+	while (searchFrom < block.size()) {
+		size_t pos = block.find(key, searchFrom);
+		if (pos == std::string::npos) {
+			return -1;
+		}
+		size_t afterKey = pos + key.size();
+		if (afterKey < block.size() && (std::isalnum(block[afterKey]) || block[afterKey] == '_')) {
+			searchFrom = afterKey;
+			continue;
+		}
+		pos = afterKey;
+		while (pos < block.size() && (block[pos] == ' ' || block[pos] == '\t')) {
+			++pos;
+		}
+		if (pos >= block.size() || block[pos] != '=') {
+			searchFrom = pos;
+			continue;
+		}
+		++pos;
+		while (pos < block.size() && (block[pos] == ' ' || block[pos] == '\t')) {
+			++pos;
+		}
+		int val = 0;
+		bool found = false;
+		while (pos < block.size() && block[pos] >= '0' && block[pos] <= '9') {
+			val = val * 10 + (block[pos] - '0');
+			found = true;
+			++pos;
+		}
+		if (found) {
+			return val;
+		}
+		searchFrom = pos;
+	}
+	return -1;
+}
+
 bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxArrayString &warnings) {
 	if (directory.IsEmpty() || !wxDir::Exists(directory)) {
 		return true;
@@ -386,40 +454,35 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 	wxArrayString luaFiles;
 	wxDir::GetAllFiles(directory, &luaFiles, "*.lua", wxDIR_FILES | wxDIR_DIRS);
 
-	std::regex nameRegex(R"re(Game\.createMonsterType\(\s*"([^"]+)"\s*\))re");
-	std::regex lookTypeRegex(R"re(lookType\s*=\s*(\d+))re");
-	std::regex lookTypeExRegex(R"re(lookTypeEx\s*=\s*(\d+))re");
-	std::regex lookHeadRegex(R"re(lookHead\s*=\s*(\d+))re");
-	std::regex lookBodyRegex(R"re(lookBody\s*=\s*(\d+))re");
-	std::regex lookLegsRegex(R"re(lookLegs\s*=\s*(\d+))re");
-	std::regex lookFeetRegex(R"re(lookFeet\s*=\s*(\d+))re");
-	std::regex lookAddonsRegex(R"re(lookAddons\s*=\s*(\d+))re");
-	std::regex lookMountRegex(R"re(lookMount\s*=\s*(\d+))re");
-
+	int fileCount = 0;
 	for (const auto &filePath : luaFiles) {
-		wxTextFile file;
-		if (!file.Open(filePath)) {
+		if (++fileCount % 50 == 0) {
+			wxSafeYield();
+		}
+		std::ifstream ifs(filePath.ToStdString(), std::ios::binary | std::ios::ate);
+		if (!ifs.is_open()) {
 			warnings.push_back("Could not open: " + filePath);
 			continue;
 		}
+		auto fileSize = ifs.tellg();
+		ifs.seekg(0, std::ios::beg);
+		std::string content(fileSize, '\0');
+		ifs.read(&content[0], fileSize);
+		ifs.close();
 
-		std::string content;
-		for (wxString line = file.GetFirstLine(); !file.Eof(); line = file.GetNextLine()) {
-			content += line.ToStdString() + "\n";
-		}
-		file.Close();
-
-		std::smatch match;
-		if (!std::regex_search(content, match, nameRegex)) {
+		std::string name = parseLuaCreateCall(content, "Game.createMonsterType");
+		if (name.empty()) {
 			continue;
 		}
-		std::string name = match[1].str();
 
 		if ((*this)[name]) {
 			continue;
 		}
 
 		size_t outfitPos = content.find(".outfit");
+		if (outfitPos == std::string::npos) {
+			outfitPos = content.find(":outfit(");
+		}
 		if (outfitPos == std::string::npos) {
 			continue;
 		}
@@ -435,29 +498,30 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 		ct->outfit.name = name;
 		ct->standard = false;
 
-		if (std::regex_search(outfitBlock, match, lookTypeRegex)) {
-			ct->outfit.lookType = std::stoi(match[1].str());
+		int val;
+		if ((val = parseLuaField(outfitBlock, "lookType")) >= 0) {
+			ct->outfit.lookType = val;
 		}
-		if (std::regex_search(outfitBlock, match, lookTypeExRegex)) {
-			ct->outfit.lookItem = std::stoi(match[1].str());
+		if ((val = parseLuaField(outfitBlock, "lookTypeEx")) >= 0) {
+			ct->outfit.lookItem = val;
 		}
-		if (std::regex_search(outfitBlock, match, lookHeadRegex)) {
-			ct->outfit.lookHead = std::stoi(match[1].str());
+		if ((val = parseLuaField(outfitBlock, "lookHead")) >= 0) {
+			ct->outfit.lookHead = val;
 		}
-		if (std::regex_search(outfitBlock, match, lookBodyRegex)) {
-			ct->outfit.lookBody = std::stoi(match[1].str());
+		if ((val = parseLuaField(outfitBlock, "lookBody")) >= 0) {
+			ct->outfit.lookBody = val;
 		}
-		if (std::regex_search(outfitBlock, match, lookLegsRegex)) {
-			ct->outfit.lookLegs = std::stoi(match[1].str());
+		if ((val = parseLuaField(outfitBlock, "lookLegs")) >= 0) {
+			ct->outfit.lookLegs = val;
 		}
-		if (std::regex_search(outfitBlock, match, lookFeetRegex)) {
-			ct->outfit.lookFeet = std::stoi(match[1].str());
+		if ((val = parseLuaField(outfitBlock, "lookFeet")) >= 0) {
+			ct->outfit.lookFeet = val;
 		}
-		if (std::regex_search(outfitBlock, match, lookAddonsRegex)) {
-			ct->outfit.lookAddon = std::stoi(match[1].str());
+		if ((val = parseLuaField(outfitBlock, "lookAddons")) >= 0) {
+			ct->outfit.lookAddon = val;
 		}
-		if (std::regex_search(outfitBlock, match, lookMountRegex)) {
-			ct->outfit.lookMount = std::stoi(match[1].str());
+		if ((val = parseLuaField(outfitBlock, "lookMount")) >= 0) {
+			ct->outfit.lookMount = val;
 		}
 
 		monster_map[as_lower_str(ct->name)] = ct;
