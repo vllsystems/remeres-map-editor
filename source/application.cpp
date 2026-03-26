@@ -587,8 +587,10 @@ bool MainFrame::DoQueryImportCreatures() {
 	std::string monstersLuaDir = g_settings.getString(Config::MONSTERS_LUA_DIRECTORY);
 	std::string npcsLuaDir = g_settings.getString(Config::NPCS_LUA_DIRECTORY);
 
-	bool needsConfig = (g_monsters.hasMissing() && monstersLuaDir.empty())
-		|| (g_npcs.hasMissing() && npcsLuaDir.empty());
+	const bool monstersLuaReady = !monstersLuaDir.empty() && wxDir::Exists(wxstr(monstersLuaDir));
+	const bool npcsLuaReady = !npcsLuaDir.empty() && wxDir::Exists(wxstr(npcsLuaDir));
+	bool needsConfig = (g_monsters.hasMissing() && !monstersLuaReady)
+		|| (g_npcs.hasMissing() && !npcsLuaReady);
 
 	if (needsConfig) {
 		long ret = g_gui.PopupDialog("Missing creatures", "There are missing creatures in the map. Would you like to configure the Lua directories to load them?", wxYES | wxNO);

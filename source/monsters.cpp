@@ -379,8 +379,12 @@ wxArrayString MonsterDatabase::getMissingMonsterNames() const {
 }
 
 bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxArrayString &warnings) {
-	if (directory.IsEmpty() || !wxDir::Exists(directory)) {
+	if (directory.IsEmpty()) {
 		return true;
+	}
+	if (!wxDir::Exists(directory)) {
+		error = "Monsters Lua directory does not exist: " + directory;
+		return false;
 	}
 
 	wxArrayString luaFiles;
@@ -407,7 +411,10 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 			if (!existing->missing) {
 				continue;
 			}
-			if (LuaParser::parseOutfit(content, existing->outfit)) {
+			Outfit parsed;
+			parsed.name = existing->name;
+			if (LuaParser::parseOutfit(content, parsed)) {
+				existing->outfit = parsed;
 				existing->missing = false;
 			}
 			continue;

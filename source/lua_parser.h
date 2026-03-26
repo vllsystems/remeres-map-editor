@@ -172,11 +172,15 @@ namespace LuaParser {
 		std::string block(content.substr(braceStart, braceEnd - braceStart + 1));
 
 		int val;
+		int val;
+		bool hasBaseLook = false;
 		if ((val = parseField(block, "lookType")) >= 0) {
 			outfit.lookType = val;
+			hasBaseLook = true;
 		}
 		if ((val = parseField(block, "lookTypeEx")) >= 0) {
 			outfit.lookItem = val;
+			hasBaseLook = true;
 		}
 		if ((val = parseField(block, "lookHead")) >= 0) {
 			outfit.lookHead = val;
@@ -196,7 +200,7 @@ namespace LuaParser {
 		if ((val = parseField(block, "lookMount")) >= 0) {
 			outfit.lookMount = val;
 		}
-		return true;
+		return hasBaseLook;
 	}
 
 } // namespace LuaParser
