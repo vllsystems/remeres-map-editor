@@ -484,7 +484,6 @@ bool MainFrame::DoQuerySaveTileset(bool doclose) {
 	if (g_gui.GetCurrentEditor()) {
 		ExportTilesetsWindow dlg(this, *g_gui.GetCurrentEditor());
 		dlg.ShowModal();
-		dlg.Destroy();
 	}
 
 	return !g_materials.needSave();
@@ -598,7 +597,6 @@ bool MainFrame::DoQueryImportCreatures() {
 			PreferencesWindow dialog(g_gui.root);
 			dialog.getBookCtrl().SetSelection(4);
 			dialog.ShowModal();
-			dialog.Destroy();
 
 			monstersLuaDir = g_settings.getString(Config::MONSTERS_LUA_DIRECTORY);
 			npcsLuaDir = g_settings.getString(Config::NPCS_LUA_DIRECTORY);
@@ -608,13 +606,23 @@ bool MainFrame::DoQueryImportCreatures() {
 	if (g_monsters.hasMissing() && !monstersLuaDir.empty()) {
 		wxString luaErr;
 		wxArrayString luaWarn;
-		g_monsters.loadFromLuaDir(wxString(monstersLuaDir), luaErr, luaWarn);
+		if (!g_monsters.loadFromLuaDir(wxString(monstersLuaDir), luaErr, luaWarn)) {
+			wxLogWarning("%s", luaErr);
+		}
+		for (const auto &warn : luaWarn) {
+			wxLogWarning("%s", warn);
+		}
 	}
 
 	if (g_npcs.hasMissing() && !npcsLuaDir.empty()) {
 		wxString luaErr;
 		wxArrayString luaWarn;
-		g_npcs.loadFromLuaDir(wxString(npcsLuaDir), luaErr, luaWarn);
+		if (!g_npcs.loadFromLuaDir(wxString(npcsLuaDir), luaErr, luaWarn)) {
+			wxLogWarning("%s", luaErr);
+		}
+		for (const auto &warn : luaWarn) {
+			wxLogWarning("%s", warn);
+		}
 	}
 
 	ShowMissingMonsters();
