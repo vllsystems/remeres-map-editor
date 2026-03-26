@@ -563,76 +563,61 @@ void MainFrame::ShowMissingMonsters() {
 
 	if (!missingMonsters.IsEmpty()) {
 		wxString missingMonstersStr = "Missing Monsters:\n" + wxJoin(missingMonsters, '\n');
-		wxMessageDialog dialog(this, missingMonstersStr, "Missing Monsters Outfit (data/monsters.xml)", wxOK | wxICON_INFORMATION);
+		wxMessageDialog dialog(this, missingMonstersStr, "Missing Monsters", wxOK | wxICON_INFORMATION);
 		dialog.ShowModal();
 	}
 }
 
 void MainFrame::ShowMissingNpcs() {
-	wxArrayString missingMonsters = g_npcs.getMissingNpcNames();
+	wxArrayString missingNpcs = g_npcs.getMissingNpcNames();
 
-	if (!missingMonsters.IsEmpty()) {
-		wxString missingMonstersStr = "Missing Npcs:\n" + wxJoin(missingMonsters, '\n');
-		wxMessageDialog dialog(this, missingMonstersStr, "Missing Npcs Outfit (data/npcs.xml)", wxOK | wxICON_INFORMATION);
+	if (!missingNpcs.IsEmpty()) {
+		wxString missingNpcsStr = "Missing NPCs:\n" + wxJoin(missingNpcs, '\n');
+		wxMessageDialog dialog(this, missingNpcsStr, "Missing NPCs", wxOK | wxICON_INFORMATION);
 		dialog.ShowModal();
 	}
 }
 
 bool MainFrame::DoQueryImportCreatures() {
-	// Monsters
-	if (g_monsters.hasMissing()) {
-		long ret = g_gui.PopupDialog("Missing monsters", "There are missing monsters in the editor, do you want to load them from an OT monster file?", wxYES | wxNO);
-		if (ret == wxID_YES) {
-			do {
-				wxFileDialog dlg(g_gui.root, "Import monster file", "", "", "*.xml", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
-				if (dlg.ShowModal() == wxID_OK) {
-					wxArrayString paths;
-					dlg.GetPaths(paths);
-					for (uint32_t i = 0; i < paths.GetCount(); ++i) {
-						wxString error;
-						wxArrayString warnings;
-						bool ok = g_monsters.importXMLFromOT(FileName(paths[i]), error, warnings);
-						if (ok) {
-							g_gui.ListDialog("Monster loader errors", warnings);
-						} else {
-							wxMessageBox("Error OT data file \"" + paths[i] + "\".\n" + error, "Error", wxOK | wxICON_INFORMATION, g_gui.root);
-						}
-					}
-				} else {
-					break;
-				}
-			} while (g_monsters.hasMissing());
-		}
-
-		ShowMissingMonsters();
+	if (!g_monsters.hasMissing() && !g_npcs.hasMissing()) {
+		g_gui.RefreshPalettes();
+		return true;
 	}
-	// Npcs
-	if (g_npcs.hasMissing()) {
-		long ret = g_gui.PopupDialog("Missing npcs", "There are missing npcs in the editor, do you want to load them from an OT npc file?", wxYES | wxNO);
-		if (ret == wxID_YES) {
-			do {
-				wxFileDialog dlg(g_gui.root, "Import npc file", "", "", "*.xml", wxFD_OPEN | wxFD_MULTIPLE | wxFD_FILE_MUST_EXIST);
-				if (dlg.ShowModal() == wxID_OK) {
-					wxArrayString paths;
-					dlg.GetPaths(paths);
-					for (uint32_t i = 0; i < paths.GetCount(); ++i) {
-						wxString error;
-						wxArrayString warnings;
-						bool ok = g_npcs.importXMLFromOT(FileName(paths[i]), error, warnings);
-						if (ok) {
-							g_gui.ListDialog("Npc loader errors", warnings);
-						} else {
-							wxMessageBox("Error OT data file \"" + paths[i] + "\".\n" + error, "Error", wxOK | wxICON_INFORMATION, g_gui.root);
-						}
-					}
-				} else {
-					break;
-				}
-			} while (g_npcs.hasMissing());
-		}
 
-		ShowMissingNpcs();
+	std::string monstersLuaDir = g_settings.getString(Config::MONSTERS_LUA_DIRECTORY);
+	std::string npcsLuaDir = g_settings.getString(Config::NPCS_LUA_DIRECTORY);
+
+	bool needsConfig = (g_monsters.hasMissing() && monstersLuaDir.empty())
+		|| (g_npcs.hasMissing() && npcsLuaDir.empty());
+
+	if (needsConfig) {
+		long ret = g_gui.PopupDialog("Missing creatures", "There are missing creatures in the map. Would you like to configure the Lua directories to load them?", wxYES | wxNO);
+		if (ret == wxID_YES) {
+			PreferencesWindow dialog(g_gui.root);
+			dialog.getBookCtrl().SetSelection(4);
+			dialog.ShowModal();
+			dialog.Destroy();
+
+			monstersLuaDir = g_settings.getString(Config::MONSTERS_LUA_DIRECTORY);
+			npcsLuaDir = g_settings.getString(Config::NPCS_LUA_DIRECTORY);
+		}
 	}
+
+	if (g_monsters.hasMissing() && !monstersLuaDir.empty()) {
+		wxString luaErr;
+		wxArrayString luaWarn;
+		g_monsters.loadFromLuaDir(wxString(monstersLuaDir), luaErr, luaWarn);
+	}
+
+	if (g_npcs.hasMissing() && !npcsLuaDir.empty()) {
+		wxString luaErr;
+		wxArrayString luaWarn;
+		g_npcs.loadFromLuaDir(wxString(npcsLuaDir), luaErr, luaWarn);
+	}
+
+	ShowMissingMonsters();
+	ShowMissingNpcs();
+
 	g_gui.RefreshPalettes();
 	return true;
 }

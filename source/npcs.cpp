@@ -30,6 +30,7 @@
 NpcDatabase g_npcs;
 
 NpcType::NpcType() :
+	isNpc(true),
 	missing(false),
 	in_other_tileset(false),
 	standard(false),
@@ -39,6 +40,7 @@ NpcType::NpcType() :
 }
 
 NpcType::NpcType(const NpcType &npc) :
+	isNpc(npc.isNpc),
 	missing(npc.missing),
 	in_other_tileset(npc.in_other_tileset),
 	standard(npc.standard),
@@ -49,6 +51,7 @@ NpcType::NpcType(const NpcType &npc) :
 }
 
 NpcType &NpcType::operator=(const NpcType &npc) {
+	isNpc = npc.isNpc;
 	missing = npc.missing;
 	in_other_tileset = npc.in_other_tileset;
 	standard = npc.standard;
@@ -352,7 +355,14 @@ bool NpcDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxA
 			continue;
 		}
 
-		if ((*this)[name]) {
+		NpcType* existing = (*this)[name];
+		if (existing) {
+			if (!existing->missing) {
+				continue;
+			}
+			if (LuaParser::parseOutfit(content, existing->outfit)) {
+				existing->missing = false;
+			}
 			continue;
 		}
 

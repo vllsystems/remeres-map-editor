@@ -813,8 +813,12 @@ void BrushListBox::OnDrawItem(wxDC &dc, const wxRect &rect, size_t index) const 
 		if (!monsterType) {
 			npcType = g_npcs[tileset->brushlist[index]->getName()];
 		}
-		auto lookType = monsterType ? monsterType->outfit.lookType : npcType ? npcType->outfit.lookType
-																			 : 0;
+		int lookType = 0;
+		if (monsterType) {
+			lookType = monsterType->outfit.lookType;
+		} else if (npcType) {
+			lookType = npcType->outfit.lookType;
+		}
 		auto creatureSprite = g_gui.gfx.getCreatureSprite(lookType);
 		if (creatureSprite) {
 			creatureSprite->DrawTo(&dc, SPRITE_SIZE_32x32, rect.GetX(), rect.GetY(), rect.GetWidth(), rect.GetHeight());

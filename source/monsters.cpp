@@ -402,7 +402,14 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 			continue;
 		}
 
-		if ((*this)[name]) {
+		MonsterType* existing = (*this)[name];
+		if (existing) {
+			if (!existing->missing) {
+				continue;
+			}
+			if (LuaParser::parseOutfit(content, existing->outfit)) {
+				existing->missing = false;
+			}
 			continue;
 		}
 

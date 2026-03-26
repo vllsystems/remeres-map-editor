@@ -55,8 +55,9 @@ namespace LuaParser {
 		return std::string(content.substr(nameStart, pos - nameStart));
 	}
 
-	inline std::string parseLocalString(const std::string &content, const std::string &varName) {
-		std::string pattern = "local " + varName;
+	inline std::string parseLocalString(std::string_view content, std::string_view varName) {
+		std::string pattern = "local ";
+		pattern += varName;
 		size_t pos = content.find(pattern);
 		if (pos == std::string::npos) {
 			return "";
@@ -83,7 +84,7 @@ namespace LuaParser {
 		if (pos >= content.size()) {
 			return "";
 		}
-		return content.substr(nameStart, pos - nameStart);
+		return std::string(content.substr(nameStart, pos - nameStart));
 	}
 
 	inline int parseField(std::string_view block, std::string_view key) {
