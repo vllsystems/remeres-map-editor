@@ -403,6 +403,9 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 
 		std::string name = LuaParser::parseCreateCall(content, "Game.createMonsterType");
 		if (name.empty()) {
+			name = LuaParser::parseLocalString(content, "internalMonsterName");
+		}
+		if (name.empty()) {
 			continue;
 		}
 
