@@ -29,9 +29,9 @@ set(VCPKG_BUILD_TYPE "release")
 # Set Configs
 # *****************************************************************************
 
-set(CMAKE_CXX_STANDARD 20)
-set(GNUCXX_MINIMUM_VERSION 11)
-set(MSVC_MINIMUM_VERSION "19.32")
+set(CMAKE_CXX_STANDARD 23)
+set(GNUCXX_MINIMUM_VERSION 13)
+set(MSVC_MINIMUM_VERSION "19.37")
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_DISABLE_SOURCE_CHANGES ON)
@@ -68,6 +68,21 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS MSVC_MINIMUM_VERSION)
 		message(FATAL_ERROR "Visual Studio version must be at least ${MSVC_MINIMUM_VERSION}")
 	endif()
+endif()
+
+# *****************************************************************************
+# Lua Scripting Support
+# *****************************************************************************
+
+find_package(lua CONFIG REQUIRED)
+find_package(sol2 CONFIG REQUIRED)
+
+if(TARGET lua::lua)
+	set(LUA_LIB_TARGET lua::lua)
+elseif(TARGET lua)
+	set(LUA_LIB_TARGET lua)
+else()
+	message(FATAL_ERROR "Lua target not found!")
 endif()
 
 # *****************************************************************************
@@ -109,7 +124,6 @@ if(OPTIONS_ENABLE_SCCACHE)
 endif()
 
 # === IPO ===
-option(OPTIONS_ENABLE_IPO "Check and Enable interprocedural optimization (IPO/LTO)" ON)
 if(OPTIONS_ENABLE_IPO)
 	log_option_enabled("ipo")
 

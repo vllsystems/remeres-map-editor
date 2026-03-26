@@ -11,7 +11,9 @@
 		"opengl",
 		"protobuf",
 		"liblzma",
-		"spdlog"
+		"spdlog",
+		"lua",
+		"sol2"
 	],
 	"builtin-baseline": "6760f636e7bcd0dd034c5c0906f6174009465c29"
 }

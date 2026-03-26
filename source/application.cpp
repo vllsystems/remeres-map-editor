@@ -35,6 +35,7 @@
 #include "complexitem.h"
 #include "monster.h"
 #include "npc.h"
+#include "lua/lua_script_manager.h"
 
 #if defined(__LINUX__) || defined(__WINDOWS__)
 	#include <GL/glut.h>
@@ -173,6 +174,11 @@ bool Application::OnInit() {
 	// Load palette
 	g_gui.LoadPerspective();
 
+	// Initialize Lua scripting system
+	if (!g_luaScripts.initialize()) {
+		wxLogWarning("Failed to initialize Lua scripting: %s", g_luaScripts.getLastError().c_str());
+	}
+
 	wxIcon icon(rme_icon);
 	g_gui.root->SetIcon(icon);
 
@@ -307,6 +313,7 @@ void Application::Unload() {
 }
 
 int Application::OnExit() {
+	g_luaScripts.shutdown();
 #ifdef _USE_PROCESS_COM
 	wxDELETE(m_proc_server);
 	wxDELETE(m_single_instance_checker);
