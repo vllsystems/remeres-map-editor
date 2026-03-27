@@ -318,28 +318,6 @@ bool GUI::LoadDataFiles(wxString &error, wxArrayString &warnings) {
 		spdlog::warn("[GUI::LoadDataFiles] {}: {}", itemsPath.GetFullPath().ToStdString(), error.ToStdString());
 	}
 
-	g_gui.SetLoadDone(45, "Loading monsters ...");
-	spdlog::info("Loading monsters");
-	{
-		FileName cdb = ClientAssets::getLocalPath();
-		cdb.AppendDir("materials");
-		cdb.SetFullName("monsters.xml");
-		wxString nerr;
-		wxArrayString nwarn;
-		g_monsters.loadFromXML(cdb, false, nerr, nwarn);
-	}
-
-	g_gui.SetLoadDone(45, "Loading NPCs ...");
-	spdlog::info("Loading NPCs");
-	{
-		FileName cdb = ClientAssets::getLocalPath();
-		cdb.AppendDir("materials");
-		cdb.SetFullName("npcs.xml");
-		wxString nerr;
-		wxArrayString nwarn;
-		g_npcs.loadFromXML(cdb, false, nerr, warnings);
-	}
-
 	{
 		std::string monstersLuaDir = g_settings.getString(Config::MONSTERS_LUA_DIRECTORY);
 		if (monstersLuaDir.empty()) {

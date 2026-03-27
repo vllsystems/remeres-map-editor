@@ -65,50 +65,6 @@ NpcType::~NpcType() {
 	////
 }
 
-NpcType* NpcType::loadFromXML(pugi::xml_node node, wxArrayString &warnings) {
-	pugi::xml_attribute attribute;
-	if (!(attribute = node.attribute("name"))) {
-		warnings.push_back("Couldn't read name tag of npc node.");
-		return nullptr;
-	}
-
-	NpcType* npcType = newd NpcType();
-	npcType->name = attribute.as_string();
-	npcType->outfit.name = npcType->name;
-
-	if ((attribute = node.attribute("looktype"))) {
-		npcType->outfit.lookType = attribute.as_int();
-		if (g_gui.gfx.getCreatureSprite(npcType->outfit.lookType) == nullptr) {
-			warnings.push_back("Invalid npc \"" + wxstr(npcType->name) + "\" look type #" + std::to_string(npcType->outfit.lookType));
-		}
-	}
-
-	if ((attribute = node.attribute("lookitem"))) {
-		npcType->outfit.lookItem = attribute.as_int();
-	}
-
-	if ((attribute = node.attribute("lookaddon"))) {
-		npcType->outfit.lookAddon = attribute.as_int();
-	}
-
-	if ((attribute = node.attribute("lookhead"))) {
-		npcType->outfit.lookHead = attribute.as_int();
-	}
-
-	if ((attribute = node.attribute("lookbody"))) {
-		npcType->outfit.lookBody = attribute.as_int();
-	}
-
-	if ((attribute = node.attribute("looklegs"))) {
-		npcType->outfit.lookLegs = attribute.as_int();
-	}
-
-	if ((attribute = node.attribute("lookfeet"))) {
-		npcType->outfit.lookFeet = attribute.as_int();
-	}
-	return npcType;
-}
-
 NpcType* NpcType::loadFromOTXML(const FileName &filename, pugi::xml_document &doc, wxArrayString &warnings) {
 	ASSERT(doc != nullptr);
 
@@ -217,39 +173,6 @@ bool NpcDatabase::hasMissing() const {
 		}
 	}
 	return false;
-}
-
-bool NpcDatabase::loadFromXML(const FileName &filename, bool standard, wxString &error, wxArrayString &warnings) {
-	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load_file(filename.GetFullPath().mb_str());
-	if (!result) {
-		error = "Couldn't open file \"" + filename.GetFullName() + "\", invalid format?";
-		return false;
-	}
-
-	pugi::xml_node node = doc.child("npcs");
-	if (!node) {
-		error = "Invalid file signature, this file is not a valid npc file.";
-		return false;
-	}
-
-	for (pugi::xml_node npcNode = node.first_child(); npcNode; npcNode = npcNode.next_sibling()) {
-		if (as_lower_str(npcNode.name()) != "npc") {
-			continue;
-		}
-
-		NpcType* npcType = NpcType::loadFromXML(npcNode, warnings);
-		if (npcType) {
-			npcType->standard = standard;
-			if ((*this)[npcType->name]) {
-				warnings.push_back("Duplicate npc with name \"" + wxstr(npcType->name) + "\"! Discarding...");
-				delete npcType;
-			} else {
-				npcMap[as_lower_str(npcType->name)] = npcType;
-			}
-		}
-	}
-	return true;
 }
 
 bool NpcDatabase::importXMLFromOT(const FileName &filename, wxString &error, wxArrayString &warnings) {
