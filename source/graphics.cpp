@@ -1108,9 +1108,8 @@ GLuint GameSprite::getHardwareID(int _layer, int _count, int _pattern_x, int _pa
 	return spriteList[v]->getHardwareID();
 }
 
-std::shared_ptr<GameSprite::OutfitImage> GameSprite::getOutfitImage(int spriteId, Direction direction, const Outfit &outfit) {
-	uint32_t spriteIndex = direction * layers;
-	if (layers > 1 && spriteIndex >= numsprites) {
+std::shared_ptr<GameSprite::OutfitImage> GameSprite::getOutfitImage(int spriteId, int spriteIndex, const Outfit &outfit) {
+	if (layers > 1 && (uint32_t)spriteIndex >= numsprites) {
 		if (numsprites == 1) {
 			spriteIndex = 0;
 		} else {

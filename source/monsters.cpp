@@ -84,7 +84,7 @@ MonsterType* MonsterType::loadFromXML(pugi::xml_node node, wxArrayString &warnin
 		ct->outfit.lookMount = attribute.as_int();
 	}
 
-	if ((attribute = node.attribute("lookaddon"))) {
+	if ((attribute = node.attribute("lookaddon")) || (attribute = node.attribute("lookaddons"))) {
 		ct->outfit.lookAddon = attribute.as_int();
 	}
 
