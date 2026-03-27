@@ -1120,9 +1120,9 @@ std::shared_ptr<GameSprite::OutfitImage> GameSprite::getOutfitImage(int spriteId
 
 	for (auto &img : instanced_templates) {
 		if (img->m_spriteId == spriteId && img->m_spriteIndex == spriteIndex) {
-			const auto &outfit = img->m_outfit;
-			uint32_t lookHash = outfit.lookHead << 24 | outfit.lookBody << 16 | outfit.lookLegs << 8 | outfit.lookFeet;
-			if (outfit.getColorHash() == lookHash) {
+			uint32_t cachedHash = img->m_outfit.lookHead << 24 | img->m_outfit.lookBody << 16 | img->m_outfit.lookLegs << 8 | img->m_outfit.lookFeet;
+			uint32_t requestedHash = outfit.lookHead << 24 | outfit.lookBody << 16 | outfit.lookLegs << 8 | outfit.lookFeet;
+			if (cachedHash == requestedHash) {
 				return img;
 			}
 		}
@@ -1408,7 +1408,11 @@ uint8_t* GameSprite::OutfitImage::getRGBAData() {
 		return nullptr;
 	}
 
-	uint8_t* rgbadata = sprite->pixels.data();
+	int height = sprite->size.height;
+	int width = sprite->size.width;
+	int totalSize = width * height * 4;
+	uint8_t* rgbadata = new uint8_t[totalSize];
+	std::memcpy(rgbadata, sprite->pixels.data(), totalSize);
 	uint8_t* template_rgbadata = spriteTemplate->pixels.data();
 
 	if (m_outfit.lookHead > (sizeof(TemplateOutfitLookupTable) / sizeof(TemplateOutfitLookupTable[0]))) {
@@ -1424,8 +1428,6 @@ uint8_t* GameSprite::OutfitImage::getRGBAData() {
 		m_outfit.lookFeet = 0;
 	}
 
-	int height = sprite->size.height;
-	int width = sprite->size.width;
 	for (int y = 0; y < height; ++y) {
 		for (int x = 0; x < width; ++x) {
 			const int index = (y * width + x) * 4;
