@@ -156,6 +156,7 @@ target_sources(${PROJECT_NAME}
 	find_item_window.cpp
 	filehandle.cpp
 	graphics.cpp
+	gl_renderer.cpp
 	ground_brush.cpp
 	gui.cpp
 	house_brush.cpp

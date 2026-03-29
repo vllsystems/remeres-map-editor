@@ -93,12 +93,14 @@ public:
 
 class MapCanvas;
 class LightDrawer;
+class GLRenderer;
 
 class MapDrawer {
 	MapCanvas* canvas;
 	Editor &editor;
 	DrawingOptions options;
 	std::shared_ptr<LightDrawer> light_drawer;
+	GLRenderer* renderer;
 
 	float zoom;
 
@@ -219,9 +221,8 @@ protected:
 	void glBlitTexture(int x, int y, int textureId, int red, int green, int blue, int alpha, bool adjustZoom = false, bool isEditorSprite = false, const Outfit &outfit = {}, int spriteId = 0);
 	void glBlitSquare(int x, int y, uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, int size = rme::TileSize) const;
 	void glBlitSquare(int x, int y, const wxColor &color, int size = rme::TileSize) const;
-	void glColor(const wxColor &color);
-	void glColor(BrushColor color);
-	void glColorCheck(Brush* brush, const Position &pos);
+	void getBrushColor(BrushColor color, uint8_t &r, uint8_t &g, uint8_t &b, uint8_t &a);
+	void getCheckColor(Brush* brush, const Position &pos, uint8_t &r, uint8_t &g, uint8_t &b, uint8_t &a);
 	void drawRect(int x, int y, int w, int h, const wxColor &color, int width = 1);
 	void drawFilledRect(int x, int y, int w, int h, const wxColor &color);
 
