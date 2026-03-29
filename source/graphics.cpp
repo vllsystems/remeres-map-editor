@@ -1119,9 +1119,7 @@ std::shared_ptr<GameSprite::OutfitImage> GameSprite::getOutfitImage(int spriteId
 
 	for (auto &img : instanced_templates) {
 		if (img->m_spriteId == spriteId && img->m_spriteIndex == spriteIndex) {
-			uint32_t cachedHash = img->m_outfit.lookHead << 24 | img->m_outfit.lookBody << 16 | img->m_outfit.lookLegs << 8 | img->m_outfit.lookFeet;
-			uint32_t requestedHash = outfit.lookHead << 24 | outfit.lookBody << 16 | outfit.lookLegs << 8 | outfit.lookFeet;
-			if (cachedHash == requestedHash) {
+			if (img->m_outfit.getColorHash() == outfit.getColorHash()) {
 				return img;
 			}
 		}
@@ -1373,6 +1371,7 @@ GameSprite::OutfitImage::OutfitImage(GameSprite* initParent, int initSpriteIndex
 	m_outfit(initOutfit) { }
 
 GameSprite::OutfitImage::~OutfitImage() {
+	delete[] m_cachedOutfitData;
 	m_cachedOutfitData = nullptr;
 }
 
@@ -1409,9 +1408,9 @@ uint8_t* GameSprite::OutfitImage::getRGBAData() {
 
 	int height = sprite->size.height;
 	int width = sprite->size.width;
-	int totalSize = width * height * 4;
-	uint8_t* rgbadata = new uint8_t[totalSize];
-	std::memcpy(rgbadata, sprite->pixels.data(), totalSize);
+	auto totalSize = width * height * 4;
+	auto rgbadata = std::make_unique<uint8_t[]>(totalSize);
+	std::memcpy(rgbadata.get(), sprite->pixels.data(), totalSize);
 	uint8_t* template_rgbadata = spriteTemplate->pixels.data();
 
 	if (m_outfit.lookHead > (sizeof(TemplateOutfitLookupTable) / sizeof(TemplateOutfitLookupTable[0]))) {
@@ -1452,7 +1451,7 @@ uint8_t* GameSprite::OutfitImage::getRGBAData() {
 
 	spdlog::debug("outfit name: {}, pattern_x: {}, pattern_y: {}, pattern_z: {}, sprite_phase_size: {}, layers: {}, draw height: {}, drawx: {}, drawy: {}", m_outfit.name, m_parent->pattern_x, m_parent->pattern_y, m_parent->pattern_z, m_parent->sprite_phase_size, m_parent->layers, m_parent->draw_height, m_parent->getDrawOffset().x, m_parent->getDrawOffset().y);
 
-	m_cachedOutfitData = rgbadata;
+	m_cachedOutfitData = rgbadata.release();
 	return m_cachedOutfitData;
 }
 
