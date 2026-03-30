@@ -203,8 +203,9 @@ GraphicManager::~GraphicManager() {
 }
 
 GLuint GraphicManager::getFreeTextureID() {
-	static GLuint id_counter = 0x10000000;
-	return id_counter++; // This should (hopefully) never run out
+	GLuint id = 0;
+	glGenTextures(1, &id);
+	return id;
 }
 
 void GraphicManager::clear() {
