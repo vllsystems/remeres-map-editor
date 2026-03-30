@@ -6,6 +6,7 @@
 		"cpr",
 		"pugixml",
 		"freeglut",
+		"glad",
 		"nlohmann-json",
 		"fmt",
 		"wxwidgets",

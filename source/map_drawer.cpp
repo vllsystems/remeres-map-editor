@@ -163,7 +163,6 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 {
 	light_drawer = std::make_shared<LightDrawer>();
 	renderer = new GLRenderer();
-	renderer->init();
 	perf_update_timer.Start();
 }
 
@@ -212,6 +211,8 @@ void MapDrawer::SetupVars() {
 void MapDrawer::SetupGL() {
 	glViewport(0, 0, screensize_x, screensize_y);
 
+	renderer->init();
+
 	// Enable 2D mode
 	int vPort[4];
 
@@ -226,6 +227,8 @@ void MapDrawer::SetupGL() {
 	glPushMatrix();
 	glLoadIdentity();
 	glTranslatef(0.375f, 0.375f, 0.0f);
+
+	renderer->setOrtho(0, vPort[2] * zoom, vPort[3] * zoom, 0);
 }
 
 void MapDrawer::Release() {

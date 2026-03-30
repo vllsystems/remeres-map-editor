@@ -3,11 +3,7 @@
 
 #include <string>
 #include <cstdint>
-
-#ifdef _WIN32
-	#include <windows.h>
-#endif
-#include <GL/gl.h>
+#include <vector>
 
 #if defined(__LINUX__) || defined(__WINDOWS__)
 	#include <GL/glut.h>
@@ -43,7 +39,29 @@ public:
 	void enableTexture();
 	void disableTexture();
 
+	void setOrtho(float left, float right, float bottom, float top);
+
 	void flush();
+
+private:
+	bool initialized = false;
+	GLuint vao = 0;
+	GLuint vbo = 0;
+	GLuint program = 0;
+	GLint loc_projection = -1;
+	GLint loc_useTexture = -1;
+	GLint loc_texture = -1;
+
+	struct Vertex {
+		float x, y;
+		float u, v;
+		uint8_t r, g, b, a;
+	};
+
+	std::vector<Vertex> batch;
+	GLuint current_texture = 0;
+
+	void flushBatch();
 };
 
 #endif

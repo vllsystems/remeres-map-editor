@@ -11,6 +11,7 @@ endif()
 find_package(asio CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(GLUT REQUIRED)
+find_package(glad CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
@@ -116,6 +117,7 @@ endif()
 # === UNITY BUILD (compile time reducer) ===
 if(SPEED_UP_BUILD_UNITY)
 	set_target_properties(${PROJECT_NAME} PROPERTIES UNITY_BUILD ON)
+	set_source_files_properties(gl_renderer.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 	log_option_enabled("Build unity for speed up compilation")
 else()
 	# === PRECOMPILED HEADER ===
@@ -269,6 +271,7 @@ target_link_libraries(${PROJECT_NAME}
 	${OPENGL_LIBRARIES}
 	${GLUT_LIBRARIES}
 	${ZLIB_LIBRARIES}
+	glad::glad
 	fmt::fmt
 	asio::asio
 	nlohmann_json::nlohmann_json

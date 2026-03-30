@@ -23,8 +23,6 @@ LightDrawer::LightDrawer() {
 	texture = 0;
 	buffer.resize(static_cast<size_t>(rme::ClientMapWidth * rme::ClientMapHeight * rme::PixelFormatRGBA));
 	global_color = wxColor(50, 50, 50, 255);
-
-	createGLTexture();
 }
 
 LightDrawer::~LightDrawer() {
@@ -88,6 +86,7 @@ void LightDrawer::draw(int map_x, int map_y, int end_x, int end_y, int scroll_x,
 	renderer->enableTexture();
 	renderer->drawTexturedQuad(static_cast<float>(draw_x), static_cast<float>(draw_y), static_cast<float>(draw_width), static_cast<float>(draw_height), texture, 255, 255, 255, 255);
 	renderer->disableTexture();
+	renderer->flush();
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }

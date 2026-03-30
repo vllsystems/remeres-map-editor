@@ -270,6 +270,9 @@
     <ClCompile Include="..\..\source\brush_tables.cpp" />
     <ClCompile Include="..\..\source\container_properties_window.cpp" />
     <ClCompile Include="..\..\source\find_item_window.cpp" />
+    <ClCompile Include="..\..\source\gl_renderer.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\source\light_drawer.cpp" />
     <ClCompile Include="..\..\source\iominimap.cpp" />
     <ClCompile Include="..\..\source\palette_zones.cpp" />
@@ -304,6 +307,7 @@
     <ClInclude Include="..\..\source\add_tileset_window.h" />
     <ClInclude Include="..\..\source\artprovider.h" />
     <ClInclude Include="..\..\source\const.h" />
+    <ClInclude Include="..\..\source\gl_renderer.h" />
     <ClInclude Include="..\..\source\light_drawer.h" />
     <ClInclude Include="..\..\source\main_toolbar.h" />
     <ClInclude Include="..\..\source\otml.h" />
@@ -380,8 +384,6 @@
     <ClInclude Include="..\..\source\threads.h" />
     <ClInclude Include="..\..\source\graphics.h" />
     <ClCompile Include="..\..\source\graphics.cpp" />
-    <ClInclude Include="..\..\source\gl_renderer.h" />
-    <ClCompile Include="..\..\source\gl_renderer.cpp" />
     <ClInclude Include="..\..\source\pngfiles.h" />
     <ClInclude Include="..\..\source\sprites.h" />
     <ClInclude Include="..\..\source\application.h" />
