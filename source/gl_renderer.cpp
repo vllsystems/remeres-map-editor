@@ -267,23 +267,45 @@ void GLRenderer::drawStippledLines(const float* vertices, int pairCount, uint8_t
 }
 
 void GLRenderer::drawPolygon(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-	flushBatch();
-	glColor4ub(r, g, b, a);
-	glBegin(GL_POLYGON);
-	for (int i = 0; i < vertexCount; ++i) {
-		glVertex2f(vertices[i * 2], vertices[i * 2 + 1]);
+	if (vertexCount < 3) {
+		return;
 	}
-	glEnd();
+	flushBatch();
+	std::vector<Vertex> tris;
+	for (int i = 1; i < vertexCount - 1; ++i) {
+		tris.push_back({ vertices[0], vertices[1], 0, 0, r, g, b, a });
+		tris.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
+		tris.push_back({ vertices[(i + 1) * 2], vertices[(i + 1) * 2 + 1], 0, 0, r, g, b, a });
+	}
+	glUseProgram(program);
+	glBindVertexArray(vao);
+	glUniform1i(loc_useTexture, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(Vertex), tris.data(), GL_DYNAMIC_DRAW);
+	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)tris.size());
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
 
 void GLRenderer::drawTriangleFan(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-	flushBatch();
-	glColor4ub(r, g, b, a);
-	glBegin(GL_TRIANGLE_FAN);
-	for (int i = 0; i < vertexCount; ++i) {
-		glVertex2f(vertices[i * 2], vertices[i * 2 + 1]);
+	if (vertexCount < 3) {
+		return;
 	}
-	glEnd();
+	flushBatch();
+	std::vector<Vertex> tris;
+	for (int i = 1; i < vertexCount - 1; ++i) {
+		tris.push_back({ vertices[0], vertices[1], 0, 0, r, g, b, a });
+		tris.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
+		tris.push_back({ vertices[(i + 1) * 2], vertices[(i + 1) * 2 + 1], 0, 0, r, g, b, a });
+	}
+	glUseProgram(program);
+	glBindVertexArray(vao);
+	glUniform1i(loc_useTexture, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(Vertex), tris.data(), GL_DYNAMIC_DRAW);
+	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)tris.size());
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
 
 void GLRenderer::drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a, void* font) {
