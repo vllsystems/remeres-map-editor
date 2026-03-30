@@ -198,29 +198,64 @@ void GLRenderer::drawColoredQuad(float x, float y, float w, float h, uint8_t r, 
 
 void GLRenderer::drawRect(float x, float y, float w, float h, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float lineWidth) {
 	flushBatch();
+	Vertex verts[5] = {
+		{ x, y, 0, 0, r, g, b, a },
+		{ x + w, y, 0, 0, r, g, b, a },
+		{ x + w, y + h, 0, 0, r, g, b, a },
+		{ x, y + h, 0, 0, r, g, b, a },
+		{ x, y, 0, 0, r, g, b, a },
+	};
+	glUseProgram(program);
+	glBindVertexArray(vao);
+	glUniform1i(loc_useTexture, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
 	glLineWidth(lineWidth);
-	glColor4ub(r, g, b, a);
-	glBegin(GL_LINE_STRIP);
-	glVertex2f(x, y);
-	glVertex2f(x + w, y);
-	glVertex2f(x + w, y + h);
-	glVertex2f(x, y + h);
-	glVertex2f(x, y);
-	glEnd();
+	glDrawArrays(GL_LINE_STRIP, 0, 5);
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
 
 void GLRenderer::drawLine(float x1, float y1, float x2, float y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width) {
 	flushBatch();
+	Vertex verts[2] = {
+		{ x1, y1, 0, 0, r, g, b, a },
+		{ x2, y2, 0, 0, r, g, b, a },
+	};
+	glUseProgram(program);
+	glBindVertexArray(vao);
+	glUniform1i(loc_useTexture, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
 	glLineWidth(width);
-	glColor4ub(r, g, b, a);
-	glBegin(GL_LINES);
-	glVertex2f(x1, y1);
-	glVertex2f(x2, y2);
-	glEnd();
+	glDrawArrays(GL_LINES, 0, 2);
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
 
 void GLRenderer::drawLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width) {
 	flushBatch();
+	int count = pairCount * 2;
+	std::vector<Vertex> verts(count);
+	for (int i = 0; i < count; ++i) {
+		verts[i] = { vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a };
+	}
+	glUseProgram(program);
+	glBindVertexArray(vao);
+	glUniform1i(loc_useTexture, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(Vertex), verts.data(), GL_DYNAMIC_DRAW);
+	glLineWidth(width);
+	glDrawArrays(GL_LINES, 0, (GLsizei)count);
+	glBindVertexArray(0);
+	glUseProgram(0);
+}
+
+void GLRenderer::drawStippledLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width, int factor, uint16_t pattern) {
+	flushBatch();
+	glUseProgram(0);
+	glEnable(GL_LINE_STIPPLE);
+	glLineStipple(factor, pattern);
 	glLineWidth(width);
 	glColor4ub(r, g, b, a);
 	glBegin(GL_LINES);
@@ -228,12 +263,6 @@ void GLRenderer::drawLines(const float* vertices, int pairCount, uint8_t r, uint
 		glVertex2f(vertices[i * 2], vertices[i * 2 + 1]);
 	}
 	glEnd();
-}
-
-void GLRenderer::drawStippledLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width, int factor, uint16_t pattern) {
-	glEnable(GL_LINE_STIPPLE);
-	glLineStipple(factor, pattern);
-	drawLines(vertices, pairCount, r, g, b, a, width);
 	glDisable(GL_LINE_STIPPLE);
 }
 
