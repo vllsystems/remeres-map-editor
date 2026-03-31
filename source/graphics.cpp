@@ -33,6 +33,10 @@
 
 #include <appearances.pb.h>
 
+#ifndef GL_CLAMP_TO_EDGE
+	#define GL_CLAMP_TO_EDGE 0x812F
+#endif
+
 GraphicManager g_graphics;
 GameSprite g_gameSprite;
 
@@ -1040,7 +1044,7 @@ uint16_t GameSprite::getDrawHeight() const {
 
 wxPoint GameSprite::getDrawOffset() {
 	if (!isDrawOffsetLoaded && !spriteList.empty()) {
-		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->getHardwareID());
+		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->id);
 		if (!sheet) {
 			return wxPoint(0, 0);
 		}
@@ -1055,7 +1059,7 @@ wxPoint GameSprite::getDrawOffset() {
 
 uint8_t GameSprite::getWidth() {
 	if (width <= 0) {
-		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->getHardwareID(), false);
+		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->id, false);
 		if (sheet) {
 			width = sheet->getSpriteSize().width;
 			height = sheet->getSpriteSize().height;
@@ -1067,7 +1071,7 @@ uint8_t GameSprite::getWidth() {
 
 uint8_t GameSprite::getHeight() {
 	if (height <= 0) {
-		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->getHardwareID(), false);
+		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->id, false);
 		if (sheet) {
 			width = sheet->getSpriteSize().width;
 			height = sheet->getSpriteSize().height;
@@ -1139,7 +1143,7 @@ wxMemoryDC* GameSprite::getDC(SpriteSize spriteSize) {
 
 	if (!width && !height) {
 		// Initialize default draw offset
-		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->getHardwareID(), false);
+		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->id, false);
 		if (sheet) {
 			width = sheet->getSpriteSize().width;
 			height = sheet->getSpriteSize().height;
@@ -1154,7 +1158,7 @@ wxMemoryDC* GameSprite::getDC(SpriteSize spriteSize) {
 		m_wxMemoryDc[spriteSize] = new wxMemoryDC(backgroundBmp);
 		m_wxMemoryDc[spriteSize]->SelectObject(wxNullBitmap);
 
-		auto spriteId = spriteList[0]->getHardwareID();
+		auto spriteId = spriteList[0]->id;
 		wxImage wxImage = g_spriteAppearances.getWxImageBySpriteId(spriteId);
 
 		// Resize the image to rme::SpritePixels x rme::SpritePixels, if necessary
@@ -1177,7 +1181,7 @@ void GameSprite::DrawTo(wxDC* dcWindow, SpriteSize spriteSize, int start_x, int 
 			return;
 		}
 
-		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->getHardwareID());
+		const auto &sheet = g_spriteAppearances.getSheetBySpriteId(spriteList[0]->id);
 		if (!sheet) {
 			return;
 		}
@@ -1241,9 +1245,10 @@ void GameSprite::Image::createGLTexture(GLuint textureId) {
 	glBindTexture(GL_TEXTURE_2D, textureId);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // Nearest Filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Nearest Filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, 0x812F); // GL_CLAMP_TO_EDGE
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, 0x812F); // GL_CLAMP_TO_EDGE
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer);
+	delete[] invertedBuffer;
 }
 
 void GameSprite::Image::unloadGLTexture(GLuint textureId) {
@@ -1294,18 +1299,69 @@ uint8_t* GameSprite::NormalImage::getRGBAData() {
 
 GLuint GameSprite::NormalImage::getHardwareID() {
 	if (!isGLLoaded) {
-		createGLTexture(id);
+		createGLTexture(0);
 	}
 	visit();
-	return id;
+	return glTextureId;
+}
+
+uint32_t GameSprite::getSpriteID(int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame) {
+	uint32_t v;
+	if (_count >= 0) {
+		v = _count;
+	} else {
+		v = (((_frame)*pattern_y + _pattern_y) * pattern_x + _pattern_x) * layers + _layer;
+	}
+	if (v >= numsprites) {
+		if (numsprites == 1) {
+			v = 0;
+		} else {
+			v %= numsprites;
+		}
+	}
+	return spriteList[v]->id;
 }
 
 void GameSprite::NormalImage::createGLTexture(GLuint) {
-	Image::createGLTexture(id);
+	ASSERT(!isGLLoaded);
+
+	uint8_t* rgba = getRGBAData();
+	if (!rgba) {
+		return;
+	}
+
+	const auto &sheet = g_spriteAppearances.getSheetBySpriteId(id);
+	if (!sheet) {
+		return;
+	}
+
+	auto spriteWidth = sheet->getSpriteSize().width;
+	auto spriteHeight = sheet->getSpriteSize().height;
+	auto invertedBuffer = invertGLColors(spriteHeight, spriteWidth, rgba);
+
+	isGLLoaded = true;
+	g_gui.gfx.loaded_textures += 1;
+
+	if (glTextureId == 0) {
+		glGenTextures(1, &glTextureId);
+	}
+
+	glBindTexture(GL_TEXTURE_2D, glTextureId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer);
+	delete[] invertedBuffer;
 }
 
 void GameSprite::NormalImage::unloadGLTexture(GLuint) {
-	Image::unloadGLTexture(id);
+	if (glTextureId != 0) {
+		isGLLoaded = false;
+		g_gui.gfx.loaded_textures -= 1;
+		glDeleteTextures(1, &glTextureId);
+		glTextureId = 0;
+	}
 }
 
 GameSprite::EditorImage::EditorImage(const wxArtID &bitmapId) :
@@ -1351,20 +1407,20 @@ void GameSprite::EditorImage::createGLTexture(GLuint textureId) {
 	}
 
 	isGLLoaded = true;
-	id = g_gui.gfx.getFreeTextureID();
+	glTextureId = g_gui.gfx.getFreeTextureID();
 	g_gui.gfx.loaded_textures += 1;
 
-	glBindTexture(GL_TEXTURE_2D, id);
+	glBindTexture(GL_TEXTURE_2D, glTextureId);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // Nearest Filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Nearest Filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, 0x812F); // GL_CLAMP_TO_EDGE
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, 0x812F); // GL_CLAMP_TO_EDGE
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, rme::SpritePixels, rme::SpritePixels, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData);
 	delete[] imageData;
 }
 
 void GameSprite::EditorImage::unloadGLTexture(GLuint textureId) {
-	Image::unloadGLTexture(id);
+	Image::unloadGLTexture(glTextureId);
 }
 
 // OutfitImage
@@ -1379,7 +1435,13 @@ GameSprite::OutfitImage::~OutfitImage() {
 }
 
 void GameSprite::OutfitImage::unloadGLTexture(GLuint) {
-	Image::unloadGLTexture(m_spriteId);
+	if (m_textureId != 0) {
+		isGLLoaded = false;
+		m_isGLLoaded = false;
+		g_gui.gfx.loaded_textures -= 1;
+		glDeleteTextures(1, &m_textureId);
+		m_textureId = 0;
+	}
 }
 
 void GameSprite::OutfitImage::colorizePixel(uint8_t color, uint8_t &red, uint8_t &green, uint8_t &blue) {
@@ -1397,14 +1459,14 @@ uint8_t* GameSprite::OutfitImage::getRGBAData() {
 		return m_cachedOutfitData;
 	}
 
-	const auto &sprite = g_spriteAppearances.getSprite(m_parent->spriteList[m_spriteIndex]->getHardwareID());
+	const auto &sprite = g_spriteAppearances.getSprite(m_parent->spriteList[m_spriteIndex]->id);
 	if (!sprite) {
 		return nullptr;
 	}
 
 	const auto offBounds = m_parent->spriteList.size() <= m_spriteIndex + 1;
 	const auto templateIndex = offBounds ? m_spriteIndex : m_spriteIndex + 1;
-	const auto &spriteTemplate = g_spriteAppearances.getSprite(m_parent->spriteList[templateIndex]->getHardwareID());
+	const auto &spriteTemplate = g_spriteAppearances.getSprite(m_parent->spriteList[templateIndex]->id);
 	if (!spriteTemplate) {
 		return nullptr;
 	}
@@ -1493,9 +1555,10 @@ void GameSprite::OutfitImage::createGLTexture(GLuint spriteId, GLuint textureId)
 	glBindTexture(GL_TEXTURE_2D, textureId > 0 ? textureId : spriteId);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // Nearest Filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Nearest Filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, 0x812F); // GL_CLAMP_TO_EDGE
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, 0x812F); // GL_CLAMP_TO_EDGE
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer);
+	delete[] invertedBuffer;
 }
 
 GameSprite* GameSprite::createFromBitmap(const wxArtID &bitmapId) {

@@ -19,6 +19,10 @@
 #include "light_drawer.h"
 #include "gl_renderer.h"
 
+#ifndef GL_CLAMP_TO_EDGE
+	#define GL_CLAMP_TO_EDGE 0x812F
+#endif
+
 LightDrawer::LightDrawer() {
 	texture = 0;
 	buffer.resize(static_cast<size_t>(rme::ClientMapWidth * rme::ClientMapHeight * rme::PixelFormatRGBA));

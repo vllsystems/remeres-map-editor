@@ -1182,7 +1182,8 @@ void MapDrawer::BlitItem(int &draw_x, int &draw_y, const Tile* tile, const Item*
 
 	int frame = item->getFrame();
 	int texnum = sprite->getHardwareID(0, subtype, pattern_x, pattern_y, pattern_z, frame);
-	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha);
+	int sprId = sprite->getSpriteID(0, subtype, pattern_x, pattern_y, pattern_z, frame);
+	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId);
 
 	if (options.show_hooks && (type.hookSouth || type.hookEast || type.hook != ITEM_HOOK_NONE)) {
 		DrawHookIndicator(draw_x, draw_y, type);
@@ -1280,7 +1281,8 @@ void MapDrawer::BlitItem(int &draw_x, int &draw_y, const Position &pos, const It
 
 	int frame = item->getFrame();
 	int texnum = sprite->getHardwareID(0, subtype, pattern_x, pattern_y, pattern_z, frame);
-	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha);
+	int sprId = sprite->getSpriteID(0, subtype, pattern_x, pattern_y, pattern_z, frame);
+	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId);
 
 	if (options.show_hooks && (type.hookSouth || type.hookEast) && zoom <= 3.0) {
 		DrawHookIndicator(draw_x, draw_y, type);
@@ -1307,7 +1309,8 @@ void MapDrawer::BlitSpriteType(int screenx, int screeny, uint32_t spriteid, int 
 
 	int frame = 0;
 	int texnum = sprite->getHardwareID(0, -1, 0, 0, 0, 0);
-	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha);
+	int sprId = sprite->getSpriteID(0, -1, 0, 0, 0, 0);
+	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId);
 }
 
 void MapDrawer::BlitSpriteType(int screenx, int screeny, GameSprite* sprite, int red, int green, int blue, int alpha) {
@@ -1320,7 +1323,8 @@ void MapDrawer::BlitSpriteType(int screenx, int screeny, GameSprite* sprite, int
 
 	int frame = 0;
 	int texnum = sprite->getHardwareID(0, -1, 0, 0, 0, 0);
-	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha);
+	int sprId = sprite->getSpriteID(0, -1, 0, 0, 0, 0);
+	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId);
 }
 
 void MapDrawer::BlitCreature(int screenx, int screeny, const Outfit &outfit, const Direction &dir, int red, int green, int blue, int alpha) {
@@ -1342,7 +1346,7 @@ void MapDrawer::BlitCreature(int screenx, int screeny, const Outfit &outfit, con
 	screenx -= spr->getDrawOffset().x;
 	screeny -= spr->getDrawOffset().y;
 
-	auto spriteId = spr->spriteList[0]->getHardwareID();
+	auto spriteId = spr->spriteList[0]->id;
 	auto outfitImage = spr->getOutfitImage(spriteId, dir, outfit);
 	if (outfitImage) {
 		glBlitTexture(screenx, screeny, outfitImage->getHardwareID(), red, green, blue, alpha, false, false, outfit, spriteId);
