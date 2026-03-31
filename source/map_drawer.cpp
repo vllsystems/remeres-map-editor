@@ -1361,7 +1361,7 @@ void MapDrawer::BlitCreature(int screenx, int screeny, const Outfit &outfit, con
 		if (addonIdx < 0 || (uint32_t)addonIdx >= spr->numsprites) {
 			continue;
 		}
-		auto addonSpriteId = spr->spriteList[addonIdx]->getHardwareID();
+		auto addonSpriteId = spr->spriteList[addonIdx]->id;
 		auto addonImage = spr->getOutfitImage(addonSpriteId, addonIdx, outfit);
 		if (addonImage) {
 			glBlitTexture(screenx, screeny, addonImage->getHardwareID(), red, green, blue, alpha, false, false, outfit, addonSpriteId);
