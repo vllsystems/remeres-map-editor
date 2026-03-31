@@ -209,20 +209,8 @@ void MapDrawer::SetupGL() {
 
 	renderer->init();
 
-	// Enable 2D mode
 	int vPort[4];
-
 	glGetIntegerv(GL_VIEWPORT, vPort);
-
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(0, vPort[2] * zoom, vPort[3] * zoom, 0, -1, 1);
-
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-	glTranslatef(0.375f, 0.375f, 0.0f);
 
 	renderer->setOrtho(0, vPort[2] * zoom, vPort[3] * zoom, 0);
 }
@@ -232,16 +220,11 @@ void MapDrawer::Release() {
 		delete *it;
 	}
 	tooltips.clear();
-
 	if (light_drawer) {
 		light_drawer->clear();
 	}
 
-	// Disable 2D mode
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
-	glPopMatrix();
+	renderer->flush();
 }
 
 void MapDrawer::Draw() {
@@ -272,17 +255,10 @@ void MapDrawer::Draw() {
 }
 
 void MapDrawer::DrawBackground() {
-	// Black Background
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	glLoadIdentity();
-
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
-
-	// glAlphaFunc(GL_GEQUAL, 0.9f);
-	// glEnable(GL_ALPHA_TEST);
 }
 
 inline int getFloorAdjustment(int floor) {
@@ -2028,26 +2004,11 @@ void MapDrawer::DrawPerformanceStats() {
 	std::string stats_text = FormatPerformanceStats();
 
 	renderer->flush();
-
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glOrtho(0, screensize_x, screensize_y, 0, -1, 1);
-
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-
 	renderer->setOrtho(0, static_cast<float>(screensize_x), static_cast<float>(screensize_y), 0);
 
 	renderer->drawText(10.0f, 20.0f, stats_text, 255, 255, 0, 255, nullptr);
 
 	renderer->flush();
-
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);
 
 	int vPort[4];
 	glGetIntegerv(GL_VIEWPORT, vPort);

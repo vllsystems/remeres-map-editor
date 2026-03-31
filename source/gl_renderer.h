@@ -51,6 +51,7 @@ private:
 	GLint loc_projection = -1;
 	GLint loc_useTexture = -1;
 	GLint loc_texture = -1;
+	GLint loc_stipple = -1;
 
 	struct Vertex {
 		float x, y;

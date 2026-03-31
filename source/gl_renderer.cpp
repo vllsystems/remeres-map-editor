@@ -21,19 +21,19 @@ static void* rmeGetGLProc(const char* name) {
 #include "main.h"
 #include "gl_renderer.h"
 
-static const char* vertSrc = R"(  
-#version 330  
-layout(location=0) in vec2 aPos;  
-layout(location=1) in vec2 aUV;  
-layout(location=2) in vec4 aColor;  
-uniform mat4 uProjection;  
-out vec2 vUV;  
-out vec4 vColor;  
-void main(){  
-	gl_Position = uProjection * vec4(aPos, 0.0, 1.0);  
-	vUV = aUV;  
-	vColor = aColor;  
-}  
+static const char* vertSrc = R"(
+#version 330
+layout(location=0) in vec2 aPos;
+layout(location=1) in vec2 aUV;
+layout(location=2) in vec4 aColor;
+uniform mat4 uProjection;
+out vec2 vUV;
+out vec4 vColor;
+void main(){
+	gl_Position = uProjection * vec4(aPos, 0.0, 1.0);
+	vUV = aUV;
+	vColor = aColor;
+}
 )";
 
 static const char* fragSrc = R"(
@@ -42,12 +42,17 @@ in vec2 vUV;
 in vec4 vColor;
 uniform sampler2D uTexture;
 uniform int uUseTexture;
+uniform int uStipple;
 out vec4 FragColor;
-void main(){
-	if(uUseTexture != 0)
-		FragColor = texture(uTexture, vUV) * vColor;
-	else
-		FragColor = vColor;
+void main() {
+    if (uStipple != 0) {
+        float p = gl_FragCoord.x + gl_FragCoord.y;
+        if (mod(p, 4.0) < 2.0) discard;
+    }
+    if (uUseTexture != 0)
+        FragColor = texture(uTexture, vUV) * vColor;
+    else
+        FragColor = vColor;
 }
 )";
 
@@ -133,6 +138,7 @@ void GLRenderer::init() {
 	loc_projection = glGetUniformLocation(program, "uProjection");
 	loc_useTexture = glGetUniformLocation(program, "uUseTexture");
 	loc_texture = glGetUniformLocation(program, "uTexture");
+	loc_stipple = glGetUniformLocation(program, "uStipple");
 
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
@@ -315,17 +321,23 @@ void GLRenderer::drawLines(const float* vertices, int pairCount, uint8_t r, uint
 
 void GLRenderer::drawStippledLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width, int factor, uint16_t pattern) {
 	flushBatch();
-	glUseProgram(0);
-	glEnable(GL_LINE_STIPPLE);
-	glLineStipple(factor, pattern);
-	glLineWidth(width);
-	glColor4ub(r, g, b, a);
-	glBegin(GL_LINES);
+
+	std::vector<Vertex> verts;
 	for (int i = 0; i < pairCount * 2; ++i) {
-		glVertex2f(vertices[i * 2], vertices[i * 2 + 1]);
+		verts.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
 	}
-	glEnd();
-	glDisable(GL_LINE_STIPPLE);
+
+	glUseProgram(program);
+	glBindVertexArray(vao);
+	glUniform1i(loc_useTexture, 0);
+	glUniform1i(loc_stipple, 1);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(Vertex), verts.data(), GL_DYNAMIC_DRAW);
+	glLineWidth(width);
+	glDrawArrays(GL_LINES, 0, (GLsizei)verts.size());
+	glUniform1i(loc_stipple, 0);
+	glBindVertexArray(0);
+	glUseProgram(0);
 }
 
 void GLRenderer::drawPolygon(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
@@ -447,7 +459,6 @@ void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 	textG = g;
 	textB = b;
 	textA = a;
-	glColor4ub(r, g, b, a);
 }
 
 void GLRenderer::enableTexture() {
