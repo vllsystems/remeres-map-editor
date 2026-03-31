@@ -17,10 +17,6 @@
 
 #include "main.h"
 
-#if defined(__LINUX__) || defined(__WINDOWS__)
-	#include <GL/glut.h>
-#endif
-
 #ifdef __WINDOWS__
 	#include <windows.h>
 	#include <psapi.h>
@@ -1783,7 +1779,6 @@ void MapDrawer::DrawPositionIndicator(int z) {
 }
 
 void MapDrawer::DrawTooltips() {
-#if defined(__LINUX__) || defined(__WINDOWS__)
 	if (!options.show_tooltips || tooltips.empty()) {
 		return;
 	}
@@ -1804,7 +1799,7 @@ void MapDrawer::DrawTooltips() {
 				line_width = 0.0f;
 				line_char_count = 0;
 			} else {
-				line_width += renderer->getCharWidth(*c, GLUT_BITMAP_HELVETICA_12);
+				line_width += renderer->getCharWidth(*c, nullptr);
 			}
 			width = std::max<float>(width, line_width);
 			char_count++;
@@ -1882,19 +1877,18 @@ void MapDrawer::DrawTooltips() {
 				line_char_count++;
 
 				if (tooltip->ellipsis && char_count >= MapTooltip::MAX_CHARS) {
-					renderer->drawBitmapChar('.', GLUT_BITMAP_HELVETICA_18);
+					renderer->drawBitmapChar('.', nullptr);
 					if (char_count >= (MapTooltip::MAX_CHARS + 2)) {
 						break;
 					}
 				} else if (!iscntrl(*c)) {
-					renderer->drawBitmapChar(*c, GLUT_BITMAP_HELVETICA_12);
+					renderer->drawBitmapChar(*c, nullptr);
 				}
 			}
 		}
 	}
 
 	renderer->enableTexture();
-#endif
 }
 
 void MapDrawer::UpdateRAMUsage() {
@@ -2022,19 +2016,18 @@ std::string MapDrawer::FormatPerformanceStats() const {
 
 void MapDrawer::DrawPerformanceStats() {
 	frame_count++;
-
 	long elapsed = perf_update_timer.Time();
 	if (elapsed >= 500) {
 		current_fps = (frame_count * 1000.0) / elapsed;
 		frame_count = 0;
-
 		UpdateRAMUsage();
 		UpdateCPUUsage();
-
 		perf_update_timer.Start();
 	}
 
 	std::string stats_text = FormatPerformanceStats();
+
+	renderer->flush();
 
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
@@ -2045,16 +2038,20 @@ void MapDrawer::DrawPerformanceStats() {
 	glPushMatrix();
 	glLoadIdentity();
 
-	renderer->disableTexture();
+	renderer->setOrtho(0, static_cast<float>(screensize_x), static_cast<float>(screensize_y), 0);
 
-	renderer->drawText(10.0f, 20.0f, stats_text, 255, 255, 0, 255, GLUT_BITMAP_9_BY_15);
+	renderer->drawText(10.0f, 20.0f, stats_text, 255, 255, 0, 255, nullptr);
 
-	renderer->enableTexture();
+	renderer->flush();
 
 	glPopMatrix();
 	glMatrixMode(GL_PROJECTION);
 	glPopMatrix();
 	glMatrixMode(GL_MODELVIEW);
+
+	int vPort[4];
+	glGetIntegerv(GL_VIEWPORT, vPort);
+	renderer->setOrtho(0, vPort[2] * zoom, vPort[3] * zoom, 0);
 }
 
 void MapDrawer::DrawLight() const {

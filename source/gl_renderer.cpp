@@ -51,6 +51,62 @@ void main(){
 }
 )";
 
+void GLRenderer::initFontAtlas() {
+	const int GLYPH_W = 10;
+	const int GLYPH_H = 16;
+	const int COLS = 16;
+	const int ROWS = 6; // ASCII 32..127 = 96 chars
+	const int TEX_W = COLS * GLYPH_W; // 160
+	const int TEX_H = ROWS * GLYPH_H; // 96
+
+	wxBitmap bmp(TEX_W, TEX_H, 24);
+	{
+		wxMemoryDC dc(bmp);
+		dc.SetBackground(*wxBLACK_BRUSH);
+		dc.Clear();
+
+		wxFont font(wxFontInfo(10).Family(wxFONTFAMILY_MODERN).AntiAliased(false));
+		dc.SetFont(font);
+		dc.SetTextForeground(*wxWHITE);
+
+		for (int i = 0; i < 96; ++i) {
+			char c = (char)(32 + i);
+			int col = i % COLS;
+			int row = i / COLS;
+			dc.DrawText(wxString(c), col * GLYPH_W, row * GLYPH_H);
+		}
+		dc.SelectObject(wxNullBitmap);
+	}
+
+	wxImage img = bmp.ConvertToImage();
+	std::vector<uint8_t> rgba(TEX_W * TEX_H * 4);
+	for (int y = 0; y < TEX_H; ++y) {
+		for (int x = 0; x < TEX_W; ++x) {
+			int idx = (y * TEX_W + x) * 4;
+			uint8_t lum = img.GetRed(x, y);
+			rgba[idx + 0] = 255;
+			rgba[idx + 1] = 255;
+			rgba[idx + 2] = 255;
+			rgba[idx + 3] = lum; // branco = opaco, preto = transparente
+		}
+	}
+
+	glGenTextures(1, &fontAtlas);
+	glBindTexture(GL_TEXTURE_2D, fontAtlas);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TEX_W, TEX_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	fontGlyphW = GLYPH_W;
+	fontGlyphH = GLYPH_H;
+	fontAtlasCols = COLS;
+	fontAtlasW = TEX_W;
+	fontAtlasH = TEX_H;
+}
+
 void GLRenderer::init() {
 	if (initialized) {
 		return;
@@ -96,6 +152,8 @@ void GLRenderer::init() {
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	initFontAtlas();
+
 	initialized = true;
 }
 
@@ -114,6 +172,10 @@ void GLRenderer::shutdown() {
 	if (vao) {
 		glDeleteVertexArrays(1, &vao);
 		vao = 0;
+	}
+	if (fontAtlas) {
+		glDeleteTextures(1, &fontAtlas);
+		fontAtlas = 0;
 	}
 	initialized = false;
 }
@@ -309,40 +371,82 @@ void GLRenderer::drawTriangleFan(const float* vertices, int vertexCount, uint8_t
 }
 
 void GLRenderer::drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a, void* font) {
-#if defined(__LINUX__) || defined(__WINDOWS__)
-	flushBatch();
-	glColor4ub(r, g, b, a);
-	glRasterPos2f(x, y);
-	for (char c : text) {
-		glutBitmapCharacter(font, c);
+	if (fontAtlas == 0) {
+		return;
 	}
-#endif
+	if (current_texture != fontAtlas) {
+		flushBatch();
+		current_texture = fontAtlas;
+	}
+	float cx = x;
+	for (char c : text) {
+		if (c < 32 || c > 127) {
+			continue;
+		}
+		int idx = c - 32;
+		int col = idx % fontAtlasCols;
+		int row = idx / fontAtlasCols;
+		float u0 = (float)(col * fontGlyphW) / fontAtlasW;
+		float v0 = (float)(row * fontGlyphH) / fontAtlasH;
+		float u1 = (float)((col + 1) * fontGlyphW) / fontAtlasW;
+		float v1 = (float)((row + 1) * fontGlyphH) / fontAtlasH;
+		float qx = cx;
+		float qy = y - fontGlyphH;
+		float qw = (float)fontGlyphW;
+		float qh = (float)fontGlyphH;
+		batch.push_back({ qx, qy, u0, v0, r, g, b, a });
+		batch.push_back({ qx + qw, qy, u1, v0, r, g, b, a });
+		batch.push_back({ qx + qw, qy + qh, u1, v1, r, g, b, a });
+		batch.push_back({ qx, qy, u0, v0, r, g, b, a });
+		batch.push_back({ qx + qw, qy + qh, u1, v1, r, g, b, a });
+		batch.push_back({ qx, qy + qh, u0, v1, r, g, b, a });
+		cx += fontGlyphW;
+	}
 }
 
 float GLRenderer::getCharWidth(char c, void* font) {
-#if defined(__LINUX__) || defined(__WINDOWS__)
-	return static_cast<float>(glutBitmapWidth(font, c));
-#else
-	return 0.f;
-#endif
+	return (float)fontGlyphW;
 }
 
 void GLRenderer::setRasterPos(float x, float y) {
-#if defined(__LINUX__) || defined(__WINDOWS__)
-	flushBatch();
-	glRasterPos2f(x, y);
-#endif
+	cursorX = x;
+	cursorY = y;
 }
 
 void GLRenderer::drawBitmapChar(char c, void* font) {
-#if defined(__LINUX__) || defined(__WINDOWS__)
-	flushBatch();
-	glutBitmapCharacter(font, c);
-#endif
+	if (fontAtlas == 0 || c < 32 || c > 127) {
+		return;
+	}
+	if (current_texture != fontAtlas) {
+		flushBatch();
+		current_texture = fontAtlas;
+	}
+	int idx = c - 32;
+	int col = idx % fontAtlasCols;
+	int row = idx / fontAtlasCols;
+	float u0 = (float)(col * fontGlyphW) / fontAtlasW;
+	float v0 = (float)(row * fontGlyphH) / fontAtlasH;
+	float u1 = (float)((col + 1) * fontGlyphW) / fontAtlasW;
+	float v1 = (float)((row + 1) * fontGlyphH) / fontAtlasH;
+	float qx = cursorX;
+	float qy = cursorY - fontGlyphH;
+	float qw = (float)fontGlyphW;
+	float qh = (float)fontGlyphH;
+	batch.push_back({ qx, qy, u0, v0, textR, textG, textB, textA });
+	batch.push_back({ qx + qw, qy, u1, v0, textR, textG, textB, textA });
+	batch.push_back({ qx + qw, qy + qh, u1, v1, textR, textG, textB, textA });
+	batch.push_back({ qx, qy, u0, v0, textR, textG, textB, textA });
+	batch.push_back({ qx + qw, qy + qh, u1, v1, textR, textG, textB, textA });
+	batch.push_back({ qx, qy + qh, u0, v1, textR, textG, textB, textA });
+	cursorX += fontGlyphW;
 }
 
 void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 	flushBatch();
+	textR = r;
+	textG = g;
+	textB = b;
+	textA = a;
 	glColor4ub(r, g, b, a);
 }
 

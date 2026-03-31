@@ -5,9 +5,9 @@
 #include <cstdint>
 #include <vector>
 
-#if defined(__LINUX__) || defined(__WINDOWS__)
-	#include <GL/glut.h>
-#endif
+// Minimal GL type forward declarations — full GL comes from glad in gl_renderer.cpp
+typedef unsigned int GLuint;
+typedef int GLint;
 
 class GLRenderer {
 public:
@@ -62,6 +62,20 @@ private:
 	GLuint current_texture = 0;
 
 	void flushBatch();
+
+	// Font atlas
+	GLuint fontAtlas = 0;
+	int fontGlyphW = 0;
+	int fontGlyphH = 0;
+	int fontAtlasCols = 0;
+	int fontAtlasW = 0;
+	int fontAtlasH = 0;
+	void initFontAtlas();
+
+	// Text cursor state (for setRasterPos + drawBitmapChar)
+	float cursorX = 0;
+	float cursorY = 0;
+	uint8_t textR = 255, textG = 255, textB = 255, textA = 255;
 };
 
 #endif
