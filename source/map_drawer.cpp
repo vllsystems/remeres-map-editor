@@ -860,6 +860,7 @@ void MapDrawer::DrawBrush() {
 							if (brush->isOptionalBorder()) {
 								uint8_t cr, cg, cb, ca;
 								getCheckColor(brush, Position(x, y, floor), cr, cg, cb, ca);
+								renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, cr, cg, cb, ca);
 							} else {
 								BlitSpriteType(cx, cy, raw_brush->getItemType()->sprite, 160, 160, 160, 160);
 							}
@@ -1322,7 +1323,10 @@ void MapDrawer::BlitCreature(int screenx, int screeny, const Outfit &outfit, con
 	screeny -= spr->getDrawOffset().y;
 
 	int baseIdx = (int)dir * (int)spr->layers;
-	auto spriteId = spr->spriteList[0]->id;
+	if (baseIdx < 0 || (uint32_t)baseIdx >= spr->numsprites) {
+		return;
+	}
+	auto spriteId = spr->spriteList[baseIdx]->id;
 	auto outfitImage = spr->getOutfitImage(spriteId, baseIdx, outfit);
 	if (outfitImage) {
 		glBlitTexture(screenx, screeny, outfitImage->getHardwareID(), red, green, blue, alpha, false, false, outfit, spriteId);
@@ -1789,15 +1793,13 @@ void MapDrawer::DrawTooltips() {
 			}
 		}
 
-		float scale = zoom < 1.0f ? zoom : 1.0f;
-
-		width = (width + 8.0f) * scale;
-		height = (height + 4.0f) * scale;
+		width = width + 8.0f;
+		height = height + 4.0f;
 
 		float x = tooltip->x + (rme::TileSize / 2.0f);
-		float y = tooltip->y + ((rme::TileSize / 2.0f) * scale);
+		float y = tooltip->y + (rme::TileSize / 2.0f);
 		float center = width / 2.0f;
-		float space = (7.0f * scale);
+		float space = 7.0f;
 		float startx = x - center;
 		float endx = x + center;
 		float starty = y - (height + space);
@@ -1839,16 +1841,16 @@ void MapDrawer::DrawTooltips() {
 		renderer->drawLines(lineVerts, 8, 0, 0, 0, 255, 1.0f);
 
 		// text
-		if (zoom <= 1.0) {
-			startx += (3.0f * scale);
-			starty += (14.0f * scale);
+		{
+			startx += 3.0f;
+			starty += 14.0f;
 			renderer->setColor(0, 0, 0, 255);
 			renderer->setRasterPos(startx, starty);
 			char_count = 0;
 			line_char_count = 0;
 			for (const char* c = text; *c != '\0'; c++) {
 				if (*c == '\n' || (line_char_count >= MapTooltip::MAX_CHARS_PER_LINE && *c == ' ')) {
-					starty += (14.0f * scale);
+					starty += 14.0f;
 					renderer->setRasterPos(startx, starty);
 					line_char_count = 0;
 				}
