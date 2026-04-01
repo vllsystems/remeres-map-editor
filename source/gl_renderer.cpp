@@ -33,6 +33,7 @@ static void* rmeGetGLProc(const char* name) {
 #include <glad/glad.h>
 #include "main.h"
 #include "gl_renderer.h"
+#include <cmath>
 
 static const char* vertSrc = R"(
 #version 330
@@ -317,80 +318,93 @@ void GLRenderer::drawColoredQuad(float x, float y, float w, float h, uint8_t r, 
 	batch.push_back(v3);
 }
 
+void GLRenderer::drawThickLineSegment(float x1, float y1, float x2, float y2, float width, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+	float dx = x2 - x1;
+	float dy = y2 - y1;
+	float len = sqrtf(dx * dx + dy * dy);
+	if (len < 1e-6f) {
+		return;
+	}
+	float nx = (-dy / len) * (width * 0.5f);
+	float ny = (dx / len) * (width * 0.5f);
+
+	if (current_texture != 0 && !batch.empty()) {
+		flushBatch();
+	}
+	current_texture = 0;
+
+	Vertex v0 = { x1 + nx, y1 + ny, 0, 0, r, g, b, a };
+	Vertex v1 = { x1 - nx, y1 - ny, 0, 0, r, g, b, a };
+	Vertex v2 = { x2 - nx, y2 - ny, 0, 0, r, g, b, a };
+	Vertex v3 = { x2 + nx, y2 + ny, 0, 0, r, g, b, a };
+
+	batch.push_back(v0);
+	batch.push_back(v1);
+	batch.push_back(v2);
+	batch.push_back(v0);
+	batch.push_back(v2);
+	batch.push_back(v3);
+}
+
 void GLRenderer::drawRect(float x, float y, float w, float h, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float lineWidth) {
-	flushBatch();
-	Vertex verts[5] = {
-		{ x, y, 0, 0, r, g, b, a },
-		{ x + w, y, 0, 0, r, g, b, a },
-		{ x + w, y + h, 0, 0, r, g, b, a },
-		{ x, y + h, 0, 0, r, g, b, a },
-		{ x, y, 0, 0, r, g, b, a },
-	};
-	glUseProgram(program);
-	glBindVertexArray(vao);
-	glUniform1i(loc_useTexture, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
-	glLineWidth(lineWidth);
-	glDrawArrays(GL_LINE_STRIP, 0, 5);
-	glBindVertexArray(0);
-	glUseProgram(0);
+	drawThickLineSegment(x, y, x + w, y, lineWidth, r, g, b, a);
+	drawThickLineSegment(x + w, y, x + w, y + h, lineWidth, r, g, b, a);
+	drawThickLineSegment(x + w, y + h, x, y + h, lineWidth, r, g, b, a);
+	drawThickLineSegment(x, y + h, x, y, lineWidth, r, g, b, a);
 }
 
 void GLRenderer::drawLine(float x1, float y1, float x2, float y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width) {
-	flushBatch();
-	Vertex verts[2] = {
-		{ x1, y1, 0, 0, r, g, b, a },
-		{ x2, y2, 0, 0, r, g, b, a },
-	};
-	glUseProgram(program);
-	glBindVertexArray(vao);
-	glUniform1i(loc_useTexture, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_DYNAMIC_DRAW);
-	glLineWidth(width);
-	glDrawArrays(GL_LINES, 0, 2);
-	glBindVertexArray(0);
-	glUseProgram(0);
+	drawThickLineSegment(x1, y1, x2, y2, width, r, g, b, a);
 }
 
 void GLRenderer::drawLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width) {
-	flushBatch();
-	int count = pairCount * 2;
-	std::vector<Vertex> verts(count);
-	for (int i = 0; i < count; ++i) {
-		verts[i] = { vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a };
+	for (int i = 0; i < pairCount; ++i) {
+		float x1 = vertices[i * 4];
+		float y1 = vertices[i * 4 + 1];
+		float x2 = vertices[i * 4 + 2];
+		float y2 = vertices[i * 4 + 3];
+		drawThickLineSegment(x1, y1, x2, y2, width, r, g, b, a);
 	}
-	glUseProgram(program);
-	glBindVertexArray(vao);
-	glUniform1i(loc_useTexture, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(Vertex), verts.data(), GL_DYNAMIC_DRAW);
-	glLineWidth(width);
-	glDrawArrays(GL_LINES, 0, (GLsizei)count);
-	glBindVertexArray(0);
-	glUseProgram(0);
 }
 
 void GLRenderer::drawStippledLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width, int factor, uint16_t pattern) {
-	flushBatch();
+	for (int i = 0; i < pairCount; ++i) {
+		float x1 = vertices[i * 4];
+		float y1 = vertices[i * 4 + 1];
+		float x2 = vertices[i * 4 + 2];
+		float y2 = vertices[i * 4 + 3];
 
-	std::vector<Vertex> verts;
-	for (int i = 0; i < pairCount * 2; ++i) {
-		verts.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
+		float dx = x2 - x1;
+		float dy = y2 - y1;
+		float len = sqrtf(dx * dx + dy * dy);
+		if (len < 1e-6f) {
+			continue;
+		}
+
+		float dirX = dx / len;
+		float dirY = dy / len;
+		float step = (float)factor;
+		int bit = 0;
+		float pos = 0.0f;
+
+		while (pos < len) {
+			float segEnd = pos + step;
+			if (segEnd > len) {
+				segEnd = len;
+			}
+
+			if (pattern & (1 << (bit & 15))) {
+				float sx = x1 + dirX * pos;
+				float sy = y1 + dirY * pos;
+				float ex = x1 + dirX * segEnd;
+				float ey = y1 + dirY * segEnd;
+				drawThickLineSegment(sx, sy, ex, ey, width, r, g, b, a);
+			}
+
+			pos = segEnd;
+			bit++;
+		}
 	}
-
-	glUseProgram(program);
-	glBindVertexArray(vao);
-	glUniform1i(loc_useTexture, 0);
-	glUniform1i(loc_stipple, 1);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(Vertex), verts.data(), GL_DYNAMIC_DRAW);
-	glLineWidth(width);
-	glDrawArrays(GL_LINES, 0, (GLsizei)verts.size());
-	glUniform1i(loc_stipple, 0);
-	glBindVertexArray(0);
-	glUseProgram(0);
 }
 
 void GLRenderer::drawPolygon(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {

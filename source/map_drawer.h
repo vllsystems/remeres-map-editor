@@ -223,7 +223,7 @@ protected:
 	void glBlitSquare(int x, int y, const wxColor &color, int size = rme::TileSize) const;
 	void getBrushColor(BrushColor color, uint8_t &r, uint8_t &g, uint8_t &b, uint8_t &a);
 	void getCheckColor(Brush* brush, const Position &pos, uint8_t &r, uint8_t &g, uint8_t &b, uint8_t &a);
-	void drawRect(int x, int y, int w, int h, const wxColor &color, int width = 1);
+	void drawRect(int x, int y, int w, int h, const wxColor &color, float width = 1.0f);
 	void drawFilledRect(int x, int y, int w, int h, const wxColor &color);
 
 private:

@@ -527,22 +527,24 @@ void MapDrawer::DrawIngameBox() {
 		drawFilledRect(box_start_x, box_end_y, box_end_x - box_start_x, screensize_y * zoom, side_color);
 	}
 
+	float lineW = zoom > 1.0f ? zoom : 1.0f;
+
 	// hidden tiles
-	drawRect(box_start_x, box_start_y, box_end_x - box_start_x, box_end_y - box_start_y, *wxRED);
+	drawRect(box_start_x, box_start_y, box_end_x - box_start_x, box_end_y - box_start_y, *wxRED, lineW);
 
 	// visible tiles
 	box_start_x += rme::TileSize;
 	box_start_y += rme::TileSize;
 	box_end_x -= 2 * rme::TileSize;
 	box_end_y -= 2 * rme::TileSize;
-	drawRect(box_start_x, box_start_y, box_end_x - box_start_x, box_end_y - box_start_y, *wxGREEN);
+	drawRect(box_start_x, box_start_y, box_end_x - box_start_x, box_end_y - box_start_y, *wxGREEN, lineW);
 
 	// player position
 	box_start_x += ((rme::ClientMapWidth / 2) - 2) * rme::TileSize;
 	box_start_y += ((rme::ClientMapHeight / 2) - 2) * rme::TileSize;
 	box_end_x = box_start_x + rme::TileSize;
 	box_end_y = box_start_y + rme::TileSize;
-	drawRect(box_start_x, box_start_y, box_end_x - box_start_x, box_end_y - box_start_y, *wxGREEN);
+	drawRect(box_start_x, box_start_y, box_end_x - box_start_x, box_end_y - box_start_y, *wxGREEN, lineW);
 
 	renderer->enableTexture();
 }
@@ -567,7 +569,8 @@ void MapDrawer::DrawGrid() {
 	}
 
 	if (!verts.empty()) {
-		renderer->drawLines(verts.data(), static_cast<int>(verts.size() / 4), 255, 255, 255, 128);
+		float lineWidth = zoom > 1.0f ? zoom : 1.0f;
+		renderer->drawLines(verts.data(), static_cast<int>(verts.size() / 4), 255, 255, 255, 128, lineWidth);
 	}
 
 	renderer->enableTexture();
@@ -2216,7 +2219,7 @@ void MapDrawer::getCheckColor(Brush* brush, const Position &pos, uint8_t &r, uin
 	}
 }
 
-void MapDrawer::drawRect(int x, int y, int w, int h, const wxColor &color, int width) {
+void MapDrawer::drawRect(int x, int y, int w, int h, const wxColor &color, float width) {
 	renderer->drawRect(static_cast<float>(x), static_cast<float>(y), static_cast<float>(w), static_cast<float>(h), color.Red(), color.Green(), color.Blue(), color.Alpha(), static_cast<float>(width));
 }
 

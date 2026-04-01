@@ -63,6 +63,7 @@ private:
 	GLuint current_texture = 0;
 
 	void flushBatch();
+	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
 	// Font atlas
 	GLuint fontAtlas = 0;
