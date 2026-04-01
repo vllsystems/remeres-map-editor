@@ -9,11 +9,24 @@ static void* rmeGetGLProc(const char* name) {
 	}
 	return p;
 }
-#else
+#elif defined(__APPLE__)
 	#include <dlfcn.h>
 static void* rmeGetGLProc(const char* name) {
-	static void* lib = dlopen("libGL.so", RTLD_LAZY);
+	static void* lib = dlopen("/System/Library/Frameworks/OpenGL.framework/OpenGL", RTLD_LAZY);
 	return lib ? dlsym(lib, name) : nullptr;
+}
+#else
+	#include <dlfcn.h>
+	#include <GL/glx.h>
+static void* rmeGetGLProc(const char* name) {
+	void* p = (void*)glXGetProcAddressARB((const GLubyte*)name);
+	if (!p) {
+		static void* lib = dlopen("libGL.so.1", RTLD_LAZY);
+		if (lib) {
+			p = dlsym(lib, name);
+		}
+	}
+	return p;
 }
 #endif
 
@@ -117,20 +130,60 @@ void GLRenderer::init() {
 		return;
 	}
 
-	gladLoadGLLoader((GLADloadproc)rmeGetGLProc);
+	if (!gladLoadGLLoader((GLADloadproc)rmeGetGLProc)) {
+		wxLogError("GLRenderer::init — gladLoadGLLoader failed");
+		return;
+	}
 
 	GLuint vs = glCreateShader(GL_VERTEX_SHADER);
 	glShaderSource(vs, 1, &vertSrc, nullptr);
 	glCompileShader(vs);
+	{
+		GLint ok = 0;
+		glGetShaderiv(vs, GL_COMPILE_STATUS, &ok);
+		if (!ok) {
+			char log[512];
+			glGetShaderInfoLog(vs, sizeof(log), nullptr, log);
+			wxLogError("GLRenderer::init — vertex shader compile error: %s", log);
+			glDeleteShader(vs);
+			return;
+		}
+	}
 
 	GLuint fs = glCreateShader(GL_FRAGMENT_SHADER);
 	glShaderSource(fs, 1, &fragSrc, nullptr);
 	glCompileShader(fs);
+	{
+		GLint ok = 0;
+		glGetShaderiv(fs, GL_COMPILE_STATUS, &ok);
+		if (!ok) {
+			char log[512];
+			glGetShaderInfoLog(fs, sizeof(log), nullptr, log);
+			wxLogError("GLRenderer::init — fragment shader compile error: %s", log);
+			glDeleteShader(vs);
+			glDeleteShader(fs);
+			return;
+		}
+	}
 
 	program = glCreateProgram();
 	glAttachShader(program, vs);
 	glAttachShader(program, fs);
 	glLinkProgram(program);
+	{
+		GLint ok = 0;
+		glGetProgramiv(program, GL_LINK_STATUS, &ok);
+		if (!ok) {
+			char log[512];
+			glGetProgramInfoLog(program, sizeof(log), nullptr, log);
+			wxLogError("GLRenderer::init — program link error: %s", log);
+			glDeleteProgram(program);
+			program = 0;
+			glDeleteShader(vs);
+			glDeleteShader(fs);
+			return;
+		}
+	}
 
 	glDeleteShader(vs);
 	glDeleteShader(fs);
