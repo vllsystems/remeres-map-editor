@@ -272,17 +272,10 @@ inline int getFloorAdjustment(int floor) {
 void MapDrawer::DrawShade(int map_z) {
 	if (map_z == end_z && start_z != end_z) {
 		bool only_colors = options.isOnlyColors();
-		if (!only_colors) {
-			renderer->disableTexture();
-		}
 
 		float x = screensize_x * zoom;
 		float y = screensize_y * zoom;
 		renderer->drawColoredQuad(0, 0, x, y, 0, 0, 0, 128);
-
-		if (!only_colors) {
-			renderer->enableTexture();
-		}
 	}
 }
 
@@ -310,9 +303,6 @@ void MapDrawer::DrawMap() {
 		}
 
 		if (map_z >= end_z) {
-			if (!only_colors) {
-				renderer->enableTexture();
-			}
 
 			int nd_start_x = start_x & ~3;
 			int nd_start_y = start_y & ~3;
@@ -362,10 +352,6 @@ void MapDrawer::DrawMap() {
 				}
 			}
 
-			if (!only_colors) {
-				renderer->disableTexture();
-			}
-
 			DrawPositionIndicator(map_z);
 		}
 
@@ -376,10 +362,6 @@ void MapDrawer::DrawMap() {
 		--start_y;
 		++end_x;
 		++end_y;
-	}
-
-	if (!only_colors) {
-		renderer->enableTexture();
 	}
 }
 
@@ -404,8 +386,6 @@ void MapDrawer::DrawSecondaryMap(int map_z) {
 			normal_pos = Position(0x8000, 0x8000, 0x8);
 		}
 	}
-
-	renderer->enableTexture();
 
 	for (int map_x = start_x; map_x <= end_x; map_x++) {
 		for (int map_y = start_y; map_y <= end_y; map_y++) {
@@ -484,8 +464,6 @@ void MapDrawer::DrawSecondaryMap(int map_z) {
 			}
 		}
 	}
-
-	renderer->disableTexture();
 }
 
 void MapDrawer::DrawIngameBox() {
@@ -504,8 +482,6 @@ void MapDrawer::DrawIngameBox() {
 	int box_end_y = box_end_map_y * rme::TileSize - view_scroll_y;
 
 	static wxColor side_color(0, 0, 0, 200);
-
-	renderer->disableTexture();
 
 	// left side
 	if (box_start_map_x >= start_x) {
@@ -545,12 +521,9 @@ void MapDrawer::DrawIngameBox() {
 	box_end_x = box_start_x + rme::TileSize;
 	box_end_y = box_start_y + rme::TileSize;
 	drawRect(box_start_x, box_start_y, box_end_x - box_start_x, box_end_y - box_start_y, *wxGREEN, lineW);
-
-	renderer->enableTexture();
 }
 
 void MapDrawer::DrawGrid() {
-	renderer->disableTexture();
 
 	std::vector<float> verts;
 	for (int y = start_y; y < end_y; ++y) {
@@ -572,16 +545,12 @@ void MapDrawer::DrawGrid() {
 		float lineWidth = zoom > 1.0f ? zoom : 1.0f;
 		renderer->drawLines(verts.data(), static_cast<int>(verts.size() / 4), 255, 255, 255, 128, lineWidth);
 	}
-
-	renderer->enableTexture();
 }
 
 void MapDrawer::DrawDraggingShadow() {
 	if (!dragging || options.ingame || editor.getSelection().isBusy()) {
 		return;
 	}
-
-	renderer->enableTexture();
 
 	for (Tile* tile : editor.getSelection()) {
 		int move_z = canvas->drag_start_z - floor;
@@ -640,16 +609,12 @@ void MapDrawer::DrawDraggingShadow() {
 			}
 		}
 	}
-
-	renderer->disableTexture();
 }
 
 void MapDrawer::DrawHigherFloors() {
 	if (!options.transparent_floors || floor == 0 || floor == 8) {
 		return;
 	}
-
-	renderer->enableTexture();
 
 	int map_z = floor - 1;
 	for (int map_x = start_x; map_x <= end_x; map_x++) {
@@ -678,8 +643,6 @@ void MapDrawer::DrawHigherFloors() {
 			}
 		}
 	}
-
-	renderer->disableTexture();
 }
 
 void MapDrawer::DrawSelectionBox() {
@@ -715,8 +678,6 @@ void MapDrawer::DrawSelectionBox() {
 	lines[3][1] = cursor_ry;
 	lines[3][2] = last_click_rx;
 	lines[3][3] = last_click_ry;
-
-	renderer->disableTexture();
 	float verts[16];
 	for (int i = 0; i < 4; i++) {
 		verts[i * 4] = static_cast<float>(lines[i][0]);
@@ -725,7 +686,6 @@ void MapDrawer::DrawSelectionBox() {
 		verts[i * 4 + 3] = static_cast<float>(lines[i][3]);
 	}
 	renderer->drawStippledLines(verts, 4, 255, 255, 255, 255, 1.0f, 2, 0xAAAA);
-	renderer->enableTexture();
 }
 
 void MapDrawer::DrawLiveCursors() {
@@ -824,9 +784,6 @@ void MapDrawer::DrawBrush() {
 				renderer->drawColoredQuad(last_click_start_sx, last_click_end_sy - rme::TileSize, delta_x, rme::TileSize, cr, cg, cb, ca);
 			}
 		} else {
-			if (brush->isRaw()) {
-				renderer->enableTexture();
-			}
 
 			if (g_gui.GetBrushShape() == BRUSHSHAPE_SQUARE || brush->isSpawnMonster() || brush->isSpawnNpc()) {
 				if (brush->isRaw() || brush->isOptionalBorder()) {
@@ -936,10 +893,6 @@ void MapDrawer::DrawBrush() {
 					}
 				}
 			}
-
-			if (brush->isRaw()) {
-				renderer->disableTexture();
-			}
 		}
 	} else {
 		if (brush->isWall()) {
@@ -980,7 +933,6 @@ void MapDrawer::DrawBrush() {
 			getCheckColor(brush, Position(mouse_map_x, mouse_map_y, floor), cr, cg, cb, ca);
 			renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, cr, cg, cb, ca);
 		} else if (brush->isMonster()) {
-			renderer->enableTexture();
 			int cy = (mouse_map_y)*rme::TileSize - view_scroll_y - adjustment;
 			int cx = (mouse_map_x)*rme::TileSize - view_scroll_x - adjustment;
 			MonsterBrush* monster_brush = brush->asMonster();
@@ -989,9 +941,7 @@ void MapDrawer::DrawBrush() {
 			} else {
 				BlitCreature(cx, cy, monster_brush->getType()->outfit, SOUTH, 255, 64, 64, 160);
 			}
-			renderer->disableTexture();
 		} else if (brush->isNpc()) {
-			renderer->enableTexture();
 			int cy = (mouse_map_y)*rme::TileSize - view_scroll_y - getFloorAdjustment(floor);
 			int cx = (mouse_map_x)*rme::TileSize - view_scroll_x - getFloorAdjustment(floor);
 			NpcBrush* npcBrush = brush->asNpc();
@@ -1000,14 +950,10 @@ void MapDrawer::DrawBrush() {
 			} else {
 				BlitCreature(cx, cy, npcBrush->getType()->outfit, SOUTH, 255, 64, 64, 160);
 			}
-			renderer->disableTexture();
 		} else if (!brush->isDoodad()) {
 			RAWBrush* raw_brush = nullptr;
 			if (brush->isRaw()) { // Textured brush
-				renderer->enableTexture();
 				raw_brush = brush->asRaw();
-			} else {
-				renderer->disableTexture();
 			}
 
 			for (int y = -g_gui.GetBrushSize() - 1; y <= g_gui.GetBrushSize() + 1; y++) {
@@ -1058,12 +1004,6 @@ void MapDrawer::DrawBrush() {
 					}
 				}
 			}
-
-			if (brush->isRaw()) { // Textured brush
-				renderer->disableTexture();
-			} else {
-				renderer->enableTexture();
-			}
 		}
 	}
 }
@@ -1071,9 +1011,7 @@ void MapDrawer::DrawBrush() {
 void MapDrawer::BlitItem(int &draw_x, int &draw_y, const Tile* tile, const Item* item, bool ephemeral, int red, int green, int blue, int alpha) {
 	const ItemType &type = g_items.getItemType(item->getID());
 	if (type.id == 0) {
-		renderer->disableTexture();
 		glBlitSquare(draw_x, draw_y, *wxRED);
-		renderer->enableTexture();
 		return;
 	}
 
@@ -1085,14 +1023,10 @@ void MapDrawer::BlitItem(int &draw_x, int &draw_y, const Tile* tile, const Item*
 
 	// Ugly hacks. :)
 	if (type.id == ITEM_STAIRS && !options.ingame) {
-		renderer->disableTexture();
 		glBlitSquare(draw_x, draw_y, red, green, 0, alpha / 3 * 2);
-		renderer->enableTexture();
 		return;
 	} else if ((type.id == ITEM_NOTHING_SPECIAL || type.id == 2187) && !options.ingame) {
-		renderer->disableTexture();
 		glBlitSquare(draw_x, draw_y, red, 0, 0, alpha / 3 * 2);
-		renderer->enableTexture();
 		return;
 	}
 
@@ -1183,14 +1117,10 @@ void MapDrawer::BlitItem(int &draw_x, int &draw_y, const Position &pos, const It
 	}
 
 	if (type.id == ITEM_STAIRS && !options.ingame) { // Ugly hack yes?
-		renderer->disableTexture();
 		glBlitSquare(draw_x, draw_y, red, green, 0, alpha / 3 * 2);
-		renderer->enableTexture();
 		return;
 	} else if ((type.id == ITEM_NOTHING_SPECIAL || type.id == 2187) && !options.ingame) { // Ugly hack yes? // Beautiful!
-		renderer->disableTexture();
 		glBlitSquare(draw_x, draw_y, red, 0, 0, alpha / 3 * 2);
-		renderer->enableTexture();
 		return;
 	}
 
@@ -1512,14 +1442,12 @@ void MapDrawer::DrawTile(TileLocation* location) {
 		}
 
 		if (only_colors) {
-			renderer->disableTexture();
 			if (options.show_as_minimap) {
 				wxColor color = colorFromEightBit(tile->getMiniMapColor());
 				glBlitSquare(draw_x, draw_y, color);
 			} else if (r != 255 || g != 255 || b != 255) {
 				glBlitSquare(draw_x, draw_y, r, g, b, 128);
 			}
-			renderer->enableTexture();
 		} else {
 			if (options.show_preview && zoom <= 2.0) {
 				tile->ground->animate();
@@ -1625,7 +1553,6 @@ void MapDrawer::DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_
 }
 
 void MapDrawer::DrawHookIndicator(int x, int y, const ItemType &type) {
-	renderer->disableTexture();
 	if (type.hookSouth || type.hook == ITEM_HOOK_SOUTH) {
 		x -= 10;
 		y += 10;
@@ -1637,7 +1564,6 @@ void MapDrawer::DrawHookIndicator(int x, int y, const ItemType &type) {
 		float verts[] = { (float)x, (float)y, (float)(x + 10), (float)(y + 10), (float)(x + 10), (float)(y + 20), (float)x, (float)(y + 10) };
 		renderer->drawPolygon(verts, 4, 0, 0, 255, 200);
 	}
-	renderer->enableTexture();
 }
 
 void MapDrawer::DrawLightStrength(int x, int y, const Item*&item) {
@@ -1655,10 +1581,8 @@ void MapDrawer::DrawLightStrength(int x, int y, const Item*&item) {
 
 	const int startOffset = std::max<int>(16, 32 - light.intensity);
 	const int sqSize = rme::TileSize - startOffset;
-	renderer->disableTexture();
 	glBlitSquare(x + startOffset - 2, y + startOffset - 2, 0, 0, 0, byteA, sqSize + 2);
 	glBlitSquare(x + startOffset - 1, y + startOffset - 1, byteR, byteG, byteB, byteA, sqSize);
-	renderer->enableTexture();
 }
 
 void MapDrawer::DrawTileIndicators(TileLocation* location) {
@@ -1755,18 +1679,14 @@ void MapDrawer::DrawPositionIndicator(int z) {
 	int size = static_cast<int>(rme::TileSize * (0.3f + std::abs(500 - time % 1000) / 1000.f));
 	int offset = (rme::TileSize - size) / 2;
 
-	renderer->disableTexture();
 	drawRect(x + offset + 2, y + offset + 2, size - 4, size - 4, *wxWHITE, 2);
 	drawRect(x + offset + 1, y + offset + 1, size - 2, size - 2, *wxBLACK, 2);
-	renderer->enableTexture();
 }
 
 void MapDrawer::DrawTooltips() {
 	if (!options.show_tooltips || tooltips.empty()) {
 		return;
 	}
-
-	renderer->disableTexture();
 
 	for (MapTooltip* tooltip : tooltips) {
 		const char* text = tooltip->text.c_str();
@@ -1868,8 +1788,6 @@ void MapDrawer::DrawTooltips() {
 			}
 		}
 	}
-
-	renderer->enableTexture();
 }
 
 void MapDrawer::UpdateRAMUsage() {
@@ -2079,8 +1997,6 @@ void MapDrawer::getColor(Brush* brush, const Position &position, uint8_t &r, uin
 }
 
 void MapDrawer::TakeScreenshot(uint8_t* screenshot_buffer) {
-	glFinish(); // Wait for the operation to finish
-
 	glPixelStorei(GL_PACK_ALIGNMENT, 1); // 1 byte alignment
 
 	for (int i = 0; i < screensize_y; ++i) {

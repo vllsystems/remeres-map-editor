@@ -528,14 +528,6 @@ void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 	textA = a;
 }
 
-void GLRenderer::enableTexture() {
-	// no-op: shader handles texture state via uUseTexture
-}
-
-void GLRenderer::disableTexture() {
-	// no-op: shader handles texture state via uUseTexture
-}
-
 void GLRenderer::flush() {
 	flushBatch();
 }
