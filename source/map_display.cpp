@@ -114,8 +114,8 @@ static const int attribList[] = {
 	0 // terminador
 };
 
-MapCanvas::MapCanvas(MapWindow* parent, Editor &editor, int* /*attriblist*/) :
-	wxGLCanvas(parent, wxID_ANY, attribList, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS),
+MapCanvas::MapCanvas(MapWindow* parent, Editor &editor, int* attriblist) :
+	wxGLCanvas(parent, wxID_ANY, attriblist, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS),
 	editor(editor),
 	floor(rme::MapGroundLayer),
 	zoom(1.0),
