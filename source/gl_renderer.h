@@ -9,22 +9,26 @@
 typedef unsigned int GLuint;
 typedef int GLint;
 
+struct GLColor {
+	uint8_t r, g, b, a;
+};
+
 class GLRenderer {
 public:
 	void init();
 	void shutdown();
 
-	void drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+	void drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color);
 
 	void drawColoredQuad(float x, float y, float w, float h, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
-	void drawRect(float x, float y, float w, float h, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float lineWidth = 1.0f);
+	void drawRect(float x, float y, float w, float h, const GLColor &color, float lineWidth = 1.0f);
 
-	void drawLine(float x1, float y1, float x2, float y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width = 1.0f);
+	void drawLine(float x1, float y1, float x2, float y2, const GLColor &color, float width = 1.0f);
 
 	void drawLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width = 1.0f);
 
-	void drawStippledLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width = 1.0f, int factor = 2, uint16_t pattern = 0xAAAA);
+	void drawStippledLines(const float* vertices, int pairCount, const GLColor &color, float width = 1.0f, int factor = 2, uint16_t pattern = 0xAAAA);
 
 	void drawPolygon(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
@@ -60,7 +64,7 @@ private:
 	GLuint current_texture = 0;
 
 	void flushBatch();
-	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color);
 
 	// Font atlas
 	GLuint fontAtlas = 0;

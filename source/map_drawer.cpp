@@ -685,7 +685,7 @@ void MapDrawer::DrawSelectionBox() {
 		verts[i * 4 + 2] = static_cast<float>(lines[i][2]);
 		verts[i * 4 + 3] = static_cast<float>(lines[i][3]);
 	}
-	renderer->drawStippledLines(verts, 4, 255, 255, 255, 255, 1.0f, 2, 0xAAAA);
+	renderer->drawStippledLines(verts, 4, { 255, 255, 255, 255 }, 1.0f, 2, 0xAAAA);
 }
 
 void MapDrawer::DrawLiveCursors() {
@@ -2057,7 +2057,7 @@ void MapDrawer::glBlitTexture(int sx, int sy, int textureId, int red, int green,
 		spdlog::debug("Blitting outfit {} at ({}, {})", outfit.name, sx, sy);
 	}
 
-	renderer->drawTexturedQuad(sx, sy, width, height, textureId, uint8_t(red), uint8_t(green), uint8_t(blue), uint8_t(alpha));
+	renderer->drawTexturedQuad(sx, sy, width, height, textureId, { uint8_t(red), uint8_t(green), uint8_t(blue), uint8_t(alpha) });
 }
 
 void MapDrawer::glBlitSquare(int x, int y, uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, int size /* = rme::TileSize */) const {
@@ -2138,7 +2138,7 @@ void MapDrawer::getCheckColor(Brush* brush, const Position &pos, uint8_t &r, uin
 }
 
 void MapDrawer::drawRect(int x, int y, int w, int h, const wxColor &color, float width) {
-	renderer->drawRect(static_cast<float>(x), static_cast<float>(y), static_cast<float>(w), static_cast<float>(h), color.Red(), color.Green(), color.Blue(), color.Alpha(), static_cast<float>(width));
+	renderer->drawRect(static_cast<float>(x), static_cast<float>(y), static_cast<float>(w), static_cast<float>(h), { color.Red(), color.Green(), color.Blue(), color.Alpha() }, width);
 }
 
 void MapDrawer::drawFilledRect(int x, int y, int w, int h, const wxColor &color) {

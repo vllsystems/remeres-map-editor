@@ -2,10 +2,10 @@
 
 #ifdef _WIN32
 	#define WIN32_LEAN_AND_MEAN
-	#include <windows.h>
+	#include <Windows.h>
 static void* rmeGetGLProc(const char* name) {
-	void* p = (void*)wglGetProcAddress(name);
-	if (p == 0 || p == (void*)0x1 || p == (void*)0x2 || p == (void*)0x3 || p == (void*)-1) {
+	auto p = (void*)wglGetProcAddress(name);
+	if (p == nullptr || p == (void*)0x1 || p == (void*)0x2 || p == (void*)0x3 || p == (void*)-1) {
 		static HMODULE gl = LoadLibraryA("opengl32.dll");
 		p = (void*)GetProcAddress(gl, name);
 	}
@@ -35,9 +35,10 @@ static void* rmeGetGLProc(const char* name) {
 
 #include "main.h"
 #include "gl_renderer.h"
+#include <array>
 #include <cmath>
 
-static const char* vertSrc = R"(
+static const char* const vertSrc = R"(
 #version 330
 layout(location=0) in vec2 aPos;
 layout(location=1) in vec2 aUV;
@@ -52,7 +53,7 @@ void main(){
 }
 )";
 
-static const char* fragSrc = R"(
+static const char* const fragSrc = R"(
 #version 330
 in vec2 vUV;
 in vec4 vColor;
@@ -91,7 +92,7 @@ void GLRenderer::initFontAtlas() {
 		dc.SetTextForeground(*wxWHITE);
 
 		for (int i = 0; i < 96; ++i) {
-			char c = (char)(32 + i);
+			auto c = (char)(32 + i);
 			int col = i % COLS;
 			int row = i / COLS;
 			dc.DrawText(wxString(c), col * GLYPH_W, row * GLYPH_H);
@@ -145,9 +146,9 @@ void GLRenderer::init() {
 		GLint ok = 0;
 		glGetShaderiv(vs, GL_COMPILE_STATUS, &ok);
 		if (!ok) {
-			char log[512];
-			glGetShaderInfoLog(vs, sizeof(log), nullptr, log);
-			wxLogError("GLRenderer::init — vertex shader compile error: %s", log);
+			std::array<char, 512> log {};
+			glGetShaderInfoLog(vs, log.size(), nullptr, log.data());
+			wxLogError("GLRenderer::init — vertex shader compile error: %s", log.data());
 			glDeleteShader(vs);
 			return;
 		}
@@ -160,9 +161,9 @@ void GLRenderer::init() {
 		GLint ok = 0;
 		glGetShaderiv(fs, GL_COMPILE_STATUS, &ok);
 		if (!ok) {
-			char log[512];
-			glGetShaderInfoLog(fs, sizeof(log), nullptr, log);
-			wxLogError("GLRenderer::init — fragment shader compile error: %s", log);
+			std::array<char, 512> log {};
+			glGetShaderInfoLog(fs, log.size(), nullptr, log.data());
+			wxLogError("GLRenderer::init — fragment shader compile error: %s", log.data());
 			glDeleteShader(vs);
 			glDeleteShader(fs);
 			return;
@@ -177,9 +178,9 @@ void GLRenderer::init() {
 		GLint ok = 0;
 		glGetProgramiv(program, GL_LINK_STATUS, &ok);
 		if (!ok) {
-			char log[512];
-			glGetProgramInfoLog(program, sizeof(log), nullptr, log);
-			wxLogError("GLRenderer::init — program link error: %s", log);
+			std::array<char, 512> log {};
+			glGetProgramInfoLog(program, log.size(), nullptr, log.data());
+			wxLogError("GLRenderer::init — program link error: %s", log.data());
 			glDeleteProgram(program);
 			program = 0;
 			glDeleteShader(vs);
@@ -243,7 +244,7 @@ void GLRenderer::shutdown() {
 }
 
 void GLRenderer::setOrtho(float left, float right, float bottom, float top) {
-	float m[16] = { 0 };
+	std::array<float, 16> m {};
 	m[0] = 2.0f / (right - left);
 	m[5] = 2.0f / (top - bottom);
 	m[10] = -1.0f;
@@ -252,7 +253,7 @@ void GLRenderer::setOrtho(float left, float right, float bottom, float top) {
 	m[15] = 1.0f;
 
 	glUseProgram(program);
-	glUniformMatrix4fv(loc_projection, 1, GL_FALSE, m);
+	glUniformMatrix4fv(loc_projection, 1, GL_FALSE, m.data());
 	glUseProgram(0);
 }
 
@@ -282,16 +283,16 @@ void GLRenderer::flushBatch() {
 	batch.clear();
 }
 
-void GLRenderer::drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+void GLRenderer::drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color) {
 	if (current_texture != textureId && !batch.empty()) {
 		flushBatch();
 	}
 	current_texture = textureId;
 
-	Vertex v0 = { x, y, 0, 0, r, g, b, a };
-	Vertex v1 = { x + w, y, 1, 0, r, g, b, a };
-	Vertex v2 = { x + w, y + h, 1, 1, r, g, b, a };
-	Vertex v3 = { x, y + h, 0, 1, r, g, b, a };
+	Vertex v0 = { x, y, 0, 0, color.r, color.g, color.b, color.a };
+	Vertex v1 = { x + w, y, 1, 0, color.r, color.g, color.b, color.a };
+	Vertex v2 = { x + w, y + h, 1, 1, color.r, color.g, color.b, color.a };
+	Vertex v3 = { x, y + h, 0, 1, color.r, color.g, color.b, color.a };
 
 	batch.push_back(v0);
 	batch.push_back(v1);
@@ -320,7 +321,7 @@ void GLRenderer::drawColoredQuad(float x, float y, float w, float h, uint8_t r, 
 	batch.push_back(v3);
 }
 
-void GLRenderer::drawThickLineSegment(float x1, float y1, float x2, float y2, float width, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+void GLRenderer::drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color) {
 	float dx = x2 - x1;
 	float dy = y2 - y1;
 	float len = sqrtf(dx * dx + dy * dy);
@@ -335,10 +336,10 @@ void GLRenderer::drawThickLineSegment(float x1, float y1, float x2, float y2, fl
 	}
 	current_texture = 0;
 
-	Vertex v0 = { x1 + nx, y1 + ny, 0, 0, r, g, b, a };
-	Vertex v1 = { x1 - nx, y1 - ny, 0, 0, r, g, b, a };
-	Vertex v2 = { x2 - nx, y2 - ny, 0, 0, r, g, b, a };
-	Vertex v3 = { x2 + nx, y2 + ny, 0, 0, r, g, b, a };
+	Vertex v0 = { x1 + nx, y1 + ny, 0, 0, color.r, color.g, color.b, color.a };
+	Vertex v1 = { x1 - nx, y1 - ny, 0, 0, color.r, color.g, color.b, color.a };
+	Vertex v2 = { x2 - nx, y2 - ny, 0, 0, color.r, color.g, color.b, color.a };
+	Vertex v3 = { x2 + nx, y2 + ny, 0, 0, color.r, color.g, color.b, color.a };
 
 	batch.push_back(v0);
 	batch.push_back(v1);
@@ -348,28 +349,29 @@ void GLRenderer::drawThickLineSegment(float x1, float y1, float x2, float y2, fl
 	batch.push_back(v3);
 }
 
-void GLRenderer::drawRect(float x, float y, float w, float h, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float lineWidth) {
-	drawThickLineSegment(x, y, x + w, y, lineWidth, r, g, b, a);
-	drawThickLineSegment(x + w, y, x + w, y + h, lineWidth, r, g, b, a);
-	drawThickLineSegment(x + w, y + h, x, y + h, lineWidth, r, g, b, a);
-	drawThickLineSegment(x, y + h, x, y, lineWidth, r, g, b, a);
+void GLRenderer::drawRect(float x, float y, float w, float h, const GLColor &color, float lineWidth) {
+	drawThickLineSegment(x, y, x + w, y, lineWidth, color);
+	drawThickLineSegment(x + w, y, x + w, y + h, lineWidth, color);
+	drawThickLineSegment(x + w, y + h, x, y + h, lineWidth, color);
+	drawThickLineSegment(x, y + h, x, y, lineWidth, color);
 }
 
-void GLRenderer::drawLine(float x1, float y1, float x2, float y2, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width) {
-	drawThickLineSegment(x1, y1, x2, y2, width, r, g, b, a);
+void GLRenderer::drawLine(float x1, float y1, float x2, float y2, const GLColor &color, float width) {
+	drawThickLineSegment(x1, y1, x2, y2, width, color);
 }
 
 void GLRenderer::drawLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width) {
+	GLColor c = { r, g, b, a };
 	for (int i = 0; i < pairCount; ++i) {
 		float x1 = vertices[i * 4];
 		float y1 = vertices[i * 4 + 1];
 		float x2 = vertices[i * 4 + 2];
 		float y2 = vertices[i * 4 + 3];
-		drawThickLineSegment(x1, y1, x2, y2, width, r, g, b, a);
+		drawThickLineSegment(x1, y1, x2, y2, width, c);
 	}
 }
 
-void GLRenderer::drawStippledLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width, int factor, uint16_t pattern) {
+void GLRenderer::drawStippledLines(const float* vertices, int pairCount, const GLColor &color, float width, int factor, uint16_t pattern) {
 	for (int i = 0; i < pairCount; ++i) {
 		float x1 = vertices[i * 4];
 		float y1 = vertices[i * 4 + 1];
@@ -400,7 +402,7 @@ void GLRenderer::drawStippledLines(const float* vertices, int pairCount, uint8_t
 				float sy = y1 + dirY * pos;
 				float ex = x1 + dirX * segEnd;
 				float ey = y1 + dirY * segEnd;
-				drawThickLineSegment(sx, sy, ex, ey, width, r, g, b, a);
+				drawThickLineSegment(sx, sy, ex, ey, width, color);
 			}
 
 			pos = segEnd;

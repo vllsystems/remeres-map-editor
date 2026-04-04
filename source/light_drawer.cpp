@@ -87,7 +87,7 @@ void LightDrawer::draw(int map_x, int map_y, int end_x, int end_y, int scroll_x,
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer.data());
 	glBlendFunc(GL_DST_COLOR, GL_ONE_MINUS_SRC_ALPHA);
 
-	renderer->drawTexturedQuad(static_cast<float>(draw_x), static_cast<float>(draw_y), static_cast<float>(draw_width), static_cast<float>(draw_height), texture, 255, 255, 255, 255);
+	renderer->drawTexturedQuad(static_cast<float>(draw_x), static_cast<float>(draw_y), static_cast<float>(draw_width), static_cast<float>(draw_height), texture, { 255, 255, 255, 255 });
 	renderer->flush();
 
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
