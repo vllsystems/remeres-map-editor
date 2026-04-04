@@ -1,3 +1,5 @@
+#include <glad/glad.h>
+
 #ifdef _WIN32
 	#define WIN32_LEAN_AND_MEAN
 	#include <windows.h>
@@ -17,7 +19,8 @@ static void* rmeGetGLProc(const char* name) {
 }
 #else
 	#include <dlfcn.h>
-	#include <GL/glx.h>
+typedef void (*__GLXextFuncPtr)(void);
+extern "C" __GLXextFuncPtr glXGetProcAddressARB(const unsigned char*);
 static void* rmeGetGLProc(const char* name) {
 	void* p = (void*)glXGetProcAddressARB((const GLubyte*)name);
 	if (!p) {
@@ -30,7 +33,6 @@ static void* rmeGetGLProc(const char* name) {
 }
 #endif
 
-#include <glad/glad.h>
 #include "main.h"
 #include "gl_renderer.h"
 #include <cmath>
