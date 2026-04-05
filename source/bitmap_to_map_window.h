@@ -58,6 +58,7 @@ enum {
 	BITMAP_TO_MAP_DELETE_COLOR,
 	BITMAP_TO_MAP_FILTER,
 	BITMAP_TO_MAP_COLOR_LIST,
+	BITMAP_TO_MAP_INSTRUCTIONS,
 };
 
 class BitmapToMapWindow : public wxDialog {
@@ -79,6 +80,7 @@ private:
 	void OnClickSavePreset(wxCommandEvent &event);
 	void OnClickLoadPreset(wxCommandEvent &event);
 	void OnClickDeleteColor(wxCommandEvent &event);
+	void OnClickInstructions(wxCommandEvent &event);
 	void OnFilterColors(wxCommandEvent &event);
 	void OnColorListActivated(wxListEvent &event);
 

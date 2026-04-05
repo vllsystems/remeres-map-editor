@@ -37,6 +37,7 @@ EVT_BUTTON(BITMAP_TO_MAP_CROP, BitmapToMapWindow::OnClickCrop)
 EVT_BUTTON(BITMAP_TO_MAP_SAVE_PRESET, BitmapToMapWindow::OnClickSavePreset)
 EVT_BUTTON(BITMAP_TO_MAP_LOAD_PRESET, BitmapToMapWindow::OnClickLoadPreset)
 EVT_BUTTON(BITMAP_TO_MAP_DELETE_COLOR, BitmapToMapWindow::OnClickDeleteColor)
+EVT_BUTTON(BITMAP_TO_MAP_INSTRUCTIONS, BitmapToMapWindow::OnClickInstructions)
 EVT_TEXT(BITMAP_TO_MAP_FILTER, BitmapToMapWindow::OnFilterColors)
 EVT_LIST_ITEM_ACTIVATED(BITMAP_TO_MAP_COLOR_LIST, BitmapToMapWindow::OnColorListActivated)
 END_EVENT_TABLE()
@@ -183,6 +184,7 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	wxBoxSizer* presetSizer = newd wxBoxSizer(wxHORIZONTAL);
 	presetSizer->Add(newd wxButton(this, BITMAP_TO_MAP_SAVE_PRESET, "Save Preset"), 0, wxALL, 2);
 	presetSizer->Add(newd wxButton(this, BITMAP_TO_MAP_LOAD_PRESET, "Load Preset"), 0, wxALL, 2);
+	presetSizer->Add(newd wxButton(this, BITMAP_TO_MAP_INSTRUCTIONS, "Instructions"), 0, wxALL, 2);
 	rightSizer->Add(presetSizer, 0, wxALIGN_CENTER);
 
 	// Progress bar
@@ -857,4 +859,43 @@ void BitmapToMapWindow::recalculatePixelCounts() {
 	}
 
 	populateColorList();
+}
+
+void BitmapToMapWindow::OnClickInstructions(wxCommandEvent &event) {
+	wxString info;
+	info << "=== Bitmap to Map - Instructions ===\n\n";
+	info << "1. Paint your map image using the colors below\n";
+	info << "2. Save as PNG (never JPEG)\n";
+	info << "3. Load the image in this dialog\n";
+	info << "4. Colors are auto-detected and brushes auto-suggested\n";
+	info << "5. Double-click a color to change its brush\n";
+	info << "6. Click Generate to create the map\n\n";
+	info << "=== Minimap Color Reference ===\n\n";
+	info << "Hex        RGB              Terrain\n";
+	info << "---------- ---------------- --------------------------\n";
+	info << "#33CC00    (51, 204, 0)     Grass (grama)\n";
+	info << "#336600    (51, 102, 0)     Dark grass / swamp\n";
+	info << "#006600    (0, 102, 0)      Trees / floresta densa\n";
+	info << "#00CC00    (0, 204, 0)      Light vegetation\n";
+	info << "#00FF00    (0, 255, 0)      Bright green\n";
+	info << "#0066CC    (0, 102, 204)    Deep water (agua funda)\n";
+	info << "#66CCFF    (102, 204, 255)  Shallow water / ice\n";
+	info << "#CCCC66    (204, 204, 102)  Sand (areia)\n";
+	info << "#996633    (153, 102, 51)   Dirt (terra)\n";
+	info << "#993300    (153, 51, 0)     Wood / brown\n";
+	info << "#999999    (153, 153, 153)  Stone / pavement\n";
+	info << "#666666    (102, 102, 102)  Cave floor / dark stone\n";
+	info << "#CCCCCC    (204, 204, 204)  Light stone / marble\n";
+	info << "#FFFFFF    (255, 255, 255)  Snow / ice\n";
+	info << "#CC3300    (204, 51, 0)     Lava\n";
+	info << "#FFFF00    (255, 255, 0)    Yellow (special)\n";
+	info << "#000000    (0, 0, 0)        Void / ignore\n\n";
+	info << "=== Tips ===\n\n";
+	info << "- Use solid colors (bucket fill, no anti-aliasing)\n";
+	info << "- PNG format preserves exact colors\n";
+	info << "- JPEG creates color artifacts - avoid it\n";
+	info << "- Tolerance controls how much color variation is accepted\n";
+	info << "- Use View > Show as Minimap in RME to see actual colors\n";
+
+	g_gui.ShowTextBox(this, "Bitmap to Map - Instructions", info);
 }
