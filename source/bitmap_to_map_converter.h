@@ -24,22 +24,22 @@ struct ConvertResult {
 
 class BitmapToMapConverter {
 public:
-	BitmapToMapConverter(Editor& editor);
+	BitmapToMapConverter(Editor &editor);
 	~BitmapToMapConverter() = default;
 
 	ConvertResult convert(
-		const wxImage& image,
-		const std::vector<ColorMapping>& mappings,
+		const wxImage &image,
+		const std::vector<ColorMapping> &mappings,
 		int tolerance,
 		int offsetX, int offsetY, int offsetZ
 	);
 
 private:
-	Editor& editor;
+	Editor &editor;
 
 	const ColorMapping* findMatchingColor(
 		uint8_t r, uint8_t g, uint8_t b,
-		const std::vector<ColorMapping>& mappings,
+		const std::vector<ColorMapping> &mappings,
 		int tolerance
 	) const;
 };

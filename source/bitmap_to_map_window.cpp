@@ -422,7 +422,7 @@ void BitmapToMapWindow::OnClickCrop(wxCommandEvent &event) {
 	wxMessageBox("Crop not implemented yet.", "Info", wxOK);
 }
 
-void BitmapToMapWindow::OnClickGenerate(wxCommandEvent& event) {
+void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
 	if (!imageLoaded) {
 		wxMessageBox("Please load an image first.", "Error", wxOK | wxICON_ERROR, this);
 		return;
@@ -430,7 +430,7 @@ void BitmapToMapWindow::OnClickGenerate(wxCommandEvent& event) {
 
 	// Build color mappings from detected colors
 	std::vector<ColorMapping> mappings;
-	for (const auto& dc : detectedColors) {
+	for (const auto &dc : detectedColors) {
 		ColorMapping cm;
 		cm.r = dc.r;
 		cm.g = dc.g;
@@ -450,9 +450,9 @@ void BitmapToMapWindow::OnClickGenerate(wxCommandEvent& event) {
 
 	if (result.success) {
 		wxMessageBox(
-			wxString::Format("Map generated!\n\nTiles placed: %d\nPixels skipped: %d",
-				result.tilesPlaced, result.tilesSkipped),
-			"Bitmap to Map", wxOK | wxICON_INFORMATION, this);
+			wxString::Format("Map generated!\n\nTiles placed: %d\nPixels skipped: %d", result.tilesPlaced, result.tilesSkipped),
+			"Bitmap to Map", wxOK | wxICON_INFORMATION, this
+		);
 	} else {
 		wxMessageBox(result.errorMessage, "Error", wxOK | wxICON_ERROR, this);
 	}

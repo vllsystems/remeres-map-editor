@@ -10,22 +10,22 @@
 #include "gui.h"
 #include "settings.h"
 
-BitmapToMapConverter::BitmapToMapConverter(Editor& editor) :
+BitmapToMapConverter::BitmapToMapConverter(Editor &editor) :
 	editor(editor) {
 }
 
 const ColorMapping* BitmapToMapConverter::findMatchingColor(
 	uint8_t r, uint8_t g, uint8_t b,
-	const std::vector<ColorMapping>& mappings,
+	const std::vector<ColorMapping> &mappings,
 	int tolerance
 ) const {
 	const ColorMapping* bestMatch = nullptr;
 	int bestDistance = tolerance + 1;
 
-	for (const auto& mapping : mappings) {
+	for (const auto &mapping : mappings) {
 		int distance = std::abs((int)r - (int)mapping.r)
-					 + std::abs((int)g - (int)mapping.g)
-					 + std::abs((int)b - (int)mapping.b);
+			+ std::abs((int)g - (int)mapping.g)
+			+ std::abs((int)b - (int)mapping.b);
 		if (distance <= tolerance && distance < bestDistance) {
 			bestDistance = distance;
 			bestMatch = &mapping;
@@ -35,8 +35,8 @@ const ColorMapping* BitmapToMapConverter::findMatchingColor(
 }
 
 ConvertResult BitmapToMapConverter::convert(
-	const wxImage& image,
-	const std::vector<ColorMapping>& mappings,
+	const wxImage &image,
+	const std::vector<ColorMapping> &mappings,
 	int tolerance,
 	int offsetX, int offsetY, int offsetZ
 ) {
@@ -55,7 +55,7 @@ ConvertResult BitmapToMapConverter::convert(
 		return result;
 	}
 
-	Map& map = editor.getMap();
+	Map &map = editor.getMap();
 	int imgWidth = image.GetWidth();
 	int imgHeight = image.GetHeight();
 	int totalPixels = imgWidth * imgHeight;
@@ -155,7 +155,7 @@ ConvertResult BitmapToMapConverter::convert(
 		int bordersDone = 0;
 		int totalBorders = static_cast<int>(borderPositions.size());
 
-		for (const Position& pos : borderPositions) {
+		for (const Position &pos : borderPositions) {
 			if (bordersDone % 4096 == 0) {
 				g_gui.SetLoadDone(static_cast<int32_t>(50 + 49.0 * bordersDone / totalBorders));
 			}
