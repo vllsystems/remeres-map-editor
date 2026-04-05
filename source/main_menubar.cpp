@@ -920,7 +920,8 @@ void MainMenuBar::OnImportBitmapToMap(wxCommandEvent &WXUNUSED(event)) {
 	if (!g_gui.IsEditorOpen()) {
 		return;
 	}
-	g_gui.PopupDialog("Bitmap to Map", "Feature coming soon!", wxOK);
+	BitmapToMapWindow dlg(g_gui.root, *g_gui.GetCurrentEditor());
+	dlg.ShowModal();
 }
 
 void MainMenuBar::OnExportMinimap(wxCommandEvent &WXUNUSED(event)) {

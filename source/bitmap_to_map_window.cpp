@@ -18,6 +18,7 @@
 #include "main.h"
 
 #include "bitmap_to_map_window.h"
+#include "bitmap_to_map_converter.h"
 #include "editor.h"
 #include "brush.h"
 #include "ground_brush.h"
@@ -421,8 +422,40 @@ void BitmapToMapWindow::OnClickCrop(wxCommandEvent &event) {
 	wxMessageBox("Crop not implemented yet.", "Info", wxOK);
 }
 
-void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
-	wxMessageBox("Generate not implemented yet.", "Info", wxOK);
+void BitmapToMapWindow::OnClickGenerate(wxCommandEvent& event) {
+	if (!imageLoaded) {
+		wxMessageBox("Please load an image first.", "Error", wxOK | wxICON_ERROR, this);
+		return;
+	}
+
+	// Build color mappings from detected colors
+	std::vector<ColorMapping> mappings;
+	for (const auto& dc : detectedColors) {
+		ColorMapping cm;
+		cm.r = dc.r;
+		cm.g = dc.g;
+		cm.b = dc.b;
+		cm.ignore = dc.ignore;
+		cm.brushName = dc.suggestedBrush.IsEmpty() ? "" : dc.suggestedBrush.ToStdString();
+		mappings.push_back(cm);
+	}
+
+	int tolerance = toleranceCtrl->GetValue();
+	int offX = xOffsetCtrl->GetValue();
+	int offY = yOffsetCtrl->GetValue();
+	int offZ = zOffsetCtrl->GetValue();
+
+	BitmapToMapConverter converter(editor);
+	ConvertResult result = converter.convert(loadedImage, mappings, tolerance, offX, offY, offZ);
+
+	if (result.success) {
+		wxMessageBox(
+			wxString::Format("Map generated!\n\nTiles placed: %d\nPixels skipped: %d",
+				result.tilesPlaced, result.tilesSkipped),
+			"Bitmap to Map", wxOK | wxICON_INFORMATION, this);
+	} else {
+		wxMessageBox(result.errorMessage, "Error", wxOK | wxICON_ERROR, this);
+	}
 }
 
 void BitmapToMapWindow::OnClickPreview(wxCommandEvent &event) {
