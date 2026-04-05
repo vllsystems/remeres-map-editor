@@ -26,21 +26,21 @@
 #include "common.h"
 
 BEGIN_EVENT_TABLE(BitmapToMapWindow, wxDialog)
-	EVT_BUTTON(BITMAP_TO_MAP_BROWSE, BitmapToMapWindow::OnClickBrowse)
-	EVT_BUTTON(BITMAP_TO_MAP_GENERATE, BitmapToMapWindow::OnClickGenerate)
-	EVT_BUTTON(BITMAP_TO_MAP_PREVIEW, BitmapToMapWindow::OnClickPreview)
-	EVT_BUTTON(BITMAP_TO_MAP_ROTATE_LEFT, BitmapToMapWindow::OnClickRotateLeft)
-	EVT_BUTTON(BITMAP_TO_MAP_ROTATE_RIGHT, BitmapToMapWindow::OnClickRotateRight)
-	EVT_BUTTON(BITMAP_TO_MAP_FLIP, BitmapToMapWindow::OnClickFlip)
-	EVT_BUTTON(BITMAP_TO_MAP_CROP, BitmapToMapWindow::OnClickCrop)
-	EVT_BUTTON(BITMAP_TO_MAP_SAVE_PRESET, BitmapToMapWindow::OnClickSavePreset)
-	EVT_BUTTON(BITMAP_TO_MAP_LOAD_PRESET, BitmapToMapWindow::OnClickLoadPreset)
-	EVT_BUTTON(BITMAP_TO_MAP_DELETE_COLOR, BitmapToMapWindow::OnClickDeleteColor)
-	EVT_TEXT(BITMAP_TO_MAP_FILTER, BitmapToMapWindow::OnFilterColors)
-	EVT_LIST_ITEM_ACTIVATED(BITMAP_TO_MAP_COLOR_LIST, BitmapToMapWindow::OnColorListActivated)
+EVT_BUTTON(BITMAP_TO_MAP_BROWSE, BitmapToMapWindow::OnClickBrowse)
+EVT_BUTTON(BITMAP_TO_MAP_GENERATE, BitmapToMapWindow::OnClickGenerate)
+EVT_BUTTON(BITMAP_TO_MAP_PREVIEW, BitmapToMapWindow::OnClickPreview)
+EVT_BUTTON(BITMAP_TO_MAP_ROTATE_LEFT, BitmapToMapWindow::OnClickRotateLeft)
+EVT_BUTTON(BITMAP_TO_MAP_ROTATE_RIGHT, BitmapToMapWindow::OnClickRotateRight)
+EVT_BUTTON(BITMAP_TO_MAP_FLIP, BitmapToMapWindow::OnClickFlip)
+EVT_BUTTON(BITMAP_TO_MAP_CROP, BitmapToMapWindow::OnClickCrop)
+EVT_BUTTON(BITMAP_TO_MAP_SAVE_PRESET, BitmapToMapWindow::OnClickSavePreset)
+EVT_BUTTON(BITMAP_TO_MAP_LOAD_PRESET, BitmapToMapWindow::OnClickLoadPreset)
+EVT_BUTTON(BITMAP_TO_MAP_DELETE_COLOR, BitmapToMapWindow::OnClickDeleteColor)
+EVT_TEXT(BITMAP_TO_MAP_FILTER, BitmapToMapWindow::OnFilterColors)
+EVT_LIST_ITEM_ACTIVATED(BITMAP_TO_MAP_COLOR_LIST, BitmapToMapWindow::OnColorListActivated)
 END_EVENT_TABLE()
 
-BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor& editor) :
+BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	wxDialog(parent, wxID_ANY, "Bitmap to Map", wxDefaultPosition, wxSize(900, 650)),
 	editor(editor),
 	imageLoaded(false),
@@ -53,8 +53,7 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor& editor) :
 	yOffsetCtrl(nullptr),
 	zOffsetCtrl(nullptr),
 	imageInfoLabel(nullptr),
-	progressBar(nullptr)
-{
+	progressBar(nullptr) {
 	wxBoxSizer* mainSizer = newd wxBoxSizer(wxHORIZONTAL);
 
 	// === Left panel: image preview ===
@@ -154,10 +153,8 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor& editor) :
 BitmapToMapWindow::~BitmapToMapWindow() {
 }
 
-void BitmapToMapWindow::OnClickBrowse(wxCommandEvent& event) {
-	wxFileDialog dlg(this, "Select Image", "", "",
-		"Image files (*.png;*.bmp;*.jpg;*.tga)|*.png;*.bmp;*.jpg;*.jpeg;*.tga|All files (*.*)|*.*",
-		wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+void BitmapToMapWindow::OnClickBrowse(wxCommandEvent &event) {
+	wxFileDialog dlg(this, "Select Image", "", "", "Image files (*.png;*.bmp;*.jpg;*.tga)|*.png;*.bmp;*.jpg;*.jpeg;*.tga|All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
 	if (dlg.ShowModal() != wxID_OK) {
 		return;
@@ -173,9 +170,7 @@ void BitmapToMapWindow::OnClickBrowse(wxCommandEvent& event) {
 	loadedImage = img;
 	imageLoaded = true;
 
-	imageInfoLabel->SetLabel(wxString::Format("%dx%d - %s",
-		loadedImage.GetWidth(), loadedImage.GetHeight(),
-		dlg.GetFilename()));
+	imageInfoLabel->SetLabel(wxString::Format("%dx%d - %s", loadedImage.GetWidth(), loadedImage.GetHeight(), dlg.GetFilename()));
 
 	imagePreview->SetBitmap(wxBitmap(loadedImage));
 	previewPanel->SetVirtualSize(loadedImage.GetSize());
@@ -216,17 +211,17 @@ void BitmapToMapWindow::detectColors() {
 	if ((int)colorCounts.size() > MAX_COLORS) {
 		wxMessageBox(
 			wxString::Format("Image has %d unique colors (max %d).\n\n"
-				"Consider reducing colors in an image editor first.\n"
-				"Only the top %d most frequent colors will be loaded.",
-				(int)colorCounts.size(), MAX_COLORS, MAX_COLORS),
-			"Too Many Colors", wxOK | wxICON_WARNING);
+							 "Consider reducing colors in an image editor first.\n"
+							 "Only the top %d most frequent colors will be loaded.",
+							 (int)colorCounts.size(), MAX_COLORS, MAX_COLORS),
+			"Too Many Colors", wxOK | wxICON_WARNING
+		);
 	}
 
 	std::vector<std::pair<uint32_t, int>> sorted(colorCounts.begin(), colorCounts.end());
-	std::sort(sorted.begin(), sorted.end(),
-		[](const std::pair<uint32_t, int>& a, const std::pair<uint32_t, int>& b) {
-			return a.second > b.second;
-		});
+	std::sort(sorted.begin(), sorted.end(), [](const std::pair<uint32_t, int> &a, const std::pair<uint32_t, int> &b) {
+		return a.second > b.second;
+	});
 
 	int limit = std::min((int)sorted.size(), MAX_COLORS);
 	for (int i = 0; i < limit; ++i) {
@@ -246,7 +241,7 @@ void BitmapToMapWindow::autoSuggestBrushes() {
 
 	std::vector<BrushColor> brushColors;
 
-	const BrushMap& brushMap = g_brushes.getMap();
+	const BrushMap &brushMap = g_brushes.getMap();
 	for (auto it = brushMap.begin(); it != brushMap.end(); ++it) {
 		Brush* brush = it->second;
 		if (!brush->isGround()) {
@@ -258,7 +253,7 @@ void BitmapToMapWindow::autoSuggestBrushes() {
 			continue;
 		}
 
-		const ItemType& type = g_items.getItemType(lookId);
+		const ItemType &type = g_items.getItemType(lookId);
 		if (type.id == 0 || !type.sprite) {
 			continue;
 		}
@@ -272,7 +267,7 @@ void BitmapToMapWindow::autoSuggestBrushes() {
 		brushColors.push_back({ brush->getName(), rgb.Red(), rgb.Green(), rgb.Blue() });
 	}
 
-	for (auto& dc : detectedColors) {
+	for (auto &dc : detectedColors) {
 		if (dc.r == 0 && dc.g == 0 && dc.b == 0) {
 			dc.ignore = true;
 			continue;
@@ -281,10 +276,10 @@ void BitmapToMapWindow::autoSuggestBrushes() {
 		int bestDist = 766;
 		std::string bestBrush;
 
-		for (const auto& bc : brushColors) {
+		for (const auto &bc : brushColors) {
 			int dist = std::abs((int)dc.r - bc.r)
-					 + std::abs((int)dc.g - bc.g)
-					 + std::abs((int)dc.b - bc.b);
+				+ std::abs((int)dc.g - bc.g)
+				+ std::abs((int)dc.b - bc.b);
 			if (dist < bestDist) {
 				bestDist = dist;
 				bestBrush = bc.name;
@@ -303,7 +298,7 @@ void BitmapToMapWindow::populateColorList() {
 	wxString filter = filterCtrl->GetValue().Lower();
 
 	for (size_t i = 0; i < detectedColors.size(); ++i) {
-		const auto& dc = detectedColors[i];
+		const auto &dc = detectedColors[i];
 
 		if (!filter.IsEmpty()) {
 			wxString hex = dc.toHex().Lower();
@@ -328,7 +323,7 @@ void BitmapToMapWindow::populateColorList() {
 	}
 }
 
-void BitmapToMapWindow::OnColorListActivated(wxListEvent& event) {
+void BitmapToMapWindow::OnColorListActivated(wxListEvent &event) {
 	long sel = event.GetIndex();
 	if (sel < 0) {
 		return;
@@ -339,21 +334,20 @@ void BitmapToMapWindow::OnColorListActivated(wxListEvent& event) {
 		return;
 	}
 
-	auto& dc = detectedColors[dataIdx];
+	auto &dc = detectedColors[dataIdx];
 
 	wxArrayString brushNames;
 	brushNames.Add("(ignore)");
 	brushNames.Add("(none)");
 
-	const BrushMap& brushMap = g_brushes.getMap();
+	const BrushMap &brushMap = g_brushes.getMap();
 	for (auto it = brushMap.begin(); it != brushMap.end(); ++it) {
 		if (it->second->isGround()) {
 			brushNames.Add(wxString(it->second->getName()));
 		}
 	}
 
-	wxSingleChoiceDialog chooser(this, "Select brush for color " + dc.toHex(),
-		"Choose Brush", brushNames);
+	wxSingleChoiceDialog chooser(this, "Select brush for color " + dc.toHex(), "Choose Brush", brushNames);
 
 	if (!dc.suggestedBrush.IsEmpty()) {
 		int found = brushNames.Index(dc.suggestedBrush);
@@ -378,7 +372,7 @@ void BitmapToMapWindow::OnColorListActivated(wxListEvent& event) {
 	}
 }
 
-void BitmapToMapWindow::OnClickDeleteColor(wxCommandEvent& event) {
+void BitmapToMapWindow::OnClickDeleteColor(wxCommandEvent &event) {
 	long sel = colorListCtrl->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
 	if (sel < 0) {
 		return;
@@ -393,54 +387,62 @@ void BitmapToMapWindow::OnClickDeleteColor(wxCommandEvent& event) {
 	populateColorList();
 }
 
-void BitmapToMapWindow::OnFilterColors(wxCommandEvent& event) {
+void BitmapToMapWindow::OnFilterColors(wxCommandEvent &event) {
 	populateColorList();
 }
 
-void BitmapToMapWindow::OnClickRotateLeft(wxCommandEvent& event) {
-	if (!imageLoaded) return;
+void BitmapToMapWindow::OnClickRotateLeft(wxCommandEvent &event) {
+	if (!imageLoaded) {
+		return;
+	}
 	loadedImage = loadedImage.Rotate90(false);
 	imagePreview->SetBitmap(wxBitmap(loadedImage));
 	previewPanel->SetVirtualSize(loadedImage.GetSize());
 }
 
-void BitmapToMapWindow::OnClickRotateRight(wxCommandEvent& event) {
-	if (!imageLoaded) return;
+void BitmapToMapWindow::OnClickRotateRight(wxCommandEvent &event) {
+	if (!imageLoaded) {
+		return;
+	}
 	loadedImage = loadedImage.Rotate90(true);
 	imagePreview->SetBitmap(wxBitmap(loadedImage));
 	previewPanel->SetVirtualSize(loadedImage.GetSize());
 }
 
-void BitmapToMapWindow::OnClickFlip(wxCommandEvent& event) {
-	if (!imageLoaded) return;
+void BitmapToMapWindow::OnClickFlip(wxCommandEvent &event) {
+	if (!imageLoaded) {
+		return;
+	}
 	loadedImage = loadedImage.Mirror(true);
 	imagePreview->SetBitmap(wxBitmap(loadedImage));
 }
 
-void BitmapToMapWindow::OnClickCrop(wxCommandEvent& event) {
+void BitmapToMapWindow::OnClickCrop(wxCommandEvent &event) {
 	wxMessageBox("Crop not implemented yet.", "Info", wxOK);
 }
 
-void BitmapToMapWindow::OnClickGenerate(wxCommandEvent& event) {
+void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
 	wxMessageBox("Generate not implemented yet.", "Info", wxOK);
 }
 
-void BitmapToMapWindow::OnClickPreview(wxCommandEvent& event) {
+void BitmapToMapWindow::OnClickPreview(wxCommandEvent &event) {
 	wxMessageBox("Preview not implemented yet.", "Info", wxOK);
 }
 
-void BitmapToMapWindow::OnClickSavePreset(wxCommandEvent& event) {
+void BitmapToMapWindow::OnClickSavePreset(wxCommandEvent &event) {
 	wxMessageBox("Save Preset not implemented yet.", "Info", wxOK);
 }
 
-void BitmapToMapWindow::OnClickLoadPreset(wxCommandEvent& event) {
+void BitmapToMapWindow::OnClickLoadPreset(wxCommandEvent &event) {
 	wxMessageBox("Load Preset not implemented yet.", "Info", wxOK);
 }
 
 void BitmapToMapWindow::recalculatePixelCounts() {
-	if (!imageLoaded) return;
+	if (!imageLoaded) {
+		return;
+	}
 
-	for (auto& dc : detectedColors) {
+	for (auto &dc : detectedColors) {
 		dc.pixelCount = 0;
 	}
 
@@ -451,13 +453,15 @@ void BitmapToMapWindow::recalculatePixelCounts() {
 	int h = loadedImage.GetHeight();
 
 	for (int i = 0; i < w * h; i++) {
-		if (hasAlpha && alpha[i] < 128) continue;
+		if (hasAlpha && alpha[i] < 128) {
+			continue;
+		}
 
 		uint8_t r = data[i * 3];
 		uint8_t g = data[i * 3 + 1];
 		uint8_t b = data[i * 3 + 2];
 
-		for (auto& dc : detectedColors) {
+		for (auto &dc : detectedColors) {
 			if (dc.r == r && dc.g == g && dc.b == b) {
 				dc.pixelCount++;
 				break;

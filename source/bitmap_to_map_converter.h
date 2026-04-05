@@ -7,11 +7,11 @@ class Editor;
 
 class BitmapToMapConverter {
 public:
-	BitmapToMapConverter(Editor& editor);
+	BitmapToMapConverter(Editor &editor);
 	~BitmapToMapConverter() = default;
 
 private:
-	Editor& editor;
+	Editor &editor;
 };
 
 #endif // RME_BITMAP_TO_MAP_CONVERTER_H_

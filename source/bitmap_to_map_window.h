@@ -30,9 +30,10 @@ struct DetectedColor {
 	wxString suggestedBrush;
 	bool ignore;
 
-	DetectedColor() : r(0), g(0), b(0), pixelCount(0), ignore(false) {}
+	DetectedColor() :
+		r(0), g(0), b(0), pixelCount(0), ignore(false) { }
 	DetectedColor(uint8_t r, uint8_t g, uint8_t b, int count) :
-		r(r), g(g), b(b), pixelCount(count), ignore(false) {}
+		r(r), g(g), b(b), pixelCount(count), ignore(false) { }
 
 	wxString toHex() const {
 		return wxString::Format("#%02X%02X%02X", r, g, b);
@@ -61,29 +62,29 @@ enum {
 
 class BitmapToMapWindow : public wxDialog {
 public:
-	BitmapToMapWindow(wxWindow* parent, Editor& editor);
+	BitmapToMapWindow(wxWindow* parent, Editor &editor);
 	virtual ~BitmapToMapWindow();
 
 private:
-	void OnClickBrowse(wxCommandEvent& event);
-	void OnClickGenerate(wxCommandEvent& event);
-	void OnClickPreview(wxCommandEvent& event);
-	void OnClickRotateLeft(wxCommandEvent& event);
-	void OnClickRotateRight(wxCommandEvent& event);
-	void OnClickFlip(wxCommandEvent& event);
-	void OnClickCrop(wxCommandEvent& event);
-	void OnClickSavePreset(wxCommandEvent& event);
-	void OnClickLoadPreset(wxCommandEvent& event);
-	void OnClickDeleteColor(wxCommandEvent& event);
-	void OnFilterColors(wxCommandEvent& event);
-	void OnColorListActivated(wxListEvent& event);
+	void OnClickBrowse(wxCommandEvent &event);
+	void OnClickGenerate(wxCommandEvent &event);
+	void OnClickPreview(wxCommandEvent &event);
+	void OnClickRotateLeft(wxCommandEvent &event);
+	void OnClickRotateRight(wxCommandEvent &event);
+	void OnClickFlip(wxCommandEvent &event);
+	void OnClickCrop(wxCommandEvent &event);
+	void OnClickSavePreset(wxCommandEvent &event);
+	void OnClickLoadPreset(wxCommandEvent &event);
+	void OnClickDeleteColor(wxCommandEvent &event);
+	void OnFilterColors(wxCommandEvent &event);
+	void OnColorListActivated(wxListEvent &event);
 
 	void detectColors();
 	void autoSuggestBrushes();
 	void populateColorList();
 	void recalculatePixelCounts();
 
-	Editor& editor;
+	Editor &editor;
 	wxImage loadedImage;
 	bool imageLoaded;
 
