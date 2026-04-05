@@ -108,7 +108,6 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	cropBox->Add(cropHCtrl, 0, wxALL, 2);
 	leftSizer->Add(cropBox, 0, wxEXPAND | wxALL, 5);
 
-
 	mainSizer->Add(leftSizer, 1, wxEXPAND);
 
 	// === Right panel: controls + color list ===
@@ -152,7 +151,6 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	scaleChoice->SetSelection(2); // default 1x
 	scaleSizer->Add(scaleChoice, 0, wxALL, 2);
 	rightSizer->Add(scaleSizer, 0, wxEXPAND);
-
 
 	// Filter
 	wxBoxSizer* filterSizer = newd wxBoxSizer(wxHORIZONTAL);
@@ -615,7 +613,7 @@ void BitmapToMapWindow::generateColorizedPreview() {
 		uint8_t pb = data[i * 3 + 2];
 
 		bool matched = false;
-		for (const auto& dc : detectedColors) {
+		for (const auto &dc : detectedColors) {
 			if (dc.ignore) {
 				continue;
 			}
@@ -626,7 +624,7 @@ void BitmapToMapWindow::generateColorizedPreview() {
 					if (brush) {
 						int lookId = brush->getLookID();
 						if (lookId > 0) {
-							const ItemType& type = g_items.getItemType(lookId);
+							const ItemType &type = g_items.getItemType(lookId);
 							if (type.id != 0 && type.sprite) {
 								uint16_t mc = type.sprite->getMiniMapColor();
 								if (mc != 0) {
@@ -656,7 +654,7 @@ void BitmapToMapWindow::generateColorizedPreview() {
 	previewPanel->SetVirtualSize(preview.GetSize());
 }
 
-void BitmapToMapWindow::OnPreviewMouseWheel(wxMouseEvent& event) {
+void BitmapToMapWindow::OnPreviewMouseWheel(wxMouseEvent &event) {
 	if (!imageLoaded) {
 		event.Skip();
 		return;
@@ -688,11 +686,10 @@ void BitmapToMapWindow::OnPreviewMouseWheel(wxMouseEvent& event) {
 	imagePreview->SetBitmap(wxBitmap(scaled));
 	previewPanel->SetVirtualSize(newW, newH);
 
-	imageInfoLabel->SetLabel(wxString::Format("%dx%d (zoom: %.0f%%)",
-		loadedImage.GetWidth(), loadedImage.GetHeight(), zoomLevel * 100.0));
+	imageInfoLabel->SetLabel(wxString::Format("%dx%d (zoom: %.0f%%)", loadedImage.GetWidth(), loadedImage.GetHeight(), zoomLevel * 100.0));
 }
 
-void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent& event) {
+void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent &event) {
 	if (!imageLoaded) {
 		event.Skip();
 		return;
@@ -721,7 +718,7 @@ void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent& event) {
 
 	wxString brushInfo = "(no match)";
 	int tolerance = toleranceCtrl->GetValue();
-	for (const auto& dc : detectedColors) {
+	for (const auto &dc : detectedColors) {
 		int dist = std::abs((int)r - dc.r) + std::abs((int)g - dc.g) + std::abs((int)b - dc.b);
 		if (dist <= tolerance) {
 			if (dc.ignore) {
@@ -735,8 +732,7 @@ void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent& event) {
 		}
 	}
 
-	pixelInfoLabel->SetLabel(wxString::Format("Pos: %d,%d | RGB: %d,%d,%d | #%02X%02X%02X | Brush: %s",
-		imgX, imgY, r, g, b, r, g, b, brushInfo));
+	pixelInfoLabel->SetLabel(wxString::Format("Pos: %d,%d | RGB: %d,%d,%d | #%02X%02X%02X | Brush: %s", imgX, imgY, r, g, b, r, g, b, brushInfo));
 
 	event.Skip();
 }

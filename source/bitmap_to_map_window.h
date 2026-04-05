@@ -72,11 +72,11 @@ private:
 	void OnClickRotateLeft(wxCommandEvent &event);
 	void OnClickRotateRight(wxCommandEvent &event);
 	void OnClickFlip(wxCommandEvent &event);
-	void OnClickCrop(wxCommandEvent& event);
-	void OnPreviewMouseWheel(wxMouseEvent& event);
-	void OnPreviewMouseMove(wxMouseEvent& event);
+	void OnClickCrop(wxCommandEvent &event);
+	void OnPreviewMouseWheel(wxMouseEvent &event);
+	void OnPreviewMouseMove(wxMouseEvent &event);
 	void generateColorizedPreview();
-	void OnClickSavePreset(wxCommandEvent& event);
+	void OnClickSavePreset(wxCommandEvent &event);
 	void OnClickLoadPreset(wxCommandEvent &event);
 	void OnClickDeleteColor(wxCommandEvent &event);
 	void OnFilterColors(wxCommandEvent &event);
