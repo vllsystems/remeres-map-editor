@@ -738,11 +738,93 @@ void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent &event) {
 }
 
 void BitmapToMapWindow::OnClickSavePreset(wxCommandEvent &event) {
-	wxMessageBox("Save Preset not implemented yet.", "Info", wxOK);
+	wxFileDialog dlg(this, "Save Preset", "", "",
+		"XML files (*.xml)|*.xml", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	if (dlg.ShowModal() != wxID_OK) {
+		return;
+	}
+
+	std::string filepath = nstr(dlg.GetPath());
+
+	pugi::xml_document doc;
+	pugi::xml_node decl = doc.prepend_child(pugi::node_declaration);
+	decl.append_attribute("version") = "1.0";
+
+	pugi::xml_node root = doc.append_child("bitmap_to_map_preset");
+	root.append_attribute("tolerance") = toleranceCtrl->GetValue();
+	root.append_attribute("offset_x") = xOffsetCtrl->GetValue();
+	root.append_attribute("offset_y") = yOffsetCtrl->GetValue();
+	root.append_attribute("offset_z") = zOffsetCtrl->GetValue();
+	root.append_attribute("scale") = scaleChoice->GetSelection();
+
+	for (const auto &dc : detectedColors) {
+		pugi::xml_node colorNode = root.append_child("color");
+		colorNode.append_attribute("r") = dc.r;
+		colorNode.append_attribute("g") = dc.g;
+		colorNode.append_attribute("b") = dc.b;
+		colorNode.append_attribute("brush") = dc.suggestedBrush.ToStdString().c_str();
+		colorNode.append_attribute("ignore") = dc.ignore;
+	}
+
+	if (doc.save_file(filepath.c_str(), "\t", pugi::format_default, pugi::encoding_utf8)) {
+		wxMessageBox("Preset saved successfully.", "Bitmap to Map", wxOK | wxICON_INFORMATION);
+	} else {
+		wxMessageBox("Failed to save preset.", "Error", wxOK | wxICON_ERROR);
+	}
 }
 
 void BitmapToMapWindow::OnClickLoadPreset(wxCommandEvent &event) {
-	wxMessageBox("Load Preset not implemented yet.", "Info", wxOK);
+	wxFileDialog dlg(this, "Load Preset", "", "",
+		"XML files (*.xml)|*.xml", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (dlg.ShowModal() != wxID_OK) {
+		return;
+	}
+
+	std::string filepath = nstr(dlg.GetPath());
+
+	pugi::xml_document doc;
+	pugi::xml_parse_result result = doc.load_file(filepath.c_str());
+	if (!result) {
+		wxMessageBox("Failed to load preset: Invalid XML format.", "Error", wxOK | wxICON_ERROR);
+		return;
+	}
+
+	pugi::xml_node root = doc.child("bitmap_to_map_preset");
+	if (!root) {
+		wxMessageBox("Invalid preset file: missing <bitmap_to_map_preset> root.", "Error", wxOK | wxICON_ERROR);
+		return;
+	}
+
+	// Restore settings
+	toleranceCtrl->SetValue(root.attribute("tolerance").as_int(30));
+	xOffsetCtrl->SetValue(root.attribute("offset_x").as_int(0));
+	yOffsetCtrl->SetValue(root.attribute("offset_y").as_int(0));
+	zOffsetCtrl->SetValue(root.attribute("offset_z").as_int(7));
+	scaleChoice->SetSelection(root.attribute("scale").as_int(0));
+
+	// Restore color mappings
+	detectedColors.clear();
+
+	for (pugi::xml_node colorNode : root.children("color")) {
+		DetectedColor dc;
+		dc.r = static_cast<uint8_t>(colorNode.attribute("r").as_uint(0));
+		dc.g = static_cast<uint8_t>(colorNode.attribute("g").as_uint(0));
+		dc.b = static_cast<uint8_t>(colorNode.attribute("b").as_uint(0));
+		dc.suggestedBrush = wxString(colorNode.attribute("brush").as_string(""));
+		dc.ignore = colorNode.attribute("ignore").as_bool(false);
+		dc.pixelCount = 0;
+		detectedColors.push_back(dc);
+	}
+
+	// Recalculate pixel counts if image is loaded
+	if (imageLoaded) {
+		recalculatePixelCounts();
+	} else {
+		populateColorList();
+	}
+
+	wxMessageBox(wxString::Format("Preset loaded: %zu colors.", detectedColors.size()),
+		"Bitmap to Map", wxOK | wxICON_INFORMATION);
 }
 
 void BitmapToMapWindow::recalculatePixelCounts() {
