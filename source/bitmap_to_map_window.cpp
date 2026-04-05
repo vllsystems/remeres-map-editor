@@ -738,8 +738,7 @@ void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent &event) {
 }
 
 void BitmapToMapWindow::OnClickSavePreset(wxCommandEvent &event) {
-	wxFileDialog dlg(this, "Save Preset", "", "",
-		"XML files (*.xml)|*.xml", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	wxFileDialog dlg(this, "Save Preset", "", "", "XML files (*.xml)|*.xml", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (dlg.ShowModal() != wxID_OK) {
 		return;
 	}
@@ -774,8 +773,7 @@ void BitmapToMapWindow::OnClickSavePreset(wxCommandEvent &event) {
 }
 
 void BitmapToMapWindow::OnClickLoadPreset(wxCommandEvent &event) {
-	wxFileDialog dlg(this, "Load Preset", "", "",
-		"XML files (*.xml)|*.xml", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	wxFileDialog dlg(this, "Load Preset", "", "", "XML files (*.xml)|*.xml", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 	if (dlg.ShowModal() != wxID_OK) {
 		return;
 	}
@@ -823,8 +821,7 @@ void BitmapToMapWindow::OnClickLoadPreset(wxCommandEvent &event) {
 		populateColorList();
 	}
 
-	wxMessageBox(wxString::Format("Preset loaded: %zu colors.", detectedColors.size()),
-		"Bitmap to Map", wxOK | wxICON_INFORMATION);
+	wxMessageBox(wxString::Format("Preset loaded: %zu colors.", detectedColors.size()), "Bitmap to Map", wxOK | wxICON_INFORMATION);
 }
 
 void BitmapToMapWindow::recalculatePixelCounts() {
