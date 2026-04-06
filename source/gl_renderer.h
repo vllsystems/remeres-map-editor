@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdint>
 #include <vector>
+#include <algorithm>
 
 // Minimal GL type forward declarations — full GL comes from glad in gl_renderer.cpp
 typedef unsigned int GLuint;
@@ -46,7 +47,7 @@ public:
 	static void invalidateTexture(GLuint id);
 
 private:
-	static GLRenderer* s_instance;
+	static std::vector<GLRenderer*> s_instances;
 	bool initialized = false;
 	GLuint vao = 0;
 	GLuint vbo = 0;

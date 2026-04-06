@@ -43,7 +43,7 @@ static void* rmeGetGLProc(const char* name) {
 }
 #endif
 
-GLRenderer* GLRenderer::s_instance = nullptr;
+std::vector<GLRenderer*> GLRenderer::s_instances;
 
 static const char* const vertSrc = R"(
 #version 330
@@ -137,7 +137,9 @@ void GLRenderer::initFontAtlas() {
 }
 
 void GLRenderer::init() {
-	s_instance = this;
+	if (std::find(s_instances.begin(), s_instances.end(), this) == s_instances.end()) {
+		s_instances.push_back(this);
+	}
 	if (initialized) {
 		return;
 	}
@@ -230,7 +232,7 @@ void GLRenderer::init() {
 
 void GLRenderer::shutdown() {
 	current_texture = 0;
-	s_instance = nullptr;
+	s_instances.erase(std::remove(s_instances.begin(), s_instances.end(), this), s_instances.end());
 	if (!initialized) {
 		return;
 	}
@@ -547,7 +549,9 @@ void GLRenderer::flush() {
 }
 
 void GLRenderer::invalidateTexture(GLuint id) {
-	if (s_instance && s_instance->current_texture == id) {
-		s_instance->current_texture = 0;
+	for (auto* inst : s_instances) {
+		if (inst->current_texture == id) {
+			inst->current_texture = 0;
+		}
 	}
 }
