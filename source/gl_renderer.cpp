@@ -3,6 +3,18 @@
 #ifdef _WIN32
 	#define WIN32_LEAN_AND_MEAN
 	#include <Windows.h>
+#elif defined(__APPLE__)
+	#include <dlfcn.h>
+#else
+	#include <dlfcn.h>
+#endif
+
+#include "main.h"
+#include "gl_renderer.h"
+#include <array>
+#include <cmath>
+
+#ifdef _WIN32
 static void* rmeGetGLProc(const char* name) {
 	auto p = (void*)wglGetProcAddress(name);
 	if (p == nullptr || p == (void*)0x1 || p == (void*)0x2 || p == (void*)0x3 || p == (void*)-1) {
@@ -12,13 +24,11 @@ static void* rmeGetGLProc(const char* name) {
 	return p;
 }
 #elif defined(__APPLE__)
-	#include <dlfcn.h>
 static void* rmeGetGLProc(const char* name) {
 	static void* lib = dlopen("/System/Library/Frameworks/OpenGL.framework/OpenGL", RTLD_LAZY);
 	return lib ? dlsym(lib, name) : nullptr;
 }
 #else
-	#include <dlfcn.h>
 typedef void (*__GLXextFuncPtr)(void);
 extern "C" __GLXextFuncPtr glXGetProcAddressARB(const unsigned char*);
 static void* rmeGetGLProc(const char* name) {
@@ -33,10 +43,7 @@ static void* rmeGetGLProc(const char* name) {
 }
 #endif
 
-#include "main.h"
-#include "gl_renderer.h"
-#include <array>
-#include <cmath>
+GLRenderer* GLRenderer::s_instance = nullptr;
 
 static const char* const vertSrc = R"(
 #version 330
@@ -130,6 +137,7 @@ void GLRenderer::initFontAtlas() {
 }
 
 void GLRenderer::init() {
+	s_instance = this;
 	if (initialized) {
 		return;
 	}
@@ -221,6 +229,8 @@ void GLRenderer::init() {
 }
 
 void GLRenderer::shutdown() {
+	current_texture = 0;
+	s_instance = nullptr;
 	if (!initialized) {
 		return;
 	}
@@ -302,16 +312,16 @@ void GLRenderer::drawTexturedQuad(float x, float y, float w, float h, GLuint tex
 	batch.push_back(v3);
 }
 
-void GLRenderer::drawColoredQuad(float x, float y, float w, float h, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+void GLRenderer::drawColoredQuad(float x, float y, float w, float h, const GLColor &color) {
 	if (current_texture != 0 && !batch.empty()) {
 		flushBatch();
 	}
 	current_texture = 0;
 
-	Vertex v0 = { x, y, 0, 0, r, g, b, a };
-	Vertex v1 = { x + w, y, 0, 0, r, g, b, a };
-	Vertex v2 = { x + w, y + h, 0, 0, r, g, b, a };
-	Vertex v3 = { x, y + h, 0, 0, r, g, b, a };
+	Vertex v0 = { x, y, 0, 0, color.r, color.g, color.b, color.a };
+	Vertex v1 = { x + w, y, 0, 0, color.r, color.g, color.b, color.a };
+	Vertex v2 = { x + w, y + h, 0, 0, color.r, color.g, color.b, color.a };
+	Vertex v3 = { x, y + h, 0, 0, color.r, color.g, color.b, color.a };
 
 	batch.push_back(v0);
 	batch.push_back(v1);
@@ -387,7 +397,7 @@ void GLRenderer::drawStippledLines(const float* vertices, int pairCount, const G
 
 		float dirX = dx / len;
 		float dirY = dy / len;
-		float step = (float)factor;
+		auto step = static_cast<float>(factor);
 		int bit = 0;
 		float pos = 0.0f;
 
@@ -534,4 +544,10 @@ void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 
 void GLRenderer::flush() {
 	flushBatch();
+}
+
+void GLRenderer::invalidateTexture(GLuint id) {
+	if (s_instance && s_instance->current_texture == id) {
+		s_instance->current_texture = 0;
+	}
 }

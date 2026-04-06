@@ -28,6 +28,7 @@
 #include "sprite_appearances.h"
 #include "sprites.h"
 #include "pngfiles.h"
+#include "gl_renderer.h"
 
 #include <wx/rawbmp.h>
 
@@ -1093,7 +1094,8 @@ uint8_t GameSprite::getMiniMapColor() const {
 }
 
 int GameSprite::getIndex(int width, int height, int layer, int pattern_x, int pattern_y, int pattern_z, int frame) const {
-	return ((((frame % this->sprite_phase_size) * this->pattern_z + pattern_z) * this->pattern_y + pattern_y) * this->pattern_x + pattern_x) * this->layers + layer;
+	const int phase_count = std::max<int>(1, this->sprite_phase_size);
+	return ((((frame % phase_count) * this->pattern_z + pattern_z) * this->pattern_y + pattern_y) * this->pattern_x + pattern_x) * this->layers + layer;
 }
 
 GLuint GameSprite::getHardwareID(int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame) {
@@ -1248,6 +1250,7 @@ void GameSprite::Image::createGLTexture(GLuint textureId) {
 void GameSprite::Image::unloadGLTexture(GLuint textureId) {
 	isGLLoaded = false;
 	g_gui.gfx.loaded_textures -= 1;
+	GLRenderer::invalidateTexture(textureId);
 	glDeleteTextures(1, &textureId);
 }
 
@@ -1353,6 +1356,7 @@ void GameSprite::NormalImage::unloadGLTexture(GLuint) {
 	if (glTextureId != 0) {
 		isGLLoaded = false;
 		g_gui.gfx.loaded_textures -= 1;
+		GLRenderer::invalidateTexture(glTextureId);
 		glDeleteTextures(1, &glTextureId);
 		glTextureId = 0;
 	}
@@ -1434,6 +1438,7 @@ void GameSprite::OutfitImage::unloadGLTexture(GLuint) {
 		isGLLoaded = false;
 		m_isGLLoaded = false;
 		g_gui.gfx.loaded_textures -= 1;
+		GLRenderer::invalidateTexture(m_textureId);
 		glDeleteTextures(1, &m_textureId);
 		m_textureId = 0;
 	}

@@ -20,7 +20,7 @@ public:
 
 	void drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color);
 
-	void drawColoredQuad(float x, float y, float w, float h, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+	void drawColoredQuad(float x, float y, float w, float h, const GLColor &color);
 
 	void drawRect(float x, float y, float w, float h, const GLColor &color, float lineWidth = 1.0f);
 
@@ -43,8 +43,10 @@ public:
 	void setOrtho(float left, float right, float bottom, float top);
 
 	void flush();
+	static void invalidateTexture(GLuint id);
 
 private:
+	static GLRenderer* s_instance;
 	bool initialized = false;
 	GLuint vao = 0;
 	GLuint vbo = 0;

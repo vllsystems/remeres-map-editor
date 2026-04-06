@@ -275,7 +275,7 @@ void MapDrawer::DrawShade(int map_z) {
 
 		float x = screensize_x * zoom;
 		float y = screensize_y * zoom;
-		renderer->drawColoredQuad(0, 0, x, y, 0, 0, 0, 128);
+		renderer->drawColoredQuad(0, 0, x, y, {0, 0, 0, 128});
 	}
 }
 
@@ -347,7 +347,7 @@ void MapDrawer::DrawMap() {
 						int cy = (nd_map_y)*rme::TileSize - view_scroll_y - getFloorAdjustment(floor);
 						int cx = (nd_map_x)*rme::TileSize - view_scroll_x - getFloorAdjustment(floor);
 
-						renderer->drawColoredQuad(cx, cy, rme::TileSize * 4, rme::TileSize * 4, 255, 0, 255, 128);
+						renderer->drawColoredQuad(cx, cy, rme::TileSize * 4, rme::TileSize * 4, {255, 0, 255, 128});
 					}
 				}
 			}
@@ -722,7 +722,7 @@ void MapDrawer::DrawLiveCursors() {
 		float draw_x = ((cursor.pos.x * rme::TileSize) - view_scroll_x) - offset;
 		float draw_y = ((cursor.pos.y * rme::TileSize) - view_scroll_y) - offset;
 
-		renderer->drawColoredQuad(draw_x, draw_y, rme::TileSize, rme::TileSize, cursor.color.Red(), cursor.color.Green(), cursor.color.Blue(), cursor.color.Alpha());
+		renderer->drawColoredQuad(draw_x, draw_y, rme::TileSize, rme::TileSize, {cursor.color.Red(), cursor.color.Green(), cursor.color.Blue(), cursor.color.Alpha()});
 	}
 }
 
@@ -770,18 +770,19 @@ void MapDrawer::DrawBrush() {
 			uint8_t cr, cg, cb, ca;
 			getBrushColor(brushColor, cr, cg, cb, ca);
 
-			renderer->drawColoredQuad(last_click_start_sx, last_click_start_sy, delta_x, rme::TileSize, cr, cg, cb, ca);
+			GLColor brushClr = {cr, cg, cb, ca};
+			renderer->drawColoredQuad(last_click_start_sx, last_click_start_sy, delta_x, rme::TileSize, brushClr);
 
 			if (delta_y > rme::TileSize) {
-				renderer->drawColoredQuad(last_click_start_sx, last_click_start_sy + rme::TileSize, rme::TileSize, delta_y - 2 * rme::TileSize, cr, cg, cb, ca);
+				renderer->drawColoredQuad(last_click_start_sx, last_click_start_sy + rme::TileSize, rme::TileSize, delta_y - 2 * rme::TileSize, brushClr);
 			}
 
 			if (delta_x > rme::TileSize && delta_y > rme::TileSize) {
-				renderer->drawColoredQuad(last_click_end_sx - rme::TileSize, last_click_start_sy + rme::TileSize, rme::TileSize, delta_y - 2 * rme::TileSize, cr, cg, cb, ca);
+				renderer->drawColoredQuad(last_click_end_sx - rme::TileSize, last_click_start_sy + rme::TileSize, rme::TileSize, delta_y - 2 * rme::TileSize, brushClr);
 			}
 
 			if (delta_y > rme::TileSize) {
-				renderer->drawColoredQuad(last_click_start_sx, last_click_end_sy - rme::TileSize, delta_x, rme::TileSize, cr, cg, cb, ca);
+				renderer->drawColoredQuad(last_click_start_sx, last_click_end_sy - rme::TileSize, delta_x, rme::TileSize, brushClr);
 			}
 		} else {
 
@@ -817,7 +818,7 @@ void MapDrawer::DrawBrush() {
 							if (brush->isOptionalBorder()) {
 								uint8_t cr, cg, cb, ca;
 								getCheckColor(brush, Position(x, y, floor), cr, cg, cb, ca);
-								renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, cr, cg, cb, ca);
+								renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, {cr, cg, cb, ca});
 							} else {
 								BlitSpriteType(cx, cy, raw_brush->getItemType()->sprite, 160, 160, 160, 160);
 							}
@@ -836,7 +837,7 @@ void MapDrawer::DrawBrush() {
 
 					uint8_t cr, cg, cb, ca;
 					getBrushColor(brushColor, cr, cg, cb, ca);
-					renderer->drawColoredQuad(last_click_start_sx, last_click_start_sy, last_click_end_sx - last_click_start_sx, last_click_end_sy - last_click_start_sy, cr, cg, cb, ca);
+					renderer->drawColoredQuad(last_click_start_sx, last_click_start_sy, last_click_end_sx - last_click_start_sx, last_click_end_sy - last_click_start_sy, {cr, cg, cb, ca});
 				}
 			} else if (g_gui.GetBrushShape() == BRUSHSHAPE_CIRCLE) {
 				// Calculate drawing offsets
@@ -887,7 +888,7 @@ void MapDrawer::DrawBrush() {
 							} else {
 								uint8_t cr, cg, cb, ca;
 								getBrushColor(brushColor, cr, cg, cb, ca);
-								renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, cr, cg, cb, ca);
+								renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, {cr, cg, cb, ca});
 							}
 						}
 					}
@@ -912,18 +913,19 @@ void MapDrawer::DrawBrush() {
 			uint8_t cr, cg, cb, ca;
 			getBrushColor(brushColor, cr, cg, cb, ca);
 
-			renderer->drawColoredQuad(start_sx, start_sy, delta_x, rme::TileSize, cr, cg, cb, ca);
+			GLColor brushClr = {cr, cg, cb, ca};
+			renderer->drawColoredQuad(start_sx, start_sy, delta_x, rme::TileSize, brushClr);
 
 			if (delta_y > rme::TileSize) {
-				renderer->drawColoredQuad(start_sx, start_sy + rme::TileSize, rme::TileSize, delta_y - 2 * rme::TileSize, cr, cg, cb, ca);
+				renderer->drawColoredQuad(start_sx, start_sy + rme::TileSize, rme::TileSize, delta_y - 2 * rme::TileSize, brushClr);
 			}
 
 			if (delta_x > rme::TileSize && delta_y > rme::TileSize) {
-				renderer->drawColoredQuad(end_sx - rme::TileSize, start_sy + rme::TileSize, rme::TileSize, delta_y - 2 * rme::TileSize, cr, cg, cb, ca);
+				renderer->drawColoredQuad(end_sx - rme::TileSize, start_sy + rme::TileSize, rme::TileSize, delta_y - 2 * rme::TileSize, brushClr);
 			}
 
 			if (delta_y > rme::TileSize) {
-				renderer->drawColoredQuad(start_sx, end_sy - rme::TileSize, delta_x, rme::TileSize, cr, cg, cb, ca);
+				renderer->drawColoredQuad(start_sx, end_sy - rme::TileSize, delta_x, rme::TileSize, brushClr);
 			}
 		} else if (brush->isDoor()) {
 			int cx = (mouse_map_x)*rme::TileSize - view_scroll_x - adjustment;
@@ -931,7 +933,7 @@ void MapDrawer::DrawBrush() {
 
 			uint8_t cr, cg, cb, ca;
 			getCheckColor(brush, Position(mouse_map_x, mouse_map_y, floor), cr, cg, cb, ca);
-			renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, cr, cg, cb, ca);
+			renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, {cr, cg, cb, ca});
 		} else if (brush->isMonster()) {
 			int cy = (mouse_map_y)*rme::TileSize - view_scroll_y - adjustment;
 			int cx = (mouse_map_x)*rme::TileSize - view_scroll_x - adjustment;
@@ -976,7 +978,7 @@ void MapDrawer::DrawBrush() {
 									} else {
 										getBrushColor(brushColor, cr, cg, cb, ca);
 									}
-									renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, cr, cg, cb, ca);
+									renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, {cr, cg, cb, ca});
 								}
 							}
 						}
@@ -997,7 +999,7 @@ void MapDrawer::DrawBrush() {
 									} else {
 										getBrushColor(brushColor, cr, cg, cb, ca);
 									}
-									renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, cr, cg, cb, ca);
+									renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, {cr, cg, cb, ca});
 								}
 							}
 						}
@@ -2061,11 +2063,11 @@ void MapDrawer::glBlitTexture(int sx, int sy, int textureId, int red, int green,
 }
 
 void MapDrawer::glBlitSquare(int x, int y, uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, int size /* = rme::TileSize */) const {
-	renderer->drawColoredQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(size), static_cast<float>(size), red, green, blue, alpha);
+	renderer->drawColoredQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(size), static_cast<float>(size), {red, green, blue, alpha});
 }
 
 void MapDrawer::glBlitSquare(int x, int y, const wxColor &color, int size /* = rme::TileSize */) const {
-	renderer->drawColoredQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(size), static_cast<float>(size), color.Red(), color.Green(), color.Blue(), color.Alpha());
+	renderer->drawColoredQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(size), static_cast<float>(size), {color.Red(), color.Green(), color.Blue(), color.Alpha()});
 }
 
 void MapDrawer::getBrushColor(MapDrawer::BrushColor color, uint8_t &r, uint8_t &g, uint8_t &b, uint8_t &a) {
@@ -2142,7 +2144,7 @@ void MapDrawer::drawRect(int x, int y, int w, int h, const wxColor &color, float
 }
 
 void MapDrawer::drawFilledRect(int x, int y, int w, int h, const wxColor &color) {
-	renderer->drawColoredQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(w), static_cast<float>(h), color.Red(), color.Green(), color.Blue(), color.Alpha());
+	renderer->drawColoredQuad(static_cast<float>(x), static_cast<float>(y), static_cast<float>(w), static_cast<float>(h), {color.Red(), color.Green(), color.Blue(), color.Alpha()});
 }
 
 void MapDrawer::getDrawPosition(const Position &position, int &x, int &y) {
