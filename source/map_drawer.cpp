@@ -683,7 +683,7 @@ void MapDrawer::DrawSelectionBox() {
 		verts[i * 4 + 2] = static_cast<float>(lines[i][2]);
 		verts[i * 4 + 3] = static_cast<float>(lines[i][3]);
 	}
-	renderer->drawStippledLines(verts.data(), 4, GLColor{255, 255, 255, 255}, 1.0f, 2, 0xAAAA);
+	renderer->drawStippledLines(verts.data(), 4, GLColor { 255, 255, 255, 255 }, 1.0f, 2, 0xAAAA);
 }
 
 void MapDrawer::DrawLiveCursors() {
