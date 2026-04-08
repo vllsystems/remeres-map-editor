@@ -100,7 +100,7 @@ class MapDrawer {
 	Editor &editor;
 	DrawingOptions options;
 	std::shared_ptr<LightDrawer> light_drawer;
-	GLRenderer* renderer;
+	std::unique_ptr<GLRenderer> renderer;
 
 	float zoom;
 

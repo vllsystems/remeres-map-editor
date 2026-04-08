@@ -149,7 +149,9 @@ bool DrawingOptions::isTooltips() const noexcept {
 
 MapDrawer::MapDrawer(MapCanvas* canvas) :
 	canvas(canvas),
-	editor(canvas->editor)
+	editor(canvas->editor),
+	light_drawer(std::make_shared<LightDrawer>()),
+	renderer(std::make_unique<GLRenderer>())
 #ifdef __WINDOWS__
 	,
 	last_cpu_time {},
@@ -157,15 +159,12 @@ MapDrawer::MapDrawer(MapCanvas* canvas) :
 	last_now_time {}
 #endif
 {
-	light_drawer = std::make_shared<LightDrawer>();
-	renderer = new GLRenderer();
 	perf_update_timer.Start();
 }
 
 MapDrawer::~MapDrawer() {
 	Release();
 	renderer->shutdown();
-	delete renderer;
 }
 
 void MapDrawer::SetupVars() {
@@ -231,7 +230,7 @@ void MapDrawer::Draw() {
 	DrawBackground();
 	DrawMap();
 	if (options.show_lights) {
-		light_drawer->draw(start_x, start_y, end_x, end_y, view_scroll_x, view_scroll_y, renderer);
+		light_drawer->draw(start_x, start_y, end_x, end_y, view_scroll_x, view_scroll_y, renderer.get());
 	}
 	DrawDraggingShadow();
 	DrawHigherFloors();
@@ -271,7 +270,6 @@ inline int getFloorAdjustment(int floor) {
 
 void MapDrawer::DrawShade(int map_z) {
 	if (map_z == end_z && start_z != end_z) {
-		bool only_colors = options.isOnlyColors();
 
 		float x = screensize_x * zoom;
 		float y = screensize_y * zoom;
@@ -527,14 +525,14 @@ void MapDrawer::DrawGrid() {
 
 	std::vector<float> verts;
 	for (int y = start_y; y < end_y; ++y) {
-		float py = static_cast<float>(y * rme::TileSize - view_scroll_y);
+		auto py = static_cast<float>(y * rme::TileSize - view_scroll_y);
 		verts.push_back(static_cast<float>(start_x * rme::TileSize - view_scroll_x));
 		verts.push_back(py);
 		verts.push_back(static_cast<float>(end_x * rme::TileSize - view_scroll_x));
 		verts.push_back(py);
 	}
 	for (int x = start_x; x < end_x; ++x) {
-		float px = static_cast<float>(x * rme::TileSize - view_scroll_x);
+		auto px = static_cast<float>(x * rme::TileSize - view_scroll_x);
 		verts.push_back(px);
 		verts.push_back(static_cast<float>(start_y * rme::TileSize - view_scroll_y));
 		verts.push_back(px);
@@ -657,7 +655,7 @@ void MapDrawer::DrawSelectionBox() {
 	double cursor_rx = canvas->cursor_x * zoom;
 	double cursor_ry = canvas->cursor_y * zoom;
 
-	static double lines[4][4];
+	static std::array<std::array<double, 4>, 4> lines;
 
 	lines[0][0] = last_click_rx;
 	lines[0][1] = last_click_ry;
@@ -678,14 +676,14 @@ void MapDrawer::DrawSelectionBox() {
 	lines[3][1] = cursor_ry;
 	lines[3][2] = last_click_rx;
 	lines[3][3] = last_click_ry;
-	float verts[16];
+	std::array<float, 16> verts;
 	for (int i = 0; i < 4; i++) {
 		verts[i * 4] = static_cast<float>(lines[i][0]);
 		verts[i * 4 + 1] = static_cast<float>(lines[i][1]);
 		verts[i * 4 + 2] = static_cast<float>(lines[i][2]);
 		verts[i * 4 + 3] = static_cast<float>(lines[i][3]);
 	}
-	renderer->drawStippledLines(verts, 4, { 255, 255, 255, 255 }, 1.0f, 2, 0xAAAA);
+	renderer->drawStippledLines(verts.data(), 4, GLColor{255, 255, 255, 255}, 1.0f, 2, 0xAAAA);
 }
 
 void MapDrawer::DrawLiveCursors() {
@@ -766,8 +764,10 @@ void MapDrawer::DrawBrush() {
 
 			int delta_x = last_click_end_sx - last_click_start_sx;
 			int delta_y = last_click_end_sy - last_click_start_sy;
-
-			uint8_t cr, cg, cb, ca;
+			uint8_t cr = 0;
+			uint8_t cg = 0;
+			uint8_t cb = 0;
+			uint8_t ca = 0;
 			getBrushColor(brushColor, cr, cg, cb, ca);
 
 			GLColor brushClr = { cr, cg, cb, ca };
@@ -816,7 +816,10 @@ void MapDrawer::DrawBrush() {
 						for (int x = start_x; x <= end_x; x++) {
 							int cx = x * rme::TileSize - view_scroll_x - adjustment;
 							if (brush->isOptionalBorder()) {
-								uint8_t cr, cg, cb, ca;
+								uint8_t cr = 0;
+								uint8_t cg = 0;
+								uint8_t cb = 0;
+								uint8_t ca = 0;
 								getCheckColor(brush, Position(x, y, floor), cr, cg, cb, ca);
 								renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, { cr, cg, cb, ca });
 							} else {
@@ -835,7 +838,10 @@ void MapDrawer::DrawBrush() {
 					int last_click_end_sx = last_click_end_map_x * rme::TileSize - view_scroll_x - adjustment;
 					int last_click_end_sy = last_click_end_map_y * rme::TileSize - view_scroll_y - adjustment;
 
-					uint8_t cr, cg, cb, ca;
+					uint8_t cr = 0;
+					uint8_t cg = 0;
+					uint8_t cb = 0;
+					uint8_t ca = 0;
 					getBrushColor(brushColor, cr, cg, cb, ca);
 					renderer->drawColoredQuad(last_click_start_sx, last_click_start_sy, last_click_end_sx - last_click_start_sx, last_click_end_sy - last_click_start_sy, { cr, cg, cb, ca });
 				}
@@ -886,7 +892,10 @@ void MapDrawer::DrawBrush() {
 							if (brush->isRaw()) {
 								BlitSpriteType(cx, cy, raw_brush->getItemType()->sprite, 160, 160, 160, 160);
 							} else {
-								uint8_t cr, cg, cb, ca;
+								uint8_t cr = 0;
+								uint8_t cg = 0;
+								uint8_t cb = 0;
+								uint8_t ca = 0;
 								getBrushColor(brushColor, cr, cg, cb, ca);
 								renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, { cr, cg, cb, ca });
 							}
@@ -910,7 +919,10 @@ void MapDrawer::DrawBrush() {
 			int delta_x = end_sx - start_sx;
 			int delta_y = end_sy - start_sy;
 
-			uint8_t cr, cg, cb, ca;
+			uint8_t cr = 0;
+			uint8_t cg = 0;
+			uint8_t cb = 0;
+			uint8_t ca = 0;
 			getBrushColor(brushColor, cr, cg, cb, ca);
 
 			GLColor brushClr = { cr, cg, cb, ca };
@@ -931,7 +943,10 @@ void MapDrawer::DrawBrush() {
 			int cx = (mouse_map_x)*rme::TileSize - view_scroll_x - adjustment;
 			int cy = (mouse_map_y)*rme::TileSize - view_scroll_y - adjustment;
 
-			uint8_t cr, cg, cb, ca;
+			uint8_t cr = 0;
+			uint8_t cg = 0;
+			uint8_t cb = 0;
+			uint8_t ca = 0;
 			getCheckColor(brush, Position(mouse_map_x, mouse_map_y, floor), cr, cg, cb, ca);
 			renderer->drawColoredQuad(cx, cy, rme::TileSize, rme::TileSize, { cr, cg, cb, ca });
 		} else if (brush->isMonster()) {
@@ -972,7 +987,10 @@ void MapDrawer::DrawBrush() {
 									getColor(brush, Position(mouse_map_x + x, mouse_map_y + y, floor), r, g, b);
 									DrawBrushIndicator(cx, cy, brush, r, g, b);
 								} else {
-									uint8_t cr, cg, cb, ca;
+									uint8_t cr = 0;
+									uint8_t cg = 0;
+									uint8_t cb = 0;
+									uint8_t ca = 0;
 									if (brush->isHouseExit() || brush->isOptionalBorder()) {
 										getCheckColor(brush, Position(mouse_map_x + x, mouse_map_y + y, floor), cr, cg, cb, ca);
 									} else {
@@ -993,7 +1011,10 @@ void MapDrawer::DrawBrush() {
 									getColor(brush, Position(mouse_map_x + x, mouse_map_y + y, floor), r, g, b);
 									DrawBrushIndicator(cx, cy, brush, r, g, b);
 								} else {
-									uint8_t cr, cg, cb, ca;
+									uint8_t cr = 0;
+									uint8_t cg = 0;
+									uint8_t cb = 0;
+									uint8_t ca = 0;
 									if (brush->isHouseExit() || brush->isOptionalBorder()) {
 										getCheckColor(brush, Position(mouse_map_x + x, mouse_map_y + y, floor), cr, cg, cb, ca);
 									} else {
@@ -1942,7 +1963,7 @@ void MapDrawer::DrawPerformanceStats() {
 
 void MapDrawer::DrawLight() const {
 	// draw in-game light
-	light_drawer->draw(start_x, start_y, end_x, end_y, view_scroll_x, view_scroll_y, renderer);
+	light_drawer->draw(start_x, start_y, end_x, end_y, view_scroll_x, view_scroll_y, renderer.get());
 }
 
 void MapDrawer::MakeTooltip(int screenx, int screeny, const std::string &text, uint8_t r, uint8_t g, uint8_t b) {
