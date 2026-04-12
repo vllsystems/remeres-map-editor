@@ -20,6 +20,9 @@
 
 #include <cstdint>
 
+#include "light_drawer.h"
+#include "gl_renderer.h"
+
 class GameSprite;
 
 struct MapTooltip {
@@ -92,15 +95,13 @@ public:
 };
 
 class MapCanvas;
-class LightDrawer;
-class GLRenderer;
 
 class MapDrawer {
 	MapCanvas* canvas;
 	Editor &editor;
 	DrawingOptions options;
-	std::shared_ptr<LightDrawer> light_drawer;
-	std::unique_ptr<GLRenderer> renderer;
+	std::shared_ptr<LightDrawer> light_drawer = std::make_shared<LightDrawer>();
+	std::unique_ptr<GLRenderer> renderer = std::make_unique<GLRenderer>();
 
 	float zoom;
 
@@ -162,6 +163,8 @@ public:
 	void DrawIngameBox();
 	void DrawGrid();
 	void DrawTooltips();
+	std::pair<float, float> MeasureTooltipText(const MapTooltip* tooltip);
+	void RenderTooltipText(const MapTooltip* tooltip, float startx, float starty);
 	void DrawPerformanceStats();
 
 	void TakeScreenshot(uint8_t* screenshot_buffer);
@@ -193,7 +196,7 @@ protected:
 	void BlitCreature(int screenx, int screeny, const Npc* c, int red = 255, int green = 255, int blue = 255, int alpha = 255);
 	void BlitCreature(int screenx, int screeny, const Outfit &outfit, const Direction &dir, int red = 255, int green = 255, int blue = 255, int alpha = 255);
 	void DrawTile(TileLocation* tile);
-	void DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_t g, uint8_t b);
+	void DrawBrushIndicator(int x, int y, [[maybe_unused]] Brush* brush, uint8_t r, uint8_t g, uint8_t b);
 	void DrawHookIndicator(int x, int y, const ItemType &type);
 	void DrawLightStrength(int x, int y, const Item*&item);
 	void DrawTileIndicators(TileLocation* location);

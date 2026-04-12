@@ -95,7 +95,6 @@ void MapWindow::SetSize(int x, int y, bool center) {
 
 	hScroll->SetScrollbar(center ? (x - windowSizeX) / 2 : hScroll->GetThumbPosition(), windowSizeX / x, x, windowSizeX / x);
 	vScroll->SetScrollbar(center ? (y - windowSizeY) / 2 : vScroll->GetThumbPosition(), windowSizeY / y, y, windowSizeX / y);
-	// wxPanel::SetSize(x, y);
 }
 
 void MapWindow::UpdateScrollbars(int nx, int ny) {

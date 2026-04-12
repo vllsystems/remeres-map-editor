@@ -32,6 +32,7 @@
 #include <iomanip>
 #include <fstream>
 #include <format>
+#include <array>
 
 #include "editor.h"
 #include "gui.h"
@@ -149,9 +150,7 @@ bool DrawingOptions::isTooltips() const noexcept {
 
 MapDrawer::MapDrawer(MapCanvas* canvas) :
 	canvas(canvas),
-	editor(canvas->editor),
-	light_drawer(std::make_shared<LightDrawer>()),
-	renderer(std::make_unique<GLRenderer>())
+	editor(canvas->editor)
 #ifdef __WINDOWS__
 	,
 	last_cpu_time {},
@@ -208,8 +207,8 @@ void MapDrawer::SetupGL() {
 
 	renderer->init();
 
-	int vPort[4];
-	glGetIntegerv(GL_VIEWPORT, vPort);
+	std::array<int, 4> vPort {};
+	glGetIntegerv(GL_VIEWPORT, vPort.data());
 
 	renderer->setOrtho(0, vPort[2] * zoom, vPort[3] * zoom, 0);
 }
@@ -1524,7 +1523,7 @@ void MapDrawer::DrawTile(TileLocation* location) {
 	}
 }
 
-void MapDrawer::DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_t g, uint8_t b) {
+void MapDrawer::DrawBrushIndicator(int x, int y, [[maybe_unused]] Brush* brush, uint8_t r, uint8_t g, uint8_t b) {
 	x += (rme::TileSize / 2);
 	y += (rme::TileSize / 2);
 
@@ -1546,7 +1545,7 @@ void MapDrawer::DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_
 	};
 
 	// circle
-	float fan[64]; // (1 center + 31 rim) * 2 floats
+	std::array<float, 64> fan {}; // (1 center + 31 rim) * 2 floats
 	fan[0] = static_cast<float>(x);
 	fan[1] = static_cast<float>(y);
 	for (int i = 0; i <= 30; i++) {
@@ -1554,38 +1553,38 @@ void MapDrawer::DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_
 		fan[(i + 1) * 2] = cos(angle) * (rme::TileSize / 2) + x;
 		fan[(i + 1) * 2 + 1] = sin(angle) * (rme::TileSize / 2) + y;
 	}
-	renderer->drawTriangleFan(fan, 32, 0x00, 0x00, 0x00, 0x50);
+	renderer->drawTriangleFan(fan.data(), 32, 0x00, 0x00, 0x00, 0x50);
 
 	// background
-	float poly[16];
+	std::array<float, 16> poly {};
 	for (int i = 0; i < 8; ++i) {
 		poly[i * 2] = static_cast<float>(vertexes[i][0] + x);
 		poly[i * 2 + 1] = static_cast<float>(vertexes[i][1] + y);
 	}
-	renderer->drawPolygon(poly, 8, r, g, b, 0xB4);
+	renderer->drawPolygon(poly.data(), 8, r, g, b, 0xB4);
 
 	// borders
-	float lineVerts[32]; // 8 pairs * 4 floats
+	std::array<float, 32> lineVerts {}; // 8 pairs * 4 floats
 	for (int i = 0; i < 8; ++i) {
 		lineVerts[i * 4] = static_cast<float>(vertexes[i][0] + x);
 		lineVerts[i * 4 + 1] = static_cast<float>(vertexes[i][1] + y);
 		lineVerts[i * 4 + 2] = static_cast<float>(vertexes[i + 1][0] + x);
 		lineVerts[i * 4 + 3] = static_cast<float>(vertexes[i + 1][1] + y);
 	}
-	renderer->drawLines(lineVerts, 8, 0x00, 0x00, 0x00, 0xB4, 1.0f);
+	renderer->drawLines(lineVerts.data(), 8, 0x00, 0x00, 0x00, 0xB4, 1.0f);
 }
 
 void MapDrawer::DrawHookIndicator(int x, int y, const ItemType &type) {
 	if (type.hookSouth || type.hook == ITEM_HOOK_SOUTH) {
 		x -= 10;
 		y += 10;
-		float verts[] = { (float)x, (float)y, (float)(x + 10), (float)y, (float)(x + 20), (float)(y + 10), (float)(x + 10), (float)(y + 10) };
-		renderer->drawPolygon(verts, 4, 0, 0, 255, 200);
+		std::array<float, 8> verts = { (float)x, (float)y, (float)(x + 10), (float)y, (float)(x + 20), (float)(y + 10), (float)(x + 10), (float)(y + 10) };
+		renderer->drawPolygon(verts.data(), 4, 0, 0, 255, 200);
 	} else if (type.hookEast || type.hook == ITEM_HOOK_EAST) {
 		x += 10;
 		y -= 10;
-		float verts[] = { (float)x, (float)y, (float)(x + 10), (float)(y + 10), (float)(x + 10), (float)(y + 20), (float)x, (float)(y + 10) };
-		renderer->drawPolygon(verts, 4, 0, 0, 255, 200);
+		std::array<float, 8> verts = { (float)x, (float)y, (float)(x + 10), (float)(y + 10), (float)(x + 10), (float)(y + 20), (float)x, (float)(y + 10) };
+		renderer->drawPolygon(verts.data(), 4, 0, 0, 255, 200);
 	}
 }
 
@@ -1706,41 +1705,72 @@ void MapDrawer::DrawPositionIndicator(int z) {
 	drawRect(x + offset + 1, y + offset + 1, size - 2, size - 2, *wxBLACK, 2);
 }
 
+std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip* tooltip) {
+	const char* text = tooltip->text.c_str();
+	float line_width = 0.0f;
+	float width = 2.0f;
+	float height = 14.0f;
+	int char_count = 0;
+	int line_char_count = 0;
+
+	for (const char* c = text; *c != '\0'; c++) {
+		if (*c == '\n' || (line_char_count >= MapTooltip::MAX_CHARS_PER_LINE && *c == ' ')) {
+			height += 14.0f;
+			line_width = 0.0f;
+			line_char_count = 0;
+		} else {
+			line_width += renderer->getCharWidth(*c, nullptr);
+		}
+		width = std::max<float>(width, line_width);
+		char_count++;
+		line_char_count++;
+
+		if (tooltip->ellipsis && char_count > (MapTooltip::MAX_CHARS + 3)) {
+			break;
+		}
+	}
+	return { width + 8.0f, height + 4.0f };
+}
+
+void MapDrawer::RenderTooltipText(const MapTooltip* tooltip, float startx, float starty) {
+	const char* text = tooltip->text.c_str();
+	startx += 3.0f;
+	starty += 14.0f;
+	renderer->setColor(0, 0, 0, 255);
+	renderer->setRasterPos(startx, starty);
+	int char_count = 0;
+	int line_char_count = 0;
+
+	for (const char* c = text; *c != '\0'; c++) {
+		if (*c == '\n' || (line_char_count >= MapTooltip::MAX_CHARS_PER_LINE && *c == ' ')) {
+			starty += 14.0f;
+			renderer->setRasterPos(startx, starty);
+			line_char_count = 0;
+		}
+		char_count++;
+		line_char_count++;
+
+		if (tooltip->ellipsis && char_count >= MapTooltip::MAX_CHARS) {
+			renderer->drawBitmapChar('.', nullptr);
+			if (char_count >= (MapTooltip::MAX_CHARS + 2)) {
+				break;
+			}
+		} else if (!iscntrl(*c)) {
+			renderer->drawBitmapChar(*c, nullptr);
+		}
+	}
+}
+
 void MapDrawer::DrawTooltips() {
 	if (!options.show_tooltips || tooltips.empty()) {
 		return;
 	}
 
-	for (MapTooltip* tooltip : tooltips) {
-		const char* text = tooltip->text.c_str();
-		float line_width = 0.0f;
-		float width = 2.0f;
-		float height = 14.0f;
-		int char_count = 0;
-		int line_char_count = 0;
+	for (const MapTooltip* tp : tooltips) {
+		auto [width, height] = MeasureTooltipText(tp);
 
-		for (const char* c = text; *c != '\0'; c++) {
-			if (*c == '\n' || (line_char_count >= MapTooltip::MAX_CHARS_PER_LINE && *c == ' ')) {
-				height += 14.0f;
-				line_width = 0.0f;
-				line_char_count = 0;
-			} else {
-				line_width += renderer->getCharWidth(*c, nullptr);
-			}
-			width = std::max<float>(width, line_width);
-			char_count++;
-			line_char_count++;
-
-			if (tooltip->ellipsis && char_count > (MapTooltip::MAX_CHARS + 3)) {
-				break;
-			}
-		}
-
-		width = width + 8.0f;
-		height = height + 4.0f;
-
-		float x = tooltip->x + (rme::TileSize / 2.0f);
-		float y = tooltip->y + (rme::TileSize / 2.0f);
+		float x = tp->x + (rme::TileSize / 2.0f);
+		float y = tp->y + (rme::TileSize / 2.0f);
 		float center = width / 2.0f;
 		float space = 7.0f;
 		float startx = x - center;
@@ -1753,7 +1783,7 @@ void MapDrawer::DrawTooltips() {
 		// 6--5  3--2
 		//     \/
 		//     4
-		float vertexes[9][2] = {
+		std::array<std::array<float, 2>, 9> vertexes = { {
 			{ x, starty }, // 0
 			{ endx, starty }, // 1
 			{ endx, endy }, // 2
@@ -1763,53 +1793,27 @@ void MapDrawer::DrawTooltips() {
 			{ startx, endy }, // 6
 			{ startx, starty }, // 7
 			{ x, starty }, // 0
-		};
+		} };
 
 		// background
-		float poly[16];
+		std::array<float, 16> poly {};
 		for (int i = 0; i < 8; ++i) {
 			poly[i * 2] = vertexes[i][0];
 			poly[i * 2 + 1] = vertexes[i][1];
 		}
-		renderer->drawPolygon(poly, 8, tooltip->r, tooltip->g, tooltip->b, 255);
+		renderer->drawPolygon(poly.data(), 8, tp->r, tp->g, tp->b, 255);
 
 		// borders
-		float lineVerts[32];
+		std::array<float, 32> lineVerts {};
 		for (int i = 0; i < 8; ++i) {
 			lineVerts[i * 4] = vertexes[i][0];
 			lineVerts[i * 4 + 1] = vertexes[i][1];
 			lineVerts[i * 4 + 2] = vertexes[i + 1][0];
 			lineVerts[i * 4 + 3] = vertexes[i + 1][1];
 		}
-		renderer->drawLines(lineVerts, 8, 0, 0, 0, 255, 1.0f);
+		renderer->drawLines(lineVerts.data(), 8, 0, 0, 0, 255, 1.0f);
 
-		// text
-		{
-			startx += 3.0f;
-			starty += 14.0f;
-			renderer->setColor(0, 0, 0, 255);
-			renderer->setRasterPos(startx, starty);
-			char_count = 0;
-			line_char_count = 0;
-			for (const char* c = text; *c != '\0'; c++) {
-				if (*c == '\n' || (line_char_count >= MapTooltip::MAX_CHARS_PER_LINE && *c == ' ')) {
-					starty += 14.0f;
-					renderer->setRasterPos(startx, starty);
-					line_char_count = 0;
-				}
-				char_count++;
-				line_char_count++;
-
-				if (tooltip->ellipsis && char_count >= MapTooltip::MAX_CHARS) {
-					renderer->drawBitmapChar('.', nullptr);
-					if (char_count >= (MapTooltip::MAX_CHARS + 2)) {
-						break;
-					}
-				} else if (!iscntrl(*c)) {
-					renderer->drawBitmapChar(*c, nullptr);
-				}
-			}
-		}
+		RenderTooltipText(tp, startx, starty);
 	}
 }
 
@@ -1956,8 +1960,8 @@ void MapDrawer::DrawPerformanceStats() {
 
 	renderer->flush();
 
-	int vPort[4];
-	glGetIntegerv(GL_VIEWPORT, vPort);
+	std::array<int, 4> vPort {};
+	glGetIntegerv(GL_VIEWPORT, vPort.data());
 	renderer->setOrtho(0, vPort[2] * zoom, vPort[3] * zoom, 0);
 }
 
@@ -2109,20 +2113,9 @@ void MapDrawer::getBrushColor(MapDrawer::BrushColor color, uint8_t &r, uint8_t &
 			break;
 
 		case COLOR_SPAWN_BRUSH:
-			r = 166;
-			g = 0;
-			b = 0;
-			a = 128;
-			break;
-
 		case COLOR_SPAWN_NPC_BRUSH:
-			r = 166;
-			g = 0;
-			b = 0;
-			a = 128;
-			break;
-
 		case COLOR_ERASER:
+		case COLOR_INVALID:
 			r = 166;
 			g = 0;
 			b = 0;
@@ -2132,13 +2125,6 @@ void MapDrawer::getBrushColor(MapDrawer::BrushColor color, uint8_t &r, uint8_t &
 		case COLOR_VALID:
 			r = 0;
 			g = 166;
-			b = 0;
-			a = 128;
-			break;
-
-		case COLOR_INVALID:
-			r = 166;
-			g = 0;
 			b = 0;
 			a = 128;
 			break;
