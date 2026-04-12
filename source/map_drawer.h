@@ -163,8 +163,8 @@ public:
 	void DrawIngameBox();
 	void DrawGrid();
 	void DrawTooltips();
-	std::pair<float, float> MeasureTooltipText(const MapTooltip* tooltip);
-	void RenderTooltipText(const MapTooltip* tooltip, float startx, float starty);
+	std::pair<float, float> MeasureTooltipText(const MapTooltip* tp);
+	void RenderTooltipText(const MapTooltip* tp, float startx, float starty);
 	void DrawPerformanceStats();
 
 	void TakeScreenshot(uint8_t* screenshot_buffer);

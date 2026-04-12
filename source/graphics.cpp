@@ -34,10 +34,6 @@
 
 #include <appearances.pb.h>
 
-#ifndef GL_CLAMP_TO_EDGE
-	#define GL_CLAMP_TO_EDGE 0x812F
-#endif
-
 GraphicManager g_graphics;
 GameSprite g_gameSprite;
 
@@ -1302,12 +1298,12 @@ GLuint GameSprite::NormalImage::getHardwareID() {
 	return glTextureId;
 }
 
-uint32_t GameSprite::getSpriteID(int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame) {
+uint32_t GameSprite::getSpriteID(int _layer, int _count, int _pattern_x, int _pattern_y, int /*_pattern_z*/, int _frame) {
 	uint32_t v;
 	if (_count >= 0) {
 		v = _count;
 	} else {
-		v = (((_frame)*pattern_y + _pattern_y) * pattern_x + _pattern_x) * layers + _layer;
+		v = ((_frame * pattern_y + _pattern_y) * pattern_x + _pattern_x) * layers + _layer;
 	}
 	if (v >= numsprites) {
 		if (numsprites == 1) {

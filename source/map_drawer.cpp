@@ -1705,8 +1705,8 @@ void MapDrawer::DrawPositionIndicator(int z) {
 	drawRect(x + offset + 1, y + offset + 1, size - 2, size - 2, *wxBLACK, 2);
 }
 
-std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip* tooltip) {
-	const char* text = tooltip->text.c_str();
+std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip* tp) {
+	const char* text = tp->text.c_str();
 	float line_width = 0.0f;
 	float width = 2.0f;
 	float height = 14.0f;
@@ -1719,21 +1719,21 @@ std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip* tooltip)
 			line_width = 0.0f;
 			line_char_count = 0;
 		} else {
-			line_width += renderer->getCharWidth(*c, nullptr);
+			line_width += renderer->getCharWidth(*c);
 		}
 		width = std::max<float>(width, line_width);
 		char_count++;
 		line_char_count++;
 
-		if (tooltip->ellipsis && char_count > (MapTooltip::MAX_CHARS + 3)) {
+		if (tp->ellipsis && char_count > (MapTooltip::MAX_CHARS + 3)) {
 			break;
 		}
 	}
 	return { width + 8.0f, height + 4.0f };
 }
 
-void MapDrawer::RenderTooltipText(const MapTooltip* tooltip, float startx, float starty) {
-	const char* text = tooltip->text.c_str();
+void MapDrawer::RenderTooltipText(const MapTooltip* tp, float startx, float starty) {
+	const char* text = tp->text.c_str();
 	startx += 3.0f;
 	starty += 14.0f;
 	renderer->setColor(0, 0, 0, 255);
@@ -1750,13 +1750,13 @@ void MapDrawer::RenderTooltipText(const MapTooltip* tooltip, float startx, float
 		char_count++;
 		line_char_count++;
 
-		if (tooltip->ellipsis && char_count >= MapTooltip::MAX_CHARS) {
-			renderer->drawBitmapChar('.', nullptr);
+		if (tp->ellipsis && char_count >= MapTooltip::MAX_CHARS) {
+			renderer->drawBitmapChar('.');
 			if (char_count >= (MapTooltip::MAX_CHARS + 2)) {
 				break;
 			}
 		} else if (!iscntrl(*c)) {
-			renderer->drawBitmapChar(*c, nullptr);
+			renderer->drawBitmapChar(*c);
 		}
 	}
 }
@@ -1956,7 +1956,7 @@ void MapDrawer::DrawPerformanceStats() {
 	renderer->flush();
 	renderer->setOrtho(0, static_cast<float>(screensize_x), static_cast<float>(screensize_y), 0);
 
-	renderer->drawText(10.0f, 20.0f, stats_text, 255, 255, 0, 255, nullptr);
+	renderer->drawText(10.0f, 20.0f, stats_text, 255, 255, 0, 255);
 
 	renderer->flush();
 

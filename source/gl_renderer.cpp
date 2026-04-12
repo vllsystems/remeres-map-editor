@@ -120,8 +120,8 @@ void GLRenderer::initFontAtlas() {
 		}
 	}
 
-	glGenTextures(1, &fontAtlas);
-	glBindTexture(GL_TEXTURE_2D, fontAtlas);
+	glGenTextures(1, &font.texture);
+	glBindTexture(GL_TEXTURE_2D, font.texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -129,11 +129,11 @@ void GLRenderer::initFontAtlas() {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TEX_W, TEX_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	fontGlyphW = GLYPH_W;
-	fontGlyphH = GLYPH_H;
-	fontAtlasCols = COLS;
-	fontAtlasW = TEX_W;
-	fontAtlasH = TEX_H;
+	font.glyphW = GLYPH_W;
+	font.glyphH = GLYPH_H;
+	font.cols = COLS;
+	font.texW = TEX_W;
+	font.texH = TEX_H;
 }
 
 void GLRenderer::init() {
@@ -232,7 +232,7 @@ void GLRenderer::init() {
 
 void GLRenderer::shutdown() {
 	current_texture = 0;
-	s_instances.erase(std::remove(s_instances.begin(), s_instances.end(), this), s_instances.end());
+	std::erase(s_instances, this);
 	if (!initialized) {
 		return;
 	}
@@ -248,9 +248,9 @@ void GLRenderer::shutdown() {
 		glDeleteVertexArrays(1, &vao);
 		vao = 0;
 	}
-	if (fontAtlas) {
-		glDeleteTextures(1, &fontAtlas);
-		fontAtlas = 0;
+	if (font.texture) {
+		glDeleteTextures(1, &font.texture);
+		font.texture = 0;
 	}
 	initialized = false;
 }
@@ -465,13 +465,13 @@ void GLRenderer::drawTriangleFan(const float* vertices, int vertexCount, uint8_t
 	glUseProgram(0);
 }
 
-void GLRenderer::drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a, void* font) {
-	if (fontAtlas == 0) {
+void GLRenderer::drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+	if (font.texture == 0) {
 		return;
 	}
-	if (current_texture != fontAtlas) {
+	if (current_texture != font.texture) {
 		flushBatch();
-		current_texture = fontAtlas;
+		current_texture = font.texture;
 	}
 	float cx = x;
 	for (char c : text) {
@@ -479,28 +479,28 @@ void GLRenderer::drawText(float x, float y, const std::string &text, uint8_t r, 
 			continue;
 		}
 		int idx = c - 32;
-		int col = idx % fontAtlasCols;
-		int row = idx / fontAtlasCols;
-		float u0 = (float)(col * fontGlyphW) / fontAtlasW;
-		float v0 = (float)(row * fontGlyphH) / fontAtlasH;
-		float u1 = (float)((col + 1) * fontGlyphW) / fontAtlasW;
-		float v1 = (float)((row + 1) * fontGlyphH) / fontAtlasH;
+		int col = idx % font.cols;
+		int row = idx / font.cols;
+		auto u0 = static_cast<float>(col * font.glyphW) / font.texW;
+		auto v0 = static_cast<float>(row * font.glyphH) / font.texH;
+		auto u1 = static_cast<float>((col + 1) * font.glyphW) / font.texW;
+		auto v1 = static_cast<float>((row + 1) * font.glyphH) / font.texH;
 		float qx = cx;
-		float qy = y - fontGlyphH;
-		float qw = (float)fontGlyphW;
-		float qh = (float)fontGlyphH;
+		float qy = y - font.glyphH;
+		auto qw = static_cast<float>(font.glyphW);
+		auto qh = static_cast<float>(font.glyphH);
 		batch.push_back({ qx, qy, u0, v0, r, g, b, a });
 		batch.push_back({ qx + qw, qy, u1, v0, r, g, b, a });
 		batch.push_back({ qx + qw, qy + qh, u1, v1, r, g, b, a });
 		batch.push_back({ qx, qy, u0, v0, r, g, b, a });
 		batch.push_back({ qx + qw, qy + qh, u1, v1, r, g, b, a });
 		batch.push_back({ qx, qy + qh, u0, v1, r, g, b, a });
-		cx += fontGlyphW;
+		cx += font.glyphW;
 	}
 }
 
-float GLRenderer::getCharWidth(char c, void* font) {
-	return (float)fontGlyphW;
+float GLRenderer::getCharWidth(char) {
+	return static_cast<float>(font.glyphW);
 }
 
 void GLRenderer::setRasterPos(float x, float y) {
@@ -508,40 +508,37 @@ void GLRenderer::setRasterPos(float x, float y) {
 	cursorY = y;
 }
 
-void GLRenderer::drawBitmapChar(char c, void* font) {
-	if (fontAtlas == 0 || c < 32 || c > 127) {
+void GLRenderer::drawBitmapChar(char c) {
+	if (font.texture == 0 || c < 32 || c > 127) {
 		return;
 	}
-	if (current_texture != fontAtlas) {
+	if (current_texture != font.texture) {
 		flushBatch();
-		current_texture = fontAtlas;
+		current_texture = font.texture;
 	}
 	int idx = c - 32;
-	int col = idx % fontAtlasCols;
-	int row = idx / fontAtlasCols;
-	float u0 = (float)(col * fontGlyphW) / fontAtlasW;
-	float v0 = (float)(row * fontGlyphH) / fontAtlasH;
-	float u1 = (float)((col + 1) * fontGlyphW) / fontAtlasW;
-	float v1 = (float)((row + 1) * fontGlyphH) / fontAtlasH;
+	int col = idx % font.cols;
+	int row = idx / font.cols;
+	auto u0 = static_cast<float>(col * font.glyphW) / font.texW;
+	auto v0 = static_cast<float>(row * font.glyphH) / font.texH;
+	auto u1 = static_cast<float>((col + 1) * font.glyphW) / font.texW;
+	auto v1 = static_cast<float>((row + 1) * font.glyphH) / font.texH;
 	float qx = cursorX;
-	float qy = cursorY - fontGlyphH;
-	float qw = (float)fontGlyphW;
-	float qh = (float)fontGlyphH;
-	batch.push_back({ qx, qy, u0, v0, textR, textG, textB, textA });
-	batch.push_back({ qx + qw, qy, u1, v0, textR, textG, textB, textA });
-	batch.push_back({ qx + qw, qy + qh, u1, v1, textR, textG, textB, textA });
-	batch.push_back({ qx, qy, u0, v0, textR, textG, textB, textA });
-	batch.push_back({ qx + qw, qy + qh, u1, v1, textR, textG, textB, textA });
-	batch.push_back({ qx, qy + qh, u0, v1, textR, textG, textB, textA });
-	cursorX += fontGlyphW;
+	float qy = cursorY - font.glyphH;
+	auto qw = static_cast<float>(font.glyphW);
+	auto qh = static_cast<float>(font.glyphH);
+	batch.push_back({ qx, qy, u0, v0, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx + qw, qy, u1, v0, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx + qw, qy + qh, u1, v1, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx, qy, u0, v0, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx + qw, qy + qh, u1, v1, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx, qy + qh, u0, v1, textColor.r, textColor.g, textColor.b, textColor.a });
+	cursorX += font.glyphW;
 }
 
 void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 	flushBatch();
-	textR = r;
-	textG = g;
-	textB = b;
-	textA = a;
+	textColor = { r, g, b, a };
 }
 
 void GLRenderer::flush() {

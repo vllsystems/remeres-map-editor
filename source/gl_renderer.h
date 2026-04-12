@@ -7,11 +7,14 @@
 #include <algorithm>
 
 // Minimal GL type forward declarations — full GL comes from glad in gl_renderer.cpp
-typedef unsigned int GLuint;
-typedef int GLint;
+using GLuint = unsigned int;
+using GLint = int;
 
 struct GLColor {
-	uint8_t r, g, b, a;
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
+	uint8_t a;
 };
 
 class GLRenderer {
@@ -35,10 +38,10 @@ public:
 
 	void drawTriangleFan(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
-	void drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a, void* font = nullptr);
-	float getCharWidth(char c, void* font = nullptr);
+	void drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
+	float getCharWidth(char);
 	void setRasterPos(float x, float y);
-	void drawBitmapChar(char c, void* font);
+	void drawBitmapChar(char c);
 	void setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
 	void setOrtho(float left, float right, float bottom, float top);
@@ -58,9 +61,14 @@ private:
 	GLint loc_stipple = -1;
 
 	struct Vertex {
-		float x, y;
-		float u, v;
-		uint8_t r, g, b, a;
+		float x;
+		float y;
+		float u;
+		float v;
+		uint8_t r;
+		uint8_t g;
+		uint8_t b;
+		uint8_t a;
 	};
 
 	std::vector<Vertex> batch;
@@ -70,18 +78,21 @@ private:
 	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color);
 
 	// Font atlas
-	GLuint fontAtlas = 0;
-	int fontGlyphW = 0;
-	int fontGlyphH = 0;
-	int fontAtlasCols = 0;
-	int fontAtlasW = 0;
-	int fontAtlasH = 0;
+	struct FontAtlas {
+		GLuint texture = 0;
+		int glyphW = 0;
+		int glyphH = 0;
+		int cols = 0;
+		int texW = 0;
+		int texH = 0;
+	};
+	FontAtlas font;
 	void initFontAtlas();
 
 	// Text cursor state (for setRasterPos + drawBitmapChar)
 	float cursorX = 0;
 	float cursorY = 0;
-	uint8_t textR = 255, textG = 255, textB = 255, textA = 255;
+	GLColor textColor { 255, 255, 255, 255 };
 };
 
 #endif
