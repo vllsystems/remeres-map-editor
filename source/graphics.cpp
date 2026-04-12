@@ -34,6 +34,10 @@
 
 #include <appearances.pb.h>
 
+#ifndef GL_CLAMP_TO_EDGE
+	#define GL_CLAMP_TO_EDGE 0x812F
+#endif
+
 GraphicManager g_graphics;
 GameSprite g_gameSprite;
 
