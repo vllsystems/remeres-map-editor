@@ -31,21 +31,75 @@ BitmapToMapConverter::BitmapToMapConverter(Editor &editor) :
 	editor(editor) {
 }
 
+static float rgbToHue(uint8_t r, uint8_t g, uint8_t b) {
+	float rf = r / 255.0f;
+	float gf = g / 255.0f;
+	float bf = b / 255.0f;
+	float maxC = std::max({ rf, gf, bf });
+	float minC = std::min({ rf, gf, bf });
+	float delta = maxC - minC;
+
+	if (delta < 0.001f) {
+		return -1.0f;
+	}
+
+	float hue = 0.0f;
+	if (maxC == rf) {
+		hue = 60.0f * fmod((gf - bf) / delta, 6.0f);
+	} else if (maxC == gf) {
+		hue = 60.0f * ((bf - rf) / delta + 2.0f);
+	} else {
+		hue = 60.0f * ((rf - gf) / delta + 4.0f);
+	}
+
+	if (hue < 0.0f) {
+		hue += 360.0f;
+	}
+
+	return hue;
+}
+
 const ColorMapping* BitmapToMapConverter::findMatchingColor(
 	uint8_t r, uint8_t g, uint8_t b,
 	const std::vector<ColorMapping> &mappings,
-	int tolerance
+	int tolerance,
+	MatchMode matchMode
 ) const {
 	const ColorMapping* bestMatch = nullptr;
 	int bestDistance = tolerance + 1;
 
 	for (const auto &mapping : mappings) {
-		int distance = std::abs((int)r - (int)mapping.r)
-			+ std::abs((int)g - (int)mapping.g)
-			+ std::abs((int)b - (int)mapping.b);
-		if (distance <= tolerance && distance < bestDistance) {
-			bestDistance = distance;
-			bestMatch = &mapping;
+		if (matchMode == MATCH_HUE_HSL) {
+			float pixelHue = rgbToHue(r, g, b);
+			float mappingHue = rgbToHue(mapping.r, mapping.g, mapping.b);
+
+			if (pixelHue < 0.0f || mappingHue < 0.0f) {
+				int distance = std::abs((int)r - (int)mapping.r)
+					+ std::abs((int)g - (int)mapping.g)
+					+ std::abs((int)b - (int)mapping.b);
+				if (distance <= tolerance && distance < bestDistance) {
+					bestDistance = distance;
+					bestMatch = &mapping;
+				}
+			} else {
+				float hueDiff = fabs(pixelHue - mappingHue);
+				if (hueDiff > 180.0f) {
+					hueDiff = 360.0f - hueDiff;
+				}
+				int distance = (int)hueDiff;
+				if (distance <= tolerance && distance < bestDistance) {
+					bestDistance = distance;
+					bestMatch = &mapping;
+				}
+			}
+		} else {
+			int distance = std::abs((int)r - (int)mapping.r)
+				+ std::abs((int)g - (int)mapping.g)
+				+ std::abs((int)b - (int)mapping.b);
+			if (distance <= tolerance && distance < bestDistance) {
+				bestDistance = distance;
+				bestMatch = &mapping;
+			}
 		}
 	}
 	return bestMatch;
@@ -55,6 +109,7 @@ ConvertResult BitmapToMapConverter::convert(
 	const wxImage &image,
 	const std::vector<ColorMapping> &mappings,
 	int tolerance,
+	MatchMode matchMode,
 	int offsetX, int offsetY, int offsetZ
 ) {
 	ConvertResult result;
@@ -109,7 +164,7 @@ ConvertResult BitmapToMapConverter::convert(
 			uint8_t g_color = imgData[idx + 1];
 			uint8_t b_color = imgData[idx + 2];
 
-			const ColorMapping* mapping = findMatchingColor(r, g_color, b_color, mappings, tolerance);
+			const ColorMapping* mapping = findMatchingColor(r, g_color, b_color, mappings, tolerance, matchMode);
 			if (!mapping || mapping->ignore || mapping->brushName.empty()) {
 				result.tilesSkipped++;
 				continue;

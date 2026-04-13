@@ -26,10 +26,16 @@
 
 class Editor;
 
+enum MatchMode {
+	MATCH_PIXEL_RGB = 0,
+	MATCH_HUE_HSL = 1,
+};
+
 struct ColorMapping {
 	uint8_t r, g, b;
 	std::string brushName;
 	bool ignore;
+	MatchMode matchMode = MATCH_PIXEL_RGB;
 };
 
 struct ConvertResult {
@@ -48,6 +54,7 @@ public:
 		const wxImage &image,
 		const std::vector<ColorMapping> &mappings,
 		int tolerance,
+		MatchMode matchMode,
 		int offsetX, int offsetY, int offsetZ
 	);
 
@@ -57,7 +64,8 @@ private:
 	const ColorMapping* findMatchingColor(
 		uint8_t r, uint8_t g, uint8_t b,
 		const std::vector<ColorMapping> &mappings,
-		int tolerance
+		int tolerance,
+		MatchMode matchMode
 	) const;
 };
 

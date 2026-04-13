@@ -16,7 +16,9 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
-
+#include <unordered_map>
+#include <map>
+#include <tuple>
 #include "bitmap_to_map_window.h"
 #include "bitmap_to_map_converter.h"
 #include "editor.h"
@@ -40,6 +42,8 @@ EVT_BUTTON(BITMAP_TO_MAP_DELETE_COLOR, BitmapToMapWindow::OnClickDeleteColor)
 EVT_BUTTON(BITMAP_TO_MAP_INSTRUCTIONS, BitmapToMapWindow::OnClickInstructions)
 EVT_TEXT(BITMAP_TO_MAP_FILTER, BitmapToMapWindow::OnFilterColors)
 EVT_LIST_ITEM_ACTIVATED(BITMAP_TO_MAP_COLOR_LIST, BitmapToMapWindow::OnColorListActivated)
+EVT_CHOICE(BITMAP_TO_MAP_MATCH_MODE, BitmapToMapWindow::OnMatchModeChanged)
+EVT_SPINCTRL(BITMAP_TO_MAP_TOLERANCE, BitmapToMapWindow::OnToleranceChanged)
 END_EVENT_TABLE()
 
 BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
@@ -93,6 +97,16 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	imgBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_CROP, "Crop"), 0, wxALL, 2);
 	leftSizer->Add(imgBtnSizer, 0, wxALIGN_CENTER);
 
+	wxBoxSizer* matchSizer = newd wxBoxSizer(wxHORIZONTAL);
+	wxStaticText* matchLabel = newd wxStaticText(this, wxID_ANY, "Match Mode:");
+	matchModeChoice = newd wxChoice(this, BITMAP_TO_MAP_MATCH_MODE);
+	matchModeChoice->Append("Pixel (RGB)");
+	matchModeChoice->Append("Hue (HSL)");
+	matchModeChoice->SetSelection(0);
+	matchSizer->Add(matchLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 5);
+	matchSizer->Add(matchModeChoice, 0, wxALL, 2);
+	leftSizer->Add(matchSizer, 0, wxEXPAND);
+
 	// Crop controls
 	wxStaticBoxSizer* cropBox = newd wxStaticBoxSizer(wxHORIZONTAL, this, "Crop Region");
 	cropBox->Add(newd wxStaticText(cropBox->GetStaticBox(), wxID_ANY, "X:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
@@ -128,14 +142,14 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	yOffsetCtrl = newd wxSpinCtrl(offsetBox->GetStaticBox(), wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65000, 0);
 	offsetBox->Add(yOffsetCtrl, 0, wxALL, 2);
 	offsetBox->Add(newd wxStaticText(offsetBox->GetStaticBox(), wxID_ANY, "Z:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 5);
-	zOffsetCtrl = newd wxSpinCtrl(offsetBox->GetStaticBox(), wxID_ANY, "7", wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 0, 15, 7);
+	zOffsetCtrl = newd wxSpinCtrl(offsetBox->GetStaticBox(), wxID_sANY, "7", wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 0, 15, 7);
 	offsetBox->Add(zOffsetCtrl, 0, wxALL, 2);
 	rightSizer->Add(offsetBox, 0, wxEXPAND | wxALL, 5);
 
 	// Tolerance
 	wxBoxSizer* tolSizer = newd wxBoxSizer(wxHORIZONTAL);
 	tolSizer->Add(newd wxStaticText(this, wxID_ANY, "Tolerance:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 5);
-	toleranceCtrl = newd wxSpinCtrl(this, wxID_ANY, "30", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 765, 30);
+	toleranceCtrl = newd wxSpinCtrl(this, BITMAP_TO_MAP_TOLERANCE, "30", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 765, 30);
 	tolSizer->Add(toleranceCtrl, 0, wxALL, 2);
 	rightSizer->Add(tolSizer, 0, wxEXPAND);
 
@@ -202,7 +216,7 @@ BitmapToMapWindow::~BitmapToMapWindow() {
 }
 
 void BitmapToMapWindow::OnClickBrowse(wxCommandEvent &event) {
-	wxFileDialog dlg(this, "Select Image", "", "", "Image files (*.png;*.bmp;*.jpg;*.tga)|*.png;*.bmp;*.jpg;*.jpeg;*.tga|All files (*.*)|*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	wxFileDialog dlg(this, "Select Image", "", "", "Image files (*.png;*.bmp;*.jpg;*.jpeg)|*.png;*.bmp;*.jpg;*.jpeg", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
 	if (dlg.ShowModal() != wxID_OK) {
 		return;
@@ -211,89 +225,155 @@ void BitmapToMapWindow::OnClickBrowse(wxCommandEvent &event) {
 	wxString path = dlg.GetPath();
 	wxImage img;
 	if (!img.LoadFile(path)) {
-		g_gui.PopupDialog("Error", "Failed to load image: " + path, wxOK | wxICON_ERROR);
+		wxMessageBox("Failed to load image: " + path, "Error", wxOK | wxICON_ERROR, this);
 		return;
 	}
 
 	loadedImage = img;
+	originalImage = img.Copy();
 	imageLoaded = true;
 
-	imageInfoLabel->SetLabel(wxString::Format("%dx%d - %s", loadedImage.GetWidth(), loadedImage.GetHeight(), dlg.GetFilename()));
+	// Update info label
+	imageInfoLabel->SetLabel(wxString::Format("Size: %dx%d", img.GetWidth(), img.GetHeight()));
 
-	imagePreview->SetBitmap(wxBitmap(loadedImage));
-	previewPanel->SetVirtualSize(loadedImage.GetSize());
-	previewPanel->Scroll(0, 0);
+	// Update preview
+	wxImage scaled = loadedImage.Copy();
+	int pw = previewPanel->GetClientSize().GetWidth();
+	int ph = previewPanel->GetClientSize().GetHeight();
+	if (pw > 0 && ph > 0) {
+		double scaleX = (double)pw / scaled.GetWidth();
+		double scaleY = (double)ph / scaled.GetHeight();
+		double scale = std::min(scaleX, scaleY) * zoomLevel;
+		int newW = std::max(1, (int)(scaled.GetWidth() * scale));
+		int newH = std::max(1, (int)(scaled.GetHeight() * scale));
+		scaled.Rescale(newW, newH, wxIMAGE_QUALITY_NEAREST);
+	}
+	imagePreview->SetBitmap(wxBitmap(scaled));
+	previewPanel->SetVirtualSize(scaled.GetSize());
+	previewPanel->FitInside();
 
-	originalImage = loadedImage.Copy();
-	zoomLevel = 1.0;
-
-	// Set crop defaults to full image
-	cropXCtrl->SetValue(0);
-	cropYCtrl->SetValue(0);
-	cropWCtrl->SetRange(0, loadedImage.GetWidth());
-	cropHCtrl->SetRange(0, loadedImage.GetHeight());
-	cropWCtrl->SetValue(loadedImage.GetWidth());
-	cropHCtrl->SetValue(loadedImage.GetHeight());
-
+	// Detect colors
 	detectColors();
-
-	autoSuggestBrushes();
-	populateColorList();
 }
 
 void BitmapToMapWindow::detectColors() {
-	detectedColors.clear();
-
 	if (!imageLoaded) {
 		return;
 	}
 
+	detectedColors.clear();
+
+	unsigned char* data = loadedImage.GetData();
+	bool hasAlpha = loadedImage.HasAlpha();
+	unsigned char* alpha = hasAlpha ? loadedImage.GetAlpha() : nullptr;
 	int w = loadedImage.GetWidth();
 	int h = loadedImage.GetHeight();
-	bool hasAlpha = loadedImage.HasAlpha();
-	unsigned char* data = loadedImage.GetData();
-	unsigned char* alpha = hasAlpha ? loadedImage.GetAlpha() : nullptr;
+	int tolerance = toleranceCtrl->GetValue();
+	bool useHue = (matchModeChoice->GetSelection() == 1);
 
-	std::map<uint32_t, int> colorCounts;
+	std::map<int, std::tuple<long long, long long, long long, int>> buckets;
+	// buckets[key] = {sumR, sumG, sumB, count}
 
-	for (int i = 0; i < w * h; ++i) {
-		if (hasAlpha && alpha && alpha[i] < 128) {
+	for (int i = 0; i < w * h; i++) {
+		if (hasAlpha && alpha[i] < 128) {
 			continue;
 		}
 
 		uint8_t r = data[i * 3];
 		uint8_t g = data[i * 3 + 1];
-		uint8_t b = data[i * 3 + 2];
-		uint32_t key = (uint32_t(r) << 16) | (uint32_t(g) << 8) | uint32_t(b);
-		colorCounts[key]++;
+		uint8_t b_val = data[i * 3 + 2];
+
+		int key;
+
+		if (useHue) {
+			// Group by hue bucket
+			float rf = r / 255.0f;
+			float gf = g / 255.0f;
+			float bf = b_val / 255.0f;
+			float maxC = std::max({ rf, gf, bf });
+			float minC = std::min({ rf, gf, bf });
+			float delta = maxC - minC;
+
+			if (delta < 0.05f) {
+				// Achromatic: group by brightness
+				int brightness = (r + g + b_val) / 3;
+				if (brightness < 64) {
+					key = 1000; // black
+				} else if (brightness < 192) {
+					key = 1001; // gray
+				} else {
+					key = 1002; // white
+				}
+			} else {
+				float hue = 0.0f;
+				if (maxC == rf) {
+					hue = 60.0f * fmod((gf - bf) / delta, 6.0f);
+				} else if (maxC == gf) {
+					hue = 60.0f * ((bf - rf) / delta + 2.0f);
+				} else {
+					hue = 60.0f * ((rf - gf) / delta + 4.0f);
+				}
+				if (hue < 0.0f) {
+					hue += 360.0f;
+				}
+
+				int bucketSize = std::max(tolerance, 1);
+				key = (int)(hue / bucketSize);
+			}
+		} else {
+			// Group by quantized RGB
+			int q = std::max(tolerance, 1);
+			int rq = (r / q) * q;
+			int gq = (g / q) * q;
+			int bq = (b_val / q) * q;
+			key = (rq << 16) | (gq << 8) | bq;
+		}
+
+		auto it = buckets.find(key);
+		if (it != buckets.end()) {
+			auto &b = it->second;
+			std::get<0>(b) += r;
+			std::get<1>(b) += g;
+			std::get<2>(b) += b_val;
+			std::get<3>(b) += 1;
+		} else {
+			buckets[key] = std::make_tuple((long long)r, (long long)g, (long long)b_val, 1);
+		}
+
+		if (i % 50000 == 0) {
+			wxSafeYield(this, true);
+		}
 	}
 
-	if ((int)colorCounts.size() > MAX_COLORS) {
-		wxMessageBox(
-			wxString::Format("Image has %d unique colors (max %d).\n\n"
-							 "Consider reducing colors in an image editor first.\n"
-							 "Only the top %d most frequent colors will be loaded.",
-							 (int)colorCounts.size(), MAX_COLORS, MAX_COLORS),
-			"Too Many Colors", wxOK | wxICON_WARNING
-		);
+	// Convert buckets to DetectedColor using average RGB
+	for (auto &pair : buckets) {
+		auto &b = pair.second;
+		int count = std::get<3>(b);
+		DetectedColor dc;
+		dc.r = (uint8_t)(std::get<0>(b) / count);
+		dc.g = (uint8_t)(std::get<1>(b) / count);
+		dc.b = (uint8_t)(std::get<2>(b) / count);
+		dc.pixelCount = count;
+		dc.ignore = false;
+		detectedColors.push_back(dc);
 	}
 
-	std::vector<std::pair<uint32_t, int>> sorted(colorCounts.begin(), colorCounts.end());
-	std::sort(sorted.begin(), sorted.end(), [](const std::pair<uint32_t, int> &a, const std::pair<uint32_t, int> &b) {
-		return a.second > b.second;
+	// Sort by pixel count descending
+	std::sort(detectedColors.begin(), detectedColors.end(), [](const DetectedColor &a, const DetectedColor &b) {
+		return a.pixelCount > b.pixelCount;
 	});
 
-	int limit = std::min((int)sorted.size(), MAX_COLORS);
-	for (int i = 0; i < limit; ++i) {
-		uint32_t key = sorted[i].first;
-		uint8_t r = (key >> 16) & 0xFF;
-		uint8_t g = (key >> 8) & 0xFF;
-		uint8_t b = key & 0xFF;
-		detectedColors.emplace_back(r, g, b, sorted[i].second);
+	// Limit
+	if ((int)detectedColors.size() > MAX_COLORS) {
+		detectedColors.resize(MAX_COLORS);
 	}
+
+	autoSuggestBrushes();
+	populateColorList();
 }
 
 void BitmapToMapWindow::autoSuggestBrushes() {
+	wxBusyCursor wait;
 	struct BrushColor {
 		std::string name;
 		uint8_t r, g, b;
@@ -467,8 +547,6 @@ void BitmapToMapWindow::OnClickRotateLeft(wxCommandEvent &event) {
 	cropXCtrl->SetValue(0);
 	cropYCtrl->SetValue(0);
 	detectColors();
-	autoSuggestBrushes();
-	populateColorList();
 }
 
 void BitmapToMapWindow::OnClickRotateRight(wxCommandEvent &event) {
@@ -573,8 +651,10 @@ void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
 	int offY = yOffsetCtrl->GetValue();
 	int offZ = zOffsetCtrl->GetValue();
 
+	MatchMode mode = (matchModeChoice->GetSelection() == 1) ? MATCH_HUE_HSL : MATCH_PIXEL_RGB;
+
 	BitmapToMapConverter converter(editor);
-	ConvertResult result = converter.convert(loadedImage, mappings, tolerance, offX, offY, offZ);
+	ConvertResult result = converter.convert(loadedImage, mappings, tolerance, mode, offX, offY, offZ);
 
 	if (result.success) {
 		wxMessageBox(
@@ -757,6 +837,7 @@ void BitmapToMapWindow::OnClickSavePreset(wxCommandEvent &event) {
 	root.append_attribute("offset_y") = yOffsetCtrl->GetValue();
 	root.append_attribute("offset_z") = zOffsetCtrl->GetValue();
 	root.append_attribute("scale") = scaleChoice->GetSelection();
+	root.append_attribute("match_mode") = matchModeChoice->GetSelection();
 
 	for (const auto &dc : detectedColors) {
 		pugi::xml_node colorNode = root.append_child("color");
@@ -801,6 +882,7 @@ void BitmapToMapWindow::OnClickLoadPreset(wxCommandEvent &event) {
 	yOffsetCtrl->SetValue(root.attribute("offset_y").as_int(0));
 	zOffsetCtrl->SetValue(root.attribute("offset_z").as_int(7));
 	scaleChoice->SetSelection(root.attribute("scale").as_int(0));
+	matchModeChoice->SetSelection(root.attribute("match_mode").as_int(0));
 
 	// Restore color mappings
 	detectedColors.clear();
@@ -859,6 +941,20 @@ void BitmapToMapWindow::recalculatePixelCounts() {
 	}
 
 	populateColorList();
+}
+
+void BitmapToMapWindow::OnToleranceChanged(wxSpinEvent &event) {
+	if (!imageLoaded) {
+		return;
+	}
+	detectColors();
+}
+
+void BitmapToMapWindow::OnMatchModeChanged(wxCommandEvent &event) {
+	if (!imageLoaded) {
+		return;
+	}
+	detectColors();
 }
 
 void BitmapToMapWindow::OnClickInstructions(wxCommandEvent &event) {

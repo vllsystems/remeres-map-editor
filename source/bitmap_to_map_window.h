@@ -57,6 +57,8 @@ enum {
 	BITMAP_TO_MAP_LOAD_PRESET,
 	BITMAP_TO_MAP_DELETE_COLOR,
 	BITMAP_TO_MAP_FILTER,
+	BITMAP_TO_MAP_MATCH_MODE,
+	BITMAP_TO_MAP_TOLERANCE,
 	BITMAP_TO_MAP_COLOR_LIST,
 	BITMAP_TO_MAP_INSTRUCTIONS,
 };
@@ -81,6 +83,8 @@ private:
 	void OnClickLoadPreset(wxCommandEvent &event);
 	void OnClickDeleteColor(wxCommandEvent &event);
 	void OnClickInstructions(wxCommandEvent &event);
+	void OnMatchModeChanged(wxCommandEvent &event);
+	void OnToleranceChanged(wxSpinEvent &event);
 	void OnFilterColors(wxCommandEvent &event);
 	void OnColorListActivated(wxListEvent &event);
 
@@ -104,6 +108,7 @@ private:
 	wxSpinCtrl* zOffsetCtrl;
 	wxStaticText* imageInfoLabel;
 	wxGauge* progressBar;
+	wxChoice* matchModeChoice;
 	wxChoice* scaleChoice;
 	wxSpinCtrl* cropXCtrl;
 	wxSpinCtrl* cropYCtrl;
