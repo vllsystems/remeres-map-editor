@@ -24,6 +24,8 @@
 #include <vector>
 #include <set>
 
+static constexpr float kAchromaticDelta = 0.05f;
+
 class Editor;
 
 enum MatchMode {

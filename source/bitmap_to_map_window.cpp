@@ -278,7 +278,7 @@ void BitmapToMapWindow::detectColors() {
 			float minC = std::min({ rf, gf, bf });
 			float delta = maxC - minC;
 
-			if (delta < 0.05f) {
+			if (delta < kAchromaticDelta) {
 				// Achromatic: group by brightness
 				int brightness = (r + g + b_val) / 3;
 				if (brightness < 64) {

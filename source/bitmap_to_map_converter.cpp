@@ -39,7 +39,7 @@ static float rgbToHue(uint8_t r, uint8_t g, uint8_t b) {
 	float minC = std::min({ rf, gf, bf });
 	float delta = maxC - minC;
 
-	if (delta < 0.001f) {
+	if (delta < kAchromaticDelta) {
 		return -1.0f;
 	}
 
