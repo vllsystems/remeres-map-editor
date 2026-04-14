@@ -27,6 +27,7 @@
 #include "items.h"
 #include "gui.h"
 #include "common.h"
+#include <wx/dcgraph.h>
 
 BEGIN_EVENT_TABLE(BitmapToMapWindow, wxDialog)
 EVT_BUTTON(BITMAP_TO_MAP_BROWSE, BitmapToMapWindow::OnClickBrowse)
@@ -61,12 +62,10 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	imageInfoLabel(nullptr),
 	progressBar(nullptr),
 	scaleChoice(nullptr),
-	cropXCtrl(nullptr),
-	cropYCtrl(nullptr),
-	cropWCtrl(nullptr),
-	cropHCtrl(nullptr),
 	pixelInfoLabel(nullptr),
-	zoomLevel(1.0) {
+	cropSelectionMode(false),
+	cropDragging(false),
+	cropButton(nullptr) {
 	wxBoxSizer* mainSizer = newd wxBoxSizer(wxHORIZONTAL);
 
 	// === Left panel: image preview ===
@@ -76,7 +75,6 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	leftSizer->Add(imageInfoLabel, 0, wxALL, 5);
 
 	previewPanel = newd wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxSize(400, 400));
-	previewPanel->SetScrollRate(5, 5);
 	previewPanel->SetBackgroundColour(*wxBLACK);
 	imagePreview = newd wxStaticBitmap(previewPanel, wxID_ANY, wxNullBitmap);
 	leftSizer->Add(previewPanel, 1, wxEXPAND | wxALL, 5);
@@ -86,7 +84,8 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	leftSizer->Add(pixelInfoLabel, 0, wxALL, 5);
 
 	// Bind mouse events on preview panel
-	previewPanel->Bind(wxEVT_MOUSEWHEEL, &BitmapToMapWindow::OnPreviewMouseWheel, this);
+	imagePreview->Bind(wxEVT_LEFT_DOWN, &BitmapToMapWindow::OnPreviewLeftDown, this);
+	imagePreview->Bind(wxEVT_LEFT_UP, &BitmapToMapWindow::OnPreviewLeftUp, this);
 	imagePreview->Bind(wxEVT_MOTION, &BitmapToMapWindow::OnPreviewMouseMove, this);
 
 	// Image manipulation buttons
@@ -94,7 +93,8 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	imgBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_ROTATE_LEFT, "Rotate L"), 0, wxALL, 2);
 	imgBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_ROTATE_RIGHT, "Rotate R"), 0, wxALL, 2);
 	imgBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_FLIP, "Flip H"), 0, wxALL, 2);
-	imgBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_CROP, "Crop"), 0, wxALL, 2);
+	cropButton = newd wxButton(this, BITMAP_TO_MAP_CROP, "Crop");
+	imgBtnSizer->Add(cropButton, 0, wxALL, 2);
 	leftSizer->Add(imgBtnSizer, 0, wxALIGN_CENTER);
 
 	wxBoxSizer* matchSizer = newd wxBoxSizer(wxHORIZONTAL);
@@ -106,22 +106,6 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	matchSizer->Add(matchLabel, 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 5);
 	matchSizer->Add(matchModeChoice, 0, wxALL, 2);
 	leftSizer->Add(matchSizer, 0, wxEXPAND);
-
-	// Crop controls
-	wxStaticBoxSizer* cropBox = newd wxStaticBoxSizer(wxHORIZONTAL, this, "Crop Region");
-	cropBox->Add(newd wxStaticText(cropBox->GetStaticBox(), wxID_ANY, "X:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-	cropXCtrl = newd wxSpinCtrl(cropBox->GetStaticBox(), wxID_ANY, "0", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 65000, 0);
-	cropBox->Add(cropXCtrl, 0, wxALL, 2);
-	cropBox->Add(newd wxStaticText(cropBox->GetStaticBox(), wxID_ANY, "Y:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-	cropYCtrl = newd wxSpinCtrl(cropBox->GetStaticBox(), wxID_ANY, "0", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 65000, 0);
-	cropBox->Add(cropYCtrl, 0, wxALL, 2);
-	cropBox->Add(newd wxStaticText(cropBox->GetStaticBox(), wxID_ANY, "W:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-	cropWCtrl = newd wxSpinCtrl(cropBox->GetStaticBox(), wxID_ANY, "0", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 65000, 0);
-	cropBox->Add(cropWCtrl, 0, wxALL, 2);
-	cropBox->Add(newd wxStaticText(cropBox->GetStaticBox(), wxID_ANY, "H:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 3);
-	cropHCtrl = newd wxSpinCtrl(cropBox->GetStaticBox(), wxID_ANY, "0", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 65000, 0);
-	cropBox->Add(cropHCtrl, 0, wxALL, 2);
-	leftSizer->Add(cropBox, 0, wxEXPAND | wxALL, 5);
 
 	mainSizer->Add(leftSizer, 1, wxEXPAND);
 
@@ -142,7 +126,7 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	yOffsetCtrl = newd wxSpinCtrl(offsetBox->GetStaticBox(), wxID_ANY, "0", wxDefaultPosition, wxSize(70, -1), wxSP_ARROW_KEYS, 0, 65000, 0);
 	offsetBox->Add(yOffsetCtrl, 0, wxALL, 2);
 	offsetBox->Add(newd wxStaticText(offsetBox->GetStaticBox(), wxID_ANY, "Z:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 5);
-	zOffsetCtrl = newd wxSpinCtrl(offsetBox->GetStaticBox(), wxID_sANY, "7", wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 0, 15, 7);
+	zOffsetCtrl = newd wxSpinCtrl(offsetBox->GetStaticBox(), wxID_ANY, "7", wxDefaultPosition, wxSize(50, -1), wxSP_ARROW_KEYS, 0, 15, 7);
 	offsetBox->Add(zOffsetCtrl, 0, wxALL, 2);
 	rightSizer->Add(offsetBox, 0, wxEXPAND | wxALL, 5);
 
@@ -233,24 +217,22 @@ void BitmapToMapWindow::OnClickBrowse(wxCommandEvent &event) {
 	originalImage = img.Copy();
 	imageLoaded = true;
 
+	// Reset crop state
+	cropSelectionMode = false;
+	cropDragging = false;
+	cropStart = wxPoint(0, 0);
+	cropEnd = wxPoint(0, 0);
+	cropButton->SetLabel("Crop");
+	imagePreview->SetCursor(wxNullCursor);
+	cropBaseBitmap = wxBitmap();
+
+	// Clear previous colors
+	detectedColors.clear();
+
 	// Update info label
 	imageInfoLabel->SetLabel(wxString::Format("Size: %dx%d", img.GetWidth(), img.GetHeight()));
 
-	// Update preview
-	wxImage scaled = loadedImage.Copy();
-	int pw = previewPanel->GetClientSize().GetWidth();
-	int ph = previewPanel->GetClientSize().GetHeight();
-	if (pw > 0 && ph > 0) {
-		double scaleX = (double)pw / scaled.GetWidth();
-		double scaleY = (double)ph / scaled.GetHeight();
-		double scale = std::min(scaleX, scaleY) * zoomLevel;
-		int newW = std::max(1, (int)(scaled.GetWidth() * scale));
-		int newH = std::max(1, (int)(scaled.GetHeight() * scale));
-		scaled.Rescale(newW, newH, wxIMAGE_QUALITY_NEAREST);
-	}
-	imagePreview->SetBitmap(wxBitmap(scaled));
-	previewPanel->SetVirtualSize(scaled.GetSize());
-	previewPanel->FitInside();
+	updatePreview();
 
 	// Detect colors
 	detectColors();
@@ -537,15 +519,9 @@ void BitmapToMapWindow::OnClickRotateLeft(wxCommandEvent &event) {
 	}
 	loadedImage = loadedImage.Rotate90(false);
 	originalImage = loadedImage.Copy();
-	zoomLevel = 1.0;
-	imagePreview->SetBitmap(wxBitmap(loadedImage));
-	previewPanel->SetVirtualSize(loadedImage.GetSize());
-	cropWCtrl->SetRange(0, loadedImage.GetWidth());
-	cropHCtrl->SetRange(0, loadedImage.GetHeight());
-	cropWCtrl->SetValue(loadedImage.GetWidth());
-	cropHCtrl->SetValue(loadedImage.GetHeight());
-	cropXCtrl->SetValue(0);
-	cropYCtrl->SetValue(0);
+	cropSelectionMode = false;
+	cropDragging = false;
+	updatePreview();
 	detectColors();
 }
 
@@ -555,18 +531,10 @@ void BitmapToMapWindow::OnClickRotateRight(wxCommandEvent &event) {
 	}
 	loadedImage = loadedImage.Rotate90(true);
 	originalImage = loadedImage.Copy();
-	zoomLevel = 1.0;
-	imagePreview->SetBitmap(wxBitmap(loadedImage));
-	previewPanel->SetVirtualSize(loadedImage.GetSize());
-	cropWCtrl->SetRange(0, loadedImage.GetWidth());
-	cropHCtrl->SetRange(0, loadedImage.GetHeight());
-	cropWCtrl->SetValue(loadedImage.GetWidth());
-	cropHCtrl->SetValue(loadedImage.GetHeight());
-	cropXCtrl->SetValue(0);
-	cropYCtrl->SetValue(0);
+	cropSelectionMode = false;
+	cropDragging = false;
+	updatePreview();
 	detectColors();
-	autoSuggestBrushes();
-	populateColorList();
 }
 
 void BitmapToMapWindow::OnClickFlip(wxCommandEvent &event) {
@@ -575,57 +543,33 @@ void BitmapToMapWindow::OnClickFlip(wxCommandEvent &event) {
 	}
 	loadedImage = loadedImage.Mirror(true);
 	originalImage = loadedImage.Copy();
-	imagePreview->SetBitmap(wxBitmap(loadedImage));
+	cropSelectionMode = false;
+	cropDragging = false;
+	updatePreview();
 }
 
 void BitmapToMapWindow::OnClickCrop(wxCommandEvent &event) {
 	if (!imageLoaded) {
+		wxMessageBox("No image loaded.", "Bitmap to Map", wxOK | wxICON_WARNING);
 		return;
 	}
 
-	int cx = cropXCtrl->GetValue();
-	int cy = cropYCtrl->GetValue();
-	int cw = cropWCtrl->GetValue();
-	int ch = cropHCtrl->GetValue();
-
-	if (cw <= 0 || ch <= 0) {
-		wxMessageBox("Crop width and height must be greater than 0.", "Error", wxOK | wxICON_ERROR, this);
+	if (cropSelectionMode) {
+		// Cancel crop mode
+		cropSelectionMode = false;
+		cropDragging = false;
+		cropButton->SetLabel("Crop");
+		previewPanel->SetCursor(wxNullCursor);
+		imagePreview->SetCursor(wxNullCursor);
+		updatePreview();
 		return;
 	}
 
-	int imgW = loadedImage.GetWidth();
-	int imgH = loadedImage.GetHeight();
-
-	if (cx >= imgW || cy >= imgH) {
-		wxMessageBox("Crop origin is outside the image.", "Error", wxOK | wxICON_ERROR, this);
-		return;
-	}
-
-	if (cx + cw > imgW) {
-		cw = imgW - cx;
-	}
-	if (cy + ch > imgH) {
-		ch = imgH - cy;
-	}
-
-	loadedImage = loadedImage.GetSubImage(wxRect(cx, cy, cw, ch));
-	originalImage = loadedImage.Copy();
-	zoomLevel = 1.0;
-
-	imagePreview->SetBitmap(wxBitmap(loadedImage));
-	previewPanel->SetVirtualSize(loadedImage.GetSize());
-	imageInfoLabel->SetLabel(wxString::Format("%dx%d (cropped)", loadedImage.GetWidth(), loadedImage.GetHeight()));
-
-	cropXCtrl->SetValue(0);
-	cropYCtrl->SetValue(0);
-	cropWCtrl->SetRange(0, loadedImage.GetWidth());
-	cropHCtrl->SetRange(0, loadedImage.GetHeight());
-	cropWCtrl->SetValue(loadedImage.GetWidth());
-	cropHCtrl->SetValue(loadedImage.GetHeight());
-
-	detectColors();
-	autoSuggestBrushes();
-	populateColorList();
+	cropSelectionMode = true;
+	cropDragging = false;
+	cropButton->SetLabel("Cancel Crop");
+	previewPanel->SetCursor(wxCursor(wxCURSOR_CROSS));
+	imagePreview->SetCursor(wxCursor(wxCURSOR_CROSS));
 }
 
 void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
@@ -732,90 +676,117 @@ void BitmapToMapWindow::generateColorizedPreview() {
 		}
 	}
 
+	int pw = previewPanel->GetClientSize().GetWidth();
+	int ph = previewPanel->GetClientSize().GetHeight();
+	if (pw > 0 && ph > 0) {
+		double scaleX = (double)pw / preview.GetWidth();
+		double scaleY = (double)ph / preview.GetHeight();
+		double fitScale = std::min(scaleX, scaleY);
+		int newW = std::max(1, (int)(preview.GetWidth() * fitScale));
+		int newH = std::max(1, (int)(preview.GetHeight() * fitScale));
+		preview.Rescale(newW, newH, wxIMAGE_QUALITY_NEAREST);
+	}
 	imagePreview->SetBitmap(wxBitmap(preview));
-	previewPanel->SetVirtualSize(preview.GetSize());
 }
 
-void BitmapToMapWindow::OnPreviewMouseWheel(wxMouseEvent &event) {
+void BitmapToMapWindow::updatePreview() {
 	if (!imageLoaded) {
-		event.Skip();
 		return;
 	}
 
-	double oldZoom = zoomLevel;
-	if (event.GetWheelRotation() > 0) {
-		zoomLevel *= 1.25;
-	} else {
-		zoomLevel /= 1.25;
+	wxImage scaled = loadedImage.Copy();
+	int pw = previewPanel->GetClientSize().GetWidth();
+	int ph = previewPanel->GetClientSize().GetHeight();
+	if (pw > 0 && ph > 0) {
+		double scaleX = (double)pw / scaled.GetWidth();
+		double scaleY = (double)ph / scaled.GetHeight();
+		double fitScale = std::min(scaleX, scaleY);
+		int newW = std::max(1, (int)(scaled.GetWidth() * fitScale));
+		int newH = std::max(1, (int)(scaled.GetHeight() * fitScale));
+		scaled.Rescale(newW, newH, wxIMAGE_QUALITY_NEAREST);
 	}
-
-	if (zoomLevel < 0.1) {
-		zoomLevel = 0.1;
-	}
-	if (zoomLevel > 10.0) {
-		zoomLevel = 10.0;
-	}
-
-	int newW = (int)(loadedImage.GetWidth() * zoomLevel);
-	int newH = (int)(loadedImage.GetHeight() * zoomLevel);
-
-	if (newW < 1 || newH < 1) {
-		zoomLevel = oldZoom;
-		return;
-	}
-
-	wxImage scaled = loadedImage.Scale(newW, newH, wxIMAGE_QUALITY_NEAREST);
 	imagePreview->SetBitmap(wxBitmap(scaled));
-	previewPanel->SetVirtualSize(newW, newH);
 
-	imageInfoLabel->SetLabel(wxString::Format("%dx%d (zoom: %.0f%%)", loadedImage.GetWidth(), loadedImage.GetHeight(), zoomLevel * 100.0));
+	if (cropSelectionMode) {
+		imagePreview->SetCursor(wxCursor(wxCURSOR_CROSS));
+	}
 }
 
 void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent &event) {
+	if (cropDragging && cropSelectionMode) {
+		cropEnd = event.GetPosition();
+
+		wxBitmap bmp(cropBaseBitmap);
+		if (bmp.IsOk()) {
+			wxMemoryDC memDC(bmp);
+			wxGCDC dc(memDC);
+
+			int x1 = std::min(cropStart.x, cropEnd.x);
+			int y1 = std::min(cropStart.y, cropEnd.y);
+			int x2 = std::max(cropStart.x, cropEnd.x);
+			int y2 = std::max(cropStart.y, cropEnd.y);
+
+			// Darken outside selection
+			dc.SetBrush(wxBrush(wxColour(0, 0, 0, 120)));
+			dc.SetPen(*wxTRANSPARENT_PEN);
+			dc.DrawRectangle(0, 0, bmp.GetWidth(), y1);
+			dc.DrawRectangle(0, y2, bmp.GetWidth(), bmp.GetHeight() - y2);
+			dc.DrawRectangle(0, y1, x1, y2 - y1);
+			dc.DrawRectangle(x2, y1, bmp.GetWidth() - x2, y2 - y1);
+
+			// Green rectangle
+			dc.SetPen(wxPen(wxColour(0, 255, 0), 2));
+			dc.SetBrush(*wxTRANSPARENT_BRUSH);
+			dc.DrawRectangle(x1, y1, x2 - x1, y2 - y1);
+
+			memDC.SelectObject(wxNullBitmap);
+
+			imagePreview->SetBitmap(bmp);
+		}
+		return;
+	}
+
+	// Pixel info (when not crop-dragging)
 	if (!imageLoaded) {
 		event.Skip();
 		return;
 	}
 
-	int mx = event.GetX();
-	int my = event.GetY();
-
-	// Account for zoom
-	int imgX = (int)(mx / zoomLevel);
-	int imgY = (int)(my / zoomLevel);
-
-	int w = loadedImage.GetWidth();
-	int h = loadedImage.GetHeight();
-
-	if (imgX < 0 || imgX >= w || imgY < 0 || imgY >= h) {
-		pixelInfoLabel->SetLabel("Hover over image for pixel info");
+	wxBitmap currentBmp = imagePreview->GetBitmap();
+	if (!currentBmp.IsOk()) {
 		event.Skip();
 		return;
 	}
 
-	unsigned char* data = loadedImage.GetData();
-	uint8_t r = data[(imgY * w + imgX) * 3];
-	uint8_t g = data[(imgY * w + imgX) * 3 + 1];
-	uint8_t b = data[(imgY * w + imgX) * 3 + 2];
+	int bmpW = currentBmp.GetWidth();
+	int bmpH = currentBmp.GetHeight();
+	int imgW = loadedImage.GetWidth();
+	int imgH = loadedImage.GetHeight();
 
-	wxString brushInfo = "(no match)";
-	int tolerance = toleranceCtrl->GetValue();
+	wxPoint pos = event.GetPosition();
+
+	int imgX = pos.x * imgW / bmpW;
+	int imgY = pos.y * imgH / bmpH;
+
+	if (imgX < 0 || imgX >= imgW || imgY < 0 || imgY >= imgH) {
+		pixelInfoLabel->SetLabel("");
+		event.Skip();
+		return;
+	}
+
+	uint8_t r = loadedImage.GetRed(imgX, imgY);
+	uint8_t g = loadedImage.GetGreen(imgX, imgY);
+	uint8_t b_val = loadedImage.GetBlue(imgX, imgY);
+
+	wxString brushName = "none";
 	for (const auto &dc : detectedColors) {
-		int dist = std::abs((int)r - dc.r) + std::abs((int)g - dc.g) + std::abs((int)b - dc.b);
-		if (dist <= tolerance) {
-			if (dc.ignore) {
-				brushInfo = "(ignored)";
-			} else if (!dc.suggestedBrush.IsEmpty()) {
-				brushInfo = dc.suggestedBrush;
-			} else {
-				brushInfo = "(no brush)";
-			}
+		if (dc.r == r && dc.g == g && dc.b == b_val && !dc.suggestedBrush.IsEmpty()) {
+			brushName = dc.suggestedBrush;
 			break;
 		}
 	}
 
-	pixelInfoLabel->SetLabel(wxString::Format("Pos: %d,%d | RGB: %d,%d,%d | #%02X%02X%02X | Brush: %s", imgX, imgY, r, g, b, r, g, b, brushInfo));
-
+	pixelInfoLabel->SetLabel(wxString::Format("Pos: %d,%d | RGB: %d,%d,%d | #%02X%02X%02X | Brush: %s", imgX, imgY, r, g, b_val, r, g, b_val, brushName));
 	event.Skip();
 }
 
@@ -955,6 +926,90 @@ void BitmapToMapWindow::OnMatchModeChanged(wxCommandEvent &event) {
 		return;
 	}
 	detectColors();
+}
+
+void BitmapToMapWindow::OnPreviewLeftDown(wxMouseEvent &event) {
+	if (!cropSelectionMode || !imageLoaded) {
+		event.Skip();
+		return;
+	}
+
+	cropDragging = true;
+	cropStart = event.GetPosition();
+	cropEnd = cropStart;
+	cropBaseBitmap = imagePreview->GetBitmap();
+}
+
+void BitmapToMapWindow::OnPreviewLeftUp(wxMouseEvent &event) {
+	if (!cropDragging || !cropSelectionMode) {
+		event.Skip();
+		return;
+	}
+
+	cropDragging = false;
+	cropEnd = event.GetPosition();
+
+	wxBitmap currentBmp = cropBaseBitmap;
+	if (!currentBmp.IsOk()) {
+		cropSelectionMode = false;
+		cropButton->SetLabel("Crop");
+		previewPanel->SetCursor(wxNullCursor);
+		imagePreview->SetCursor(wxNullCursor);
+		updatePreview();
+		return;
+	}
+
+	int bmpW = currentBmp.GetWidth();
+	int bmpH = currentBmp.GetHeight();
+	int imgW = loadedImage.GetWidth();
+	int imgH = loadedImage.GetHeight();
+
+	// Convert display coordinates to image coordinates
+	int dispX1 = std::min(cropStart.x, cropEnd.x);
+	int dispY1 = std::min(cropStart.y, cropEnd.y);
+	int dispX2 = std::max(cropStart.x, cropEnd.x);
+	int dispY2 = std::max(cropStart.y, cropEnd.y);
+
+	int imgX = dispX1 * imgW / bmpW;
+	int imgY = dispY1 * imgH / bmpH;
+	int imgX2 = dispX2 * imgW / bmpW;
+	int imgY2 = dispY2 * imgH / bmpH;
+
+	int cropW = imgX2 - imgX;
+	int cropH = imgY2 - imgY;
+
+	if (cropW < 2 || cropH < 2) {
+		cropSelectionMode = false;
+		cropButton->SetLabel("Crop");
+		previewPanel->SetCursor(wxNullCursor);
+		imagePreview->SetCursor(wxNullCursor);
+		updatePreview();
+		return;
+	}
+
+	// Clamp to image bounds
+	imgX = std::max(0, std::min(imgX, imgW - 1));
+	imgY = std::max(0, std::min(imgY, imgH - 1));
+	cropW = std::min(cropW, imgW - imgX);
+	cropH = std::min(cropH, imgH - imgY);
+
+	int answer = wxMessageBox(
+		wxString::Format("Crop to selection (%d x %d pixels)?", cropW, cropH),
+		"Crop", wxYES_NO | wxICON_QUESTION, this
+	);
+
+	if (answer == wxYES) {
+		loadedImage = loadedImage.GetSubImage(wxRect(imgX, imgY, cropW, cropH));
+		originalImage = loadedImage.Copy();
+		imageInfoLabel->SetLabel(wxString::Format("Size: %d x %d", loadedImage.GetWidth(), loadedImage.GetHeight()));
+		detectColors();
+	}
+
+	cropSelectionMode = false;
+	cropButton->SetLabel("Crop");
+	previewPanel->SetCursor(wxNullCursor);
+	imagePreview->SetCursor(wxNullCursor);
+	updatePreview();
 }
 
 void BitmapToMapWindow::OnClickInstructions(wxCommandEvent &event) {

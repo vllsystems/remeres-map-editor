@@ -76,9 +76,11 @@ private:
 	void OnClickRotateRight(wxCommandEvent &event);
 	void OnClickFlip(wxCommandEvent &event);
 	void OnClickCrop(wxCommandEvent &event);
-	void OnPreviewMouseWheel(wxMouseEvent &event);
+	void OnPreviewLeftDown(wxMouseEvent &event);
+	void OnPreviewLeftUp(wxMouseEvent &event);
 	void OnPreviewMouseMove(wxMouseEvent &event);
 	void generateColorizedPreview();
+	void updatePreview();
 	void OnClickSavePreset(wxCommandEvent &event);
 	void OnClickLoadPreset(wxCommandEvent &event);
 	void OnClickDeleteColor(wxCommandEvent &event);
@@ -109,14 +111,15 @@ private:
 	wxStaticText* imageInfoLabel;
 	wxGauge* progressBar;
 	wxChoice* matchModeChoice;
+	wxButton* cropButton;
 	wxChoice* scaleChoice;
-	wxSpinCtrl* cropXCtrl;
-	wxSpinCtrl* cropYCtrl;
-	wxSpinCtrl* cropWCtrl;
-	wxSpinCtrl* cropHCtrl;
 	wxStaticText* pixelInfoLabel;
-	double zoomLevel;
 	wxImage originalImage;
+	bool cropSelectionMode;
+	bool cropDragging;
+	wxPoint cropStart;
+	wxPoint cropEnd;
+	wxBitmap cropBaseBitmap;
 
 	// Data
 	std::vector<DetectedColor> detectedColors;
