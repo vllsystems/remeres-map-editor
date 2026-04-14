@@ -69,6 +69,10 @@ const ColorMapping* BitmapToMapConverter::findMatchingColor(
 	int bestDistance = tolerance + 1;
 
 	for (const auto &mapping : mappings) {
+		if (mapping.ignore || mapping.brushName.empty()) {
+			continue;
+		}
+
 		if (matchMode == MATCH_HUE_HSL) {
 			float pixelHue = rgbToHue(r, g, b);
 			float mappingHue = rgbToHue(mapping.r, mapping.g, mapping.b);
@@ -182,7 +186,7 @@ ConvertResult BitmapToMapConverter::convert(
 			int mapY = py + offsetY;
 			int mapZ = offsetZ;
 
-			if (mapX < 0 || mapY < 0 || mapZ < 0 || mapZ > 15) {
+			if (mapX < 0 || mapY < 0 || mapX > rme::MapMaxWidth || mapY > rme::MapMaxHeight || mapZ < 0 || mapZ > rme::MapMaxLayer) {
 				result.tilesSkipped++;
 				continue;
 			}
@@ -209,7 +213,7 @@ ConvertResult BitmapToMapConverter::convert(
 				for (int dx = -1; dx <= 1; dx++) {
 					int bx = mapX + dx;
 					int by = mapY + dy;
-					if (bx >= 0 && by >= 0) {
+					if (bx >= 0 && by >= 0 && bx <= rme::MapMaxWidth && by <= rme::MapMaxHeight) {
 						borderPositions.insert(Position(bx, by, mapZ));
 					}
 				}

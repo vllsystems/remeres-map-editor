@@ -28,6 +28,8 @@
 #include "gui.h"
 #include "common.h"
 #include <wx/dcgraph.h>
+#include <cmath>
+#include <algorithm>
 
 BEGIN_EVENT_TABLE(BitmapToMapWindow, wxDialog)
 EVT_BUTTON(BITMAP_TO_MAP_BROWSE, BitmapToMapWindow::OnClickBrowse)
@@ -597,8 +599,21 @@ void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
 
 	MatchMode mode = (matchModeChoice->GetSelection() == 1) ? MATCH_HUE_HSL : MATCH_PIXEL_RGB;
 
+	// Apply scale
+	wxImage imageToConvert = loadedImage.Copy();
+	int scaleIndex = scaleChoice->GetSelection();
+	const double scaleFactors[] = { 0.25, 0.5, 1.0, 2.0, 4.0 };
+	if (scaleIndex >= 0 && scaleIndex < 5) {
+		double factor = scaleFactors[scaleIndex];
+		if (factor != 1.0) {
+			int newW = std::max(1, (int)std::lround(imageToConvert.GetWidth() * factor));
+			int newH = std::max(1, (int)std::lround(imageToConvert.GetHeight() * factor));
+			imageToConvert.Rescale(newW, newH, wxIMAGE_QUALITY_NEAREST);
+		}
+	}
+
 	BitmapToMapConverter converter(editor);
-	ConvertResult result = converter.convert(loadedImage, mappings, tolerance, mode, offX, offY, offZ);
+	ConvertResult result = converter.convert(imageToConvert, mappings, tolerance, mode, offX, offY, offZ);
 
 	if (result.success) {
 		wxMessageBox(
@@ -779,8 +794,12 @@ void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent &event) {
 	uint8_t b_val = loadedImage.GetBlue(imgX, imgY);
 
 	wxString brushName = "none";
+	int tolerance = toleranceCtrl->GetValue();
 	for (const auto &dc : detectedColors) {
-		if (dc.r == r && dc.g == g && dc.b == b_val && !dc.suggestedBrush.IsEmpty()) {
+		if (dc.ignore) {
+			continue;
+		}
+		if (dc.matches(r, g, b_val, tolerance) && !dc.suggestedBrush.IsEmpty()) {
 			brushName = dc.suggestedBrush;
 			break;
 		}
@@ -852,8 +871,10 @@ void BitmapToMapWindow::OnClickLoadPreset(wxCommandEvent &event) {
 	xOffsetCtrl->SetValue(root.attribute("offset_x").as_int(0));
 	yOffsetCtrl->SetValue(root.attribute("offset_y").as_int(0));
 	zOffsetCtrl->SetValue(root.attribute("offset_z").as_int(7));
-	scaleChoice->SetSelection(root.attribute("scale").as_int(0));
-	matchModeChoice->SetSelection(root.attribute("match_mode").as_int(0));
+	int scaleIdx = root.attribute("scale").as_int(2);
+	scaleChoice->SetSelection(std::clamp(scaleIdx, 0, static_cast<int>(scaleChoice->GetCount()) - 1));
+	int matchIdx = root.attribute("match_mode").as_int(0);
+	matchModeChoice->SetSelection(std::clamp(matchIdx, 0, static_cast<int>(matchModeChoice->GetCount()) - 1));
 
 	// Restore color mappings
 	detectedColors.clear();
@@ -893,6 +914,7 @@ void BitmapToMapWindow::recalculatePixelCounts() {
 	unsigned char* alpha = hasAlpha ? loadedImage.GetAlpha() : nullptr;
 	int w = loadedImage.GetWidth();
 	int h = loadedImage.GetHeight();
+	int tolerance = toleranceCtrl->GetValue();
 
 	for (int i = 0; i < w * h; i++) {
 		if (hasAlpha && alpha[i] < 128) {
@@ -904,7 +926,7 @@ void BitmapToMapWindow::recalculatePixelCounts() {
 		uint8_t b = data[i * 3 + 2];
 
 		for (auto &dc : detectedColors) {
-			if (dc.r == r && dc.g == g && dc.b == b) {
+			if (dc.matches(r, g, b, tolerance)) {
 				dc.pixelCount++;
 				break;
 			}
