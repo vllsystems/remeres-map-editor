@@ -11,6 +11,7 @@ endif()
 find_package(asio CONFIG REQUIRED)
 find_package(fmt CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
+find_path(STB_INCLUDE_DIRS "stb_truetype.h")
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 find_package(Threads REQUIRED)
@@ -238,6 +239,7 @@ target_sources(${PROJECT_NAME}
 	spawn_npc.cpp
 	spawn_npc_brush.cpp
 	sprite_appearances.cpp
+	stb_truetype_impl.cpp
 	table_brush.cpp
 	templatemap76-74.cpp
 	templatemap81.cpp
@@ -262,6 +264,7 @@ target_include_directories(${PROJECT_NAME}
 	${OPENGL_INCLUDE_DIR}
 	${ZLIB_INCLUDE_DIR}
 	${fastnoiselite_SOURCE_DIR}/Cpp
+	${STB_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}

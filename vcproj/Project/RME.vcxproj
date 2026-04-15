@@ -273,6 +273,9 @@
     <ClCompile Include="..\..\source\gl_renderer.cpp">
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="..\..\source\stb_truetype_impl.cpp">
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\source\light_drawer.cpp" />
     <ClCompile Include="..\..\source\iominimap.cpp" />
     <ClCompile Include="..\..\source\palette_zones.cpp" />

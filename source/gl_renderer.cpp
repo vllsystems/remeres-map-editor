@@ -13,6 +13,8 @@
 #include "gl_renderer.h"
 #include <array>
 #include <cmath>
+#include <fstream>
+#include <stb_truetype.h>
 
 #ifdef _WIN32
 static void* rmeGetGLProc(const char* name) {
@@ -81,42 +83,153 @@ void main() {
 )";
 
 void GLRenderer::initFontAtlas() {
-	const int GLYPH_W = 10;
-	const int GLYPH_H = 16;
-	const int COLS = 16;
-	const int ROWS = 6; // ASCII 32..127 = 96 chars
-	const int TEX_W = COLS * GLYPH_W; // 160
-	const int TEX_H = ROWS * GLYPH_H; // 96
+	// Load TTF font
+	const float fontSize = 14.0f;
+	std::string fontPath;
 
-	wxBitmap bmp(TEX_W, TEX_H, 24);
-	{
-		wxMemoryDC dc(bmp);
-		dc.SetBackground(*wxBLACK_BRUSH);
-		dc.Clear();
+#ifdef _WIN32
+	fontPath = "C:\\Windows\\Fonts\\segoeui.ttf";
+#elif defined(__APPLE__)
+	fontPath = "/System/Library/Fonts/Helvetica.ttc";
+#else
+	fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+#endif
 
-		wxFont font(wxFontInfo(10).Family(wxFONTFAMILY_MODERN).AntiAliased(false));
-		dc.SetFont(font);
-		dc.SetTextForeground(*wxWHITE);
+	// Try bundled font first
+	std::string bundledPath = "data/fonts/DejaVuSans.ttf";
+	std::ifstream testFile(bundledPath, std::ios::binary);
+	if (testFile.good()) {
+		fontPath = bundledPath;
+	}
+	testFile.close();
 
-		for (int i = 0; i < 96; ++i) {
-			auto c = (char)(32 + i);
-			int col = i % COLS;
-			int row = i / COLS;
-			dc.DrawText(wxString(c), col * GLYPH_W, row * GLYPH_H);
-		}
-		dc.SelectObject(wxNullBitmap);
+	std::ifstream file(fontPath, std::ios::binary | std::ios::ate);
+	if (!file.is_open()) {
+		// Fallback to old wxBitmap method
+		initFontAtlasFallback();
+		return;
 	}
 
+	auto fileSize = file.tellg();
+	file.seekg(0);
+	std::vector<uint8_t> ttfData(fileSize);
+	file.read(reinterpret_cast<char*>(ttfData.data()), fileSize);
+	file.close();
+
+	stbtt_fontinfo stbFont;
+	if (!stbtt_InitFont(&stbFont, ttfData.data(), 0)) {
+		initFontAtlasFallback();
+		return;
+	}
+
+	float scale = stbtt_ScaleForPixelHeight(&stbFont, fontSize);
+
+	int ascent, descent, lineGap;
+	stbtt_GetFontVMetrics(&stbFont, &ascent, &descent, &lineGap);
+	font.ascent = ascent * scale;
+	font.lineHeight = (ascent - descent + lineGap) * scale;
+
+	// Bake glyphs into atlas
+	const int texW = 512;
+	const int texH = 512;
+	std::vector<uint8_t> bitmap(texW * texH, 0);
+
+	int penX = 1, penY = 1;
+	int rowH = 0;
+
+	for (int i = 0; i < 96; i++) {
+		int ch = 32 + i;
+		int x0, y0, x1, y1;
+		stbtt_GetCodepointBitmapBox(&stbFont, ch, scale, scale, &x0, &y0, &x1, &y1);
+
+		int gw = x1 - x0;
+		int gh = y1 - y0;
+
+		if (penX + gw + 1 >= texW) {
+			penX = 1;
+			penY += rowH + 1;
+			rowH = 0;
+		}
+
+		if (penY + gh + 1 >= texH) {
+			break; // atlas full
+		}
+
+		stbtt_MakeCodepointBitmap(&stbFont, &bitmap[penY * texW + penX], gw, gh, texW, scale, scale, ch);
+
+		font.glyphs[i].u0 = static_cast<float>(penX) / texW;
+		font.glyphs[i].v0 = static_cast<float>(penY) / texH;
+		font.glyphs[i].u1 = static_cast<float>(penX + gw) / texW;
+		font.glyphs[i].v1 = static_cast<float>(penY + gh) / texH;
+		font.glyphs[i].xoff = static_cast<float>(x0);
+		font.glyphs[i].yoff = static_cast<float>(y0);
+		font.glyphs[i].w = static_cast<float>(gw);
+		font.glyphs[i].h = static_cast<float>(gh);
+
+		int advW, lsb;
+		stbtt_GetCodepointHMetrics(&stbFont, ch, &advW, &lsb);
+		font.glyphs[i].advance = advW * scale;
+		font.advances[i] = advW * scale;
+
+		penX += gw + 1;
+		if (gh + 1 > rowH) {
+			rowH = gh + 1;
+		}
+	}
+
+	// Upload as RGBA (white + alpha)
+	std::vector<uint8_t> pixels(texW * texH * 4);
+	for (int i = 0; i < texW * texH; i++) {
+		pixels[i * 4] = 255;
+		pixels[i * 4 + 1] = 255;
+		pixels[i * 4 + 2] = 255;
+		pixels[i * 4 + 3] = bitmap[i];
+	}
+
+	glGenTextures(1, &font.texture);
+	glBindTexture(GL_TEXTURE_2D, font.texture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texW, texH, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	font.texW = texW;
+	font.texH = texH;
+	font.loaded = true;
+}
+
+void GLRenderer::initFontAtlasFallback() {
+	const int glyphW = 10;
+	const int glyphH = 16;
+	const int cols = 16;
+	const int rows = 6;
+	const int texW = cols * glyphW;
+	const int texH = rows * glyphH;
+
+	wxBitmap bmp(texW, texH, 24);
+	wxMemoryDC dc(bmp);
+	dc.SetBackground(*wxBLACK_BRUSH);
+	dc.Clear();
+	dc.SetFont(wxFont(10, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL));
+	dc.SetTextForeground(*wxWHITE);
+	for (int i = 0; i < 96; i++) {
+		int col = i % cols;
+		int row = i / cols;
+		char ch = static_cast<char>(32 + i);
+		dc.DrawText(wxString(ch), col * glyphW, row * glyphH);
+	}
+	dc.SelectObject(wxNullBitmap);
 	wxImage img = bmp.ConvertToImage();
-	std::vector<uint8_t> rgba(TEX_W * TEX_H * 4);
-	for (int y = 0; y < TEX_H; ++y) {
-		for (int x = 0; x < TEX_W; ++x) {
-			int idx = (y * TEX_W + x) * 4;
-			uint8_t lum = img.GetRed(x, y);
-			rgba[idx + 0] = 255;
-			rgba[idx + 1] = 255;
-			rgba[idx + 2] = 255;
-			rgba[idx + 3] = lum; // branco = opaco, preto = transparente
+	std::vector<uint8_t> pixels(texW * texH * 4);
+	for (int y = 0; y < texH; y++) {
+		for (int x = 0; x < texW; x++) {
+			int si = (y * texW + x) * 3;
+			int di = (y * texW + x) * 4;
+			uint8_t lum = img.GetData()[si];
+			pixels[di] = 255;
+			pixels[di + 1] = 255;
+			pixels[di + 2] = 255;
+			pixels[di + 3] = lum;
 		}
 	}
 
@@ -124,16 +237,29 @@ void GLRenderer::initFontAtlas() {
 	glBindTexture(GL_TEXTURE_2D, font.texture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, TEX_W, TEX_H, 0, GL_RGBA, GL_UNSIGNED_BYTE, rgba.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texW, texH, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.data());
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	font.glyphW = GLYPH_W;
-	font.glyphH = GLYPH_H;
-	font.cols = COLS;
-	font.texW = TEX_W;
-	font.texH = TEX_H;
+	font.ascent = 12.0f;
+	font.lineHeight = 16.0f;
+	for (int i = 0; i < 96; i++) {
+		int col = i % cols;
+		int row = i / cols;
+		font.glyphs[i].u0 = static_cast<float>(col * glyphW) / texW;
+		font.glyphs[i].v0 = static_cast<float>(row * glyphH) / texH;
+		font.glyphs[i].u1 = static_cast<float>((col + 1) * glyphW) / texW;
+		font.glyphs[i].v1 = static_cast<float>((row + 1) * glyphH) / texH;
+		font.glyphs[i].xoff = 0;
+		font.glyphs[i].yoff = -12.0f;
+		font.glyphs[i].w = static_cast<float>(glyphW);
+		font.glyphs[i].h = static_cast<float>(glyphH);
+		font.glyphs[i].advance = static_cast<float>(glyphW);
+		font.advances[i] = static_cast<float>(glyphW);
+	}
+
+	font.texW = texW;
+	font.texH = texH;
+	font.loaded = true;
 }
 
 void GLRenderer::init() {
@@ -368,6 +494,82 @@ void GLRenderer::drawRect(float x, float y, float w, float h, const GLColor &col
 	drawThickLineSegment(x, y + h, x, y, lineWidth, color);
 }
 
+void GLRenderer::drawRoundedRect(float x, float y, float w, float h, float radius, const GLColor &fill) {
+	const int segments = 8;
+	flushBatch();
+
+	std::vector<Vertex> verts;
+	// center vertex for fan
+	float cx = x + w * 0.5f;
+	float cy = y + h * 0.5f;
+	Vertex center = { cx, cy, 0, 0, fill.r, fill.g, fill.b, fill.a };
+
+	// corners: top-left, top-right, bottom-right, bottom-left
+	float corners[4][2] = {
+		{ x + radius, y + radius },
+		{ x + w - radius, y + radius },
+		{ x + w - radius, y + h - radius },
+		{ x + radius, y + h - radius },
+	};
+	float startAngle[4] = { 3.14159265f, 1.5f * 3.14159265f, 0.0f, 0.5f * 3.14159265f };
+
+	// build perimeter vertices
+	std::vector<Vertex> perimeter;
+	for (int c = 0; c < 4; ++c) {
+		for (int s = 0; s <= segments; ++s) {
+			float angle = startAngle[c] + (s / (float)segments) * (3.14159265f * 0.5f);
+			float px = corners[c][0] + cosf(angle) * radius;
+			float py = corners[c][1] + sinf(angle) * radius;
+			perimeter.push_back({ px, py, 0, 0, fill.r, fill.g, fill.b, fill.a });
+		}
+	}
+
+	// triangle fan from center
+	std::vector<Vertex> tris;
+	for (size_t i = 0; i < perimeter.size(); ++i) {
+		size_t next = (i + 1) % perimeter.size();
+		tris.push_back(center);
+		tris.push_back(perimeter[i]);
+		tris.push_back(perimeter[next]);
+	}
+
+	glUseProgram(program);
+	glBindVertexArray(vao);
+	glUniform1i(loc_useTexture, 0);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(Vertex), tris.data(), GL_DYNAMIC_DRAW);
+	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)tris.size());
+	glBindVertexArray(0);
+	glUseProgram(0);
+}
+
+void GLRenderer::drawRoundedRectOutline(float x, float y, float w, float h, float radius, const GLColor &color, float lineWidth) {
+	const int segments = 8;
+
+	float corners[4][2] = {
+		{ x + radius, y + radius },
+		{ x + w - radius, y + radius },
+		{ x + w - radius, y + h - radius },
+		{ x + radius, y + h - radius },
+	};
+	float startAngle[4] = { 3.14159265f, 1.5f * 3.14159265f, 0.0f, 0.5f * 3.14159265f };
+
+	std::vector<std::array<float, 2>> perimeter;
+	for (int c = 0; c < 4; ++c) {
+		for (int s = 0; s <= segments; ++s) {
+			float angle = startAngle[c] + (s / (float)segments) * (3.14159265f * 0.5f);
+			float px = corners[c][0] + cosf(angle) * radius;
+			float py = corners[c][1] + sinf(angle) * radius;
+			perimeter.push_back({ px, py });
+		}
+	}
+
+	for (size_t i = 0; i < perimeter.size(); ++i) {
+		size_t next = (i + 1) % perimeter.size();
+		drawThickLineSegment(perimeter[i][0], perimeter[i][1], perimeter[next][0], perimeter[next][1], lineWidth, color);
+	}
+}
+
 void GLRenderer::drawLine(float x1, float y1, float x2, float y2, const GLColor &color, float width) {
 	drawThickLineSegment(x1, y1, x2, y2, width, color);
 }
@@ -428,18 +630,16 @@ void GLRenderer::drawPolygon(const float* vertices, int vertexCount, uint8_t r, 
 		return;
 	}
 	flushBatch();
-	std::vector<Vertex> tris;
-	for (int i = 1; i < vertexCount - 1; ++i) {
-		tris.push_back({ vertices[0], vertices[1], 0, 0, r, g, b, a });
-		tris.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
-		tris.push_back({ vertices[(i + 1) * 2], vertices[(i + 1) * 2 + 1], 0, 0, r, g, b, a });
+	std::vector<Vertex> verts;
+	for (int i = 0; i < vertexCount; ++i) {
+		verts.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
 	}
 	glUseProgram(program);
 	glBindVertexArray(vao);
 	glUniform1i(loc_useTexture, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(Vertex), tris.data(), GL_DYNAMIC_DRAW);
-	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)tris.size());
+	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(Vertex), verts.data(), GL_DYNAMIC_DRAW);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei)verts.size());
 	glBindVertexArray(0);
 	glUseProgram(0);
 }
@@ -449,58 +649,45 @@ void GLRenderer::drawTriangleFan(const float* vertices, int vertexCount, uint8_t
 		return;
 	}
 	flushBatch();
-	std::vector<Vertex> tris;
-	for (int i = 1; i < vertexCount - 1; ++i) {
-		tris.push_back({ vertices[0], vertices[1], 0, 0, r, g, b, a });
-		tris.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
-		tris.push_back({ vertices[(i + 1) * 2], vertices[(i + 1) * 2 + 1], 0, 0, r, g, b, a });
+	std::vector<Vertex> verts;
+	for (int i = 0; i < vertexCount; ++i) {
+		verts.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
 	}
 	glUseProgram(program);
 	glBindVertexArray(vao);
 	glUniform1i(loc_useTexture, 0);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(Vertex), tris.data(), GL_DYNAMIC_DRAW);
-	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)tris.size());
+	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(Vertex), verts.data(), GL_DYNAMIC_DRAW);
+	glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei)verts.size());
 	glBindVertexArray(0);
 	glUseProgram(0);
 }
 
 void GLRenderer::drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-	if (font.texture == 0) {
-		return;
-	}
-	if (current_texture != font.texture) {
+	if (current_texture != font.texture && !batch.empty()) {
 		flushBatch();
-		current_texture = font.texture;
 	}
-	float cx = x;
+	current_texture = font.texture;
+	setColor(r, g, b, a);
+	setRasterPos(x, y);
 	for (char c : text) {
-		if (c < 32 || c > 127) {
-			continue;
-		}
-		int idx = c - 32;
-		int col = idx % font.cols;
-		int row = idx / font.cols;
-		auto u0 = static_cast<float>(col * font.glyphW) / font.texW;
-		auto v0 = static_cast<float>(row * font.glyphH) / font.texH;
-		auto u1 = static_cast<float>((col + 1) * font.glyphW) / font.texW;
-		auto v1 = static_cast<float>((row + 1) * font.glyphH) / font.texH;
-		float qx = cx;
-		float qy = y - font.glyphH;
-		auto qw = static_cast<float>(font.glyphW);
-		auto qh = static_cast<float>(font.glyphH);
-		batch.push_back({ qx, qy, u0, v0, r, g, b, a });
-		batch.push_back({ qx + qw, qy, u1, v0, r, g, b, a });
-		batch.push_back({ qx + qw, qy + qh, u1, v1, r, g, b, a });
-		batch.push_back({ qx, qy, u0, v0, r, g, b, a });
-		batch.push_back({ qx + qw, qy + qh, u1, v1, r, g, b, a });
-		batch.push_back({ qx, qy + qh, u0, v1, r, g, b, a });
-		cx += font.glyphW;
+		drawBitmapChar(c);
 	}
 }
 
-float GLRenderer::getCharWidth(char) {
-	return static_cast<float>(font.glyphW);
+float GLRenderer::getCharWidth(char c) {
+	if (c < 32 || c > 127) {
+		return 0.0f;
+	}
+	return font.advances[c - 32];
+}
+
+float GLRenderer::getLineHeight() const {
+	return font.lineHeight;
+}
+
+float GLRenderer::getAscent() const {
+	return font.ascent;
 }
 
 void GLRenderer::setRasterPos(float x, float y) {
@@ -509,7 +696,7 @@ void GLRenderer::setRasterPos(float x, float y) {
 }
 
 void GLRenderer::drawBitmapChar(char c) {
-	if (font.texture == 0 || c < 32 || c > 127) {
+	if (c < 32 || c > 127) {
 		return;
 	}
 	if (current_texture != font.texture) {
@@ -517,23 +704,18 @@ void GLRenderer::drawBitmapChar(char c) {
 		current_texture = font.texture;
 	}
 	int idx = c - 32;
-	int col = idx % font.cols;
-	int row = idx / font.cols;
-	auto u0 = static_cast<float>(col * font.glyphW) / font.texW;
-	auto v0 = static_cast<float>(row * font.glyphH) / font.texH;
-	auto u1 = static_cast<float>((col + 1) * font.glyphW) / font.texW;
-	auto v1 = static_cast<float>((row + 1) * font.glyphH) / font.texH;
-	float qx = cursorX;
-	float qy = cursorY - font.glyphH;
-	auto qw = static_cast<float>(font.glyphW);
-	auto qh = static_cast<float>(font.glyphH);
-	batch.push_back({ qx, qy, u0, v0, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx + qw, qy, u1, v0, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx + qw, qy + qh, u1, v1, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx, qy, u0, v0, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx + qw, qy + qh, u1, v1, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx, qy + qh, u0, v1, textColor.r, textColor.g, textColor.b, textColor.a });
-	cursorX += font.glyphW;
+	const auto &g = font.glyphs[idx];
+	float qx = cursorX + g.xoff;
+	float qy = cursorY + g.yoff;
+	float qw = g.w;
+	float qh = g.h;
+	batch.push_back({ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx + qw, qy, g.u1, g.v0, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a });
+	batch.push_back({ qx, qy + qh, g.u0, g.v1, textColor.r, textColor.g, textColor.b, textColor.a });
+	cursorX += g.advance;
 }
 
 void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {

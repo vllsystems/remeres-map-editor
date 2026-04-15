@@ -38,6 +38,7 @@
 #include "gui.h"
 #include "sprites.h"
 #include "map_drawer.h"
+#include <unordered_set>
 #include "map_display.h"
 #include "copybuffer.h"
 #include "live_socket.h"
@@ -214,9 +215,6 @@ void MapDrawer::SetupGL() {
 }
 
 void MapDrawer::Release() {
-	for (auto it = tooltips.begin(); it != tooltips.end(); ++it) {
-		delete *it;
-	}
 	tooltips.clear();
 	if (light_drawer) {
 		light_drawer->clear();
@@ -1318,7 +1316,7 @@ void MapDrawer::BlitCreature(int screenx, int screeny, const Npc* npc, int red, 
 	BlitCreature(screenx, screeny, npc->getLookType(), npc->getDirection(), red, green, blue, alpha);
 }
 
-void MapDrawer::WriteTooltip(const Item* item, std::ostringstream &stream) {
+void MapDrawer::WriteTooltip(const Item* item, MapTooltip &tooltip) {
 	if (!item) {
 		return;
 	}
@@ -1335,28 +1333,21 @@ void MapDrawer::WriteTooltip(const Item* item, std::ostringstream &stream) {
 		return;
 	}
 
-	if (stream.tellp() > 0) {
-		stream << "\n";
-	}
-
-	stream << "id: " << id << "\n";
+	tooltip.addEntry("id: ", std::to_string(id));
 
 	if (action > 0) {
-		stream << "aid: " << action << "\n";
+		tooltip.addEntry("aid: ", std::to_string(action));
 	}
 	if (unique > 0) {
-		stream << "uid: " << unique << "\n";
+		tooltip.addEntry("uid: ", std::to_string(unique));
 	}
 	if (!text.empty()) {
-		stream << "text: " << text << "\n";
+		tooltip.addEntry("text: ", text);
 	}
 }
 
-void MapDrawer::WriteTooltip(const Waypoint* waypoint, std::ostringstream &stream) {
-	if (stream.tellp() > 0) {
-		stream << "\n";
-	}
-	stream << "wp: " << waypoint->name << "\n";
+void MapDrawer::WriteTooltip(const Waypoint* waypoint, MapTooltip &tooltip) {
+	tooltip.addEntry("wp: ", waypoint->name);
 }
 
 void MapDrawer::DrawTile(TileLocation* location) {
@@ -1376,11 +1367,11 @@ void MapDrawer::DrawTile(TileLocation* location) {
 	const Position &position = location->getPosition();
 	bool show_tooltips = options.isTooltips();
 
+	bool has_waypoint = false;
+	Waypoint* waypoint = nullptr;
 	if (show_tooltips && location->getWaypointCount() > 0) {
-		Waypoint* waypoint = canvas->editor.getMap().waypoints.getWaypoint(position);
-		if (waypoint) {
-			WriteTooltip(waypoint, tooltip);
-		}
+		waypoint = canvas->editor.getMap().waypoints.getWaypoint(position);
+		has_waypoint = (waypoint != nullptr);
 	}
 
 	bool only_colors = options.isOnlyColors();
@@ -1477,19 +1468,12 @@ void MapDrawer::DrawTile(TileLocation* location) {
 
 			BlitItem(draw_x, draw_y, tile, tile->ground, false, r, g, b);
 		}
-
-		if (show_tooltips && position.z == floor) {
-			WriteTooltip(tile->ground, tooltip);
-		}
 	}
 
 	bool hidden = only_colors || (options.hide_items_when_zoomed && zoom > 10.f);
 
 	if (!hidden && !tile->items.empty()) {
 		for (Item* item : tile->items) {
-			if (show_tooltips && position.z == floor) {
-				WriteTooltip(item, tooltip);
-			}
 
 			if (options.show_preview && zoom <= 2.0) {
 				item->animate();
@@ -1513,17 +1497,36 @@ void MapDrawer::DrawTile(TileLocation* location) {
 		BlitCreature(draw_x, draw_y, tile->npc);
 	}
 
-	if (show_tooltips) {
-		if (location->getWaypointCount() > 0) {
-			MakeTooltip(draw_x, draw_y, tooltip.str(), 0, 255, 0);
-		} else {
-			MakeTooltip(draw_x, draw_y, tooltip.str());
+	if (show_tooltips && position.z == floor) {
+		uint8_t tr = 255, tg = 255, tb = 255;
+		if (has_waypoint) {
+			tr = 0;
+			tg = 255;
+			tb = 0;
 		}
-		tooltip.str("");
+		auto &tip = MakeTooltip(draw_x, draw_y, tr, tg, tb);
+
+		if (has_waypoint) {
+			WriteTooltip(waypoint, tip);
+		}
+
+		if (tile->hasGround()) {
+			WriteTooltip(tile->ground, tip);
+		}
+
+		if (!tile->items.empty()) {
+			for (Item* item : tile->items) {
+				WriteTooltip(item, tip);
+			}
+		}
+
+		if (tip.entries.empty()) {
+			tooltips.pop_back();
+		}
 	}
 }
 
-void MapDrawer::DrawBrushIndicator(int x, int y, [[maybe_unused]] Brush* brush, uint8_t r, uint8_t g, uint8_t b) {
+void MapDrawer::DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_t g, uint8_t b) {
 	x += (rme::TileSize / 2);
 	y += (rme::TileSize / 2);
 
@@ -1545,7 +1548,7 @@ void MapDrawer::DrawBrushIndicator(int x, int y, [[maybe_unused]] Brush* brush, 
 	};
 
 	// circle
-	std::array<float, 64> fan {}; // (1 center + 31 rim) * 2 floats
+	float fan[64]; // (1 center + 31 rim) * 2 floats
 	fan[0] = static_cast<float>(x);
 	fan[1] = static_cast<float>(y);
 	for (int i = 0; i <= 30; i++) {
@@ -1553,25 +1556,25 @@ void MapDrawer::DrawBrushIndicator(int x, int y, [[maybe_unused]] Brush* brush, 
 		fan[(i + 1) * 2] = cos(angle) * (rme::TileSize / 2) + x;
 		fan[(i + 1) * 2 + 1] = sin(angle) * (rme::TileSize / 2) + y;
 	}
-	renderer->drawTriangleFan(fan.data(), 32, 0x00, 0x00, 0x00, 0x50);
+	renderer->drawTriangleFan(fan, 32, 0x00, 0x00, 0x00, 0x50);
 
 	// background
-	std::array<float, 16> poly {};
+	float poly[16];
 	for (int i = 0; i < 8; ++i) {
 		poly[i * 2] = static_cast<float>(vertexes[i][0] + x);
 		poly[i * 2 + 1] = static_cast<float>(vertexes[i][1] + y);
 	}
-	renderer->drawPolygon(poly.data(), 8, r, g, b, 0xB4);
+	renderer->drawPolygon(poly, 8, r, g, b, 0xB4);
 
 	// borders
-	std::array<float, 32> lineVerts {}; // 8 pairs * 4 floats
+	float lineVerts[32]; // 8 pairs * 4 floats
 	for (int i = 0; i < 8; ++i) {
 		lineVerts[i * 4] = static_cast<float>(vertexes[i][0] + x);
 		lineVerts[i * 4 + 1] = static_cast<float>(vertexes[i][1] + y);
 		lineVerts[i * 4 + 2] = static_cast<float>(vertexes[i + 1][0] + x);
 		lineVerts[i * 4 + 3] = static_cast<float>(vertexes[i + 1][1] + y);
 	}
-	renderer->drawLines(lineVerts.data(), 8, 0x00, 0x00, 0x00, 0xB4, 1.0f);
+	renderer->drawLines(lineVerts, 8, 0x00, 0x00, 0x00, 0xB4, 1.0f);
 }
 
 void MapDrawer::DrawHookIndicator(int x, int y, const ItemType &type) {
@@ -1705,60 +1708,91 @@ void MapDrawer::DrawPositionIndicator(int z) {
 	drawRect(x + offset + 1, y + offset + 1, size - 2, size - 2, *wxBLACK, 2);
 }
 
-std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip* tp) {
-	const char* text = tp->text.c_str();
-	float line_width = 0.0f;
-	float width = 2.0f;
-	float height = 14.0f;
-	int char_count = 0;
-	int line_char_count = 0;
+std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
+	float lineH = renderer->getLineHeight();
+	float maxW = static_cast<float>(MapTooltip::MAX_WIDTH);
+	float maxWidth = 0.0f;
+	int lines = 0;
 
-	for (const char* c = text; *c != '\0'; c++) {
-		if (*c == '\n' || (line_char_count >= MapTooltip::MAX_CHARS_PER_LINE && *c == ' ')) {
-			height += 14.0f;
-			line_width = 0.0f;
-			line_char_count = 0;
-		} else {
-			line_width += renderer->getCharWidth(*c);
+	for (const auto &entry : tp.entries) {
+		float labelW = 0.0f;
+		for (char c : entry.label) {
+			labelW += renderer->getCharWidth(c);
 		}
-		width = std::max<float>(width, line_width);
-		char_count++;
-		line_char_count++;
 
-		if (tp->ellipsis && char_count > (MapTooltip::MAX_CHARS + 3)) {
-			break;
+		float lineW = labelW;
+		for (size_t i = 0; i < entry.value.size(); i++) {
+			char c = entry.value[i];
+			if (iscntrl(c)) {
+				continue;
+			}
+			float cw = renderer->getCharWidth(c);
+			if (lineW + cw > maxW && lineW > labelW) {
+				maxWidth = std::max(maxWidth, lineW);
+				lineW = labelW;
+				lines++;
+			}
+			lineW += cw;
 		}
+		maxWidth = std::max(maxWidth, lineW);
+		lines++;
 	}
-	return { width + 8.0f, height + 4.0f };
+
+	float width = maxWidth + 8.0f;
+	float height = static_cast<float>(lines) * lineH + 4.0f;
+	return { width, height };
 }
 
-void MapDrawer::RenderTooltipText(const MapTooltip* tp, float startx, float starty) {
-	const char* text = tp->text.c_str();
-	startx += 3.0f;
-	starty += 14.0f;
-	renderer->setColor(0, 0, 0, 255);
-	renderer->setRasterPos(startx, starty);
-	int char_count = 0;
-	int line_char_count = 0;
+void MapDrawer::RenderTooltipText(const MapTooltip &tp, float startx, float starty, float fade) {
+	float lineH = renderer->getLineHeight();
+	float maxW = static_cast<float>(MapTooltip::MAX_WIDTH);
+	float x = startx + 4.0f;
+	float y = starty + renderer->getAscent() + 2.0f;
 
-	for (const char* c = text; *c != '\0'; c++) {
-		if (*c == '\n' || (line_char_count >= MapTooltip::MAX_CHARS_PER_LINE && *c == ' ')) {
-			starty += 14.0f;
-			renderer->setRasterPos(startx, starty);
-			line_char_count = 0;
-		}
-		char_count++;
-		line_char_count++;
-
-		if (tp->ellipsis && char_count >= MapTooltip::MAX_CHARS) {
-			renderer->drawBitmapChar('.');
-			if (char_count >= (MapTooltip::MAX_CHARS + 2)) {
-				break;
-			}
-		} else if (!iscntrl(*c)) {
-			renderer->drawBitmapChar(*c);
-		}
+	float lum = 0.299f * tp.r + 0.587f * tp.g + 0.114f * tp.b;
+	uint8_t valR, valG, valB, lblR, lblG, lblB;
+	if (lum > 128.0f) {
+		valR = valG = valB = 0;
+		lblR = lblG = lblB = 100;
+	} else {
+		valR = valG = valB = 255;
+		lblR = lblG = lblB = 180;
 	}
+	auto fa = static_cast<uint8_t>(fade * 255);
+
+	for (const auto &entry : tp.entries) {
+		renderer->setRasterPos(x, y);
+
+		float labelW = 0.0f;
+		renderer->setColor(lblR, lblG, lblB, fa);
+		for (char c : entry.label) {
+			labelW += renderer->getCharWidth(c);
+			renderer->drawBitmapChar(c);
+		}
+
+		float lineW = labelW;
+		renderer->setColor(valR, valG, valB, fa);
+		for (size_t i = 0; i < entry.value.size(); i++) {
+			char c = entry.value[i];
+			if (iscntrl(c)) {
+				continue;
+			}
+			float cw = renderer->getCharWidth(c);
+			if (lineW + cw > maxW && lineW > labelW) {
+				y += lineH;
+				renderer->setRasterPos(x + labelW, y);
+				lineW = labelW;
+			}
+			renderer->drawBitmapChar(c);
+			lineW += cw;
+		}
+
+		y += lineH;
+	}
+}
+
+static uint64_t tooltipKey(int x, int y) {
+	return (static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32) | static_cast<uint64_t>(static_cast<uint32_t>(y));
 }
 
 void MapDrawer::DrawTooltips() {
@@ -1766,11 +1800,26 @@ void MapDrawer::DrawTooltips() {
 		return;
 	}
 
-	for (const MapTooltip* tp : tooltips) {
+	renderer->flush();
+	renderer->setOrtho(0, screensize_x, screensize_y, 0);
+
+	float fadeSpeed = 0.12f;
+	std::unordered_map<uint64_t, float> newFadeAlpha;
+
+	for (const auto &tp : tooltips) {
 		auto [width, height] = MeasureTooltipText(tp);
 
-		float x = tp->x + (rme::TileSize / 2.0f);
-		float y = tp->y + (rme::TileSize / 2.0f);
+		uint64_t key = (static_cast<uint64_t>(tp.x) << 32) | static_cast<uint64_t>(static_cast<uint32_t>(tp.y));
+		float prev = 0.0f;
+		auto it = tooltipFadeAlpha.find(key);
+		if (it != tooltipFadeAlpha.end()) {
+			prev = it->second;
+		}
+		float fade = std::min(prev + fadeSpeed, 1.0f);
+		newFadeAlpha[key] = fade;
+
+		float x = (tp.x + rme::TileSize / 2.0f) / zoom;
+		float y = (tp.y + rme::TileSize / 2.0f) / zoom;
 		float center = width / 2.0f;
 		float space = 7.0f;
 		float startx = x - center;
@@ -1778,43 +1827,46 @@ void MapDrawer::DrawTooltips() {
 		float starty = y - (height + space);
 		float endy = y - space;
 
-		// 7----0----1
-		// |         |
-		// 6--5  3--2
-		//     \/
-		//     4
-		std::array<std::array<float, 2>, 9> vertexes = { {
-			{ x, starty }, // 0
-			{ endx, starty }, // 1
-			{ endx, endy }, // 2
-			{ x + space, endy }, // 3
-			{ x, y }, // 4
-			{ x - space, endy }, // 5
-			{ startx, endy }, // 6
-			{ startx, starty }, // 7
-			{ x, starty }, // 0
-		} };
+		auto fa = static_cast<uint8_t>(fade * 255);
 
-		// background
-		std::array<float, 16> poly {};
-		for (int i = 0; i < 8; ++i) {
-			poly[i * 2] = vertexes[i][0];
-			poly[i * 2 + 1] = vertexes[i][1];
-		}
-		renderer->drawPolygon(poly.data(), 8, tp->r, tp->g, tp->b, 255);
+		// drop shadow
+		float radius = 4.0f;
+		float shadowOff = 3.0f;
+		auto shadowAlpha = static_cast<uint8_t>(fade * 70);
+		renderer->drawRoundedRect(startx + shadowOff, starty + shadowOff, endx - startx, endy - starty, radius, { 0, 0, 0, shadowAlpha });
+		float shadowArrow[6] = { x + space + shadowOff, endy + shadowOff, x + shadowOff, y + shadowOff, x - space + shadowOff, endy + shadowOff };
+		renderer->drawPolygon(shadowArrow, 3, 0, 0, 0, shadowAlpha);
 
-		// borders
-		std::array<float, 32> lineVerts {};
-		for (int i = 0; i < 8; ++i) {
-			lineVerts[i * 4] = vertexes[i][0];
-			lineVerts[i * 4 + 1] = vertexes[i][1];
-			lineVerts[i * 4 + 2] = vertexes[i + 1][0];
-			lineVerts[i * 4 + 3] = vertexes[i + 1][1];
-		}
-		renderer->drawLines(lineVerts.data(), 8, 0, 0, 0, 255, 1.0f);
+		// background (rounded rect body + arrow triangle)
+		auto bgAlpha = static_cast<uint8_t>(fade * 200);
+		renderer->drawRoundedRect(startx, starty, endx - startx, endy - starty, radius, { tp.r, tp.g, tp.b, bgAlpha });
 
-		RenderTooltipText(tp, startx, starty);
+		float arrow[6] = { x + space, endy, x, y, x - space, endy };
+		renderer->drawPolygon(arrow, 3, tp.r, tp.g, tp.b, bgAlpha);
+
+		// border (rounded rect outline + arrow lines)
+		auto borderAlpha = static_cast<uint8_t>(fade * 180);
+		renderer->drawRoundedRectOutline(startx, starty, endx - startx, endy - starty, radius, { 0, 0, 0, borderAlpha }, 1.0f);
+
+		float arrowLines[16] = {
+			x + space,
+			endy,
+			x,
+			y,
+			x,
+			y,
+			x - space,
+			endy,
+		};
+		renderer->drawLines(arrowLines, 2, 0, 0, 0, borderAlpha, 1.0f);
+
+		RenderTooltipText(tp, startx, starty, fade);
 	}
+
+	tooltipFadeAlpha = std::move(newFadeAlpha);
+
+	renderer->flush();
+	renderer->setOrtho(0, screensize_x * zoom, screensize_y * zoom, 0);
 }
 
 void MapDrawer::UpdateRAMUsage() {
@@ -1970,14 +2022,9 @@ void MapDrawer::DrawLight() const {
 	light_drawer->draw(start_x, start_y, end_x, end_y, view_scroll_x, view_scroll_y, renderer.get());
 }
 
-void MapDrawer::MakeTooltip(int screenx, int screeny, const std::string &text, uint8_t r, uint8_t g, uint8_t b) {
-	if (text.empty()) {
-		return;
-	}
-
-	MapTooltip* tooltip = new MapTooltip(screenx, screeny, text, r, g, b);
-	tooltip->checkLineEnding();
-	tooltips.push_back(tooltip);
+MapTooltip &MapDrawer::MakeTooltip(int screenx, int screeny, uint8_t r, uint8_t g, uint8_t b) {
+	tooltips.emplace_back(screenx, screeny, r, g, b);
+	return tooltips.back();
 }
 
 void MapDrawer::AddLight(TileLocation* location) {

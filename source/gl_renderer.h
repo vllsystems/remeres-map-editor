@@ -23,23 +23,23 @@ public:
 	void shutdown();
 
 	void drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color);
-
 	void drawColoredQuad(float x, float y, float w, float h, const GLColor &color);
 
 	void drawRect(float x, float y, float w, float h, const GLColor &color, float lineWidth = 1.0f);
+	void drawRoundedRect(float x, float y, float w, float h, float radius, const GLColor &fill);
+	void drawRoundedRectOutline(float x, float y, float w, float h, float radius, const GLColor &color, float lineWidth = 1.0f);
 
 	void drawLine(float x1, float y1, float x2, float y2, const GLColor &color, float width = 1.0f);
-
 	void drawLines(const float* vertices, int pairCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a, float width = 1.0f);
-
 	void drawStippledLines(const float* vertices, int pairCount, const GLColor &color, float width = 1.0f, int factor = 2, uint16_t pattern = 0xAAAA);
 
 	void drawPolygon(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-
 	void drawTriangleFan(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
 
 	void drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a);
-	float getCharWidth(char);
+	float getCharWidth(char c);
+	float getLineHeight() const;
+	float getAscent() const;
 	void setRasterPos(float x, float y);
 	void drawBitmapChar(char c);
 	void setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a);
@@ -77,19 +77,29 @@ private:
 	void flushBatch();
 	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color);
 
-	// Font atlas
-	struct FontAtlas {
+	struct GlyphInfo {
+		float u0, v0, u1, v1; // UV coords in texture (normalized)
+		float xoff, yoff; // offset from cursor pos (pixels)
+		float w, h; // glyph size (pixels)
+		float advance; // horizontal advance (pixels)
+	};
+
+	struct FontData {
 		GLuint texture = 0;
-		int glyphW = 0;
-		int glyphH = 0;
-		int cols = 0;
 		int texW = 0;
 		int texH = 0;
+		float fontSize = 0;
+		float ascent = 0;
+		float descent = 0;
+		float lineHeight = 0;
+		bool loaded = false;
+		GlyphInfo glyphs[96] {};
+		float advances[96] {};
 	};
-	FontAtlas font;
+	FontData font;
 	void initFontAtlas();
+	void initFontAtlasFallback();
 
-	// Text cursor state (for setRasterPos + drawBitmapChar)
 	float cursorX = 0;
 	float cursorY = 0;
 	GLColor textColor { 255, 255, 255, 255 };
