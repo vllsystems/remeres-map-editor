@@ -1836,7 +1836,7 @@ void MapDrawer::DrawTooltips() {
 	for (const auto &tp : tooltips) {
 		auto [width, height] = MeasureTooltipText(tp);
 
-		uint64_t key = (static_cast<uint64_t>(tp.x) << 32) | static_cast<uint64_t>(static_cast<uint32_t>(tp.y));
+		uint64_t key = tooltipKey(tp.x, tp.y);
 		float prev = 0.0f;
 		auto it = tooltipFadeAlpha.find(key);
 		if (it != tooltipFadeAlpha.end()) {

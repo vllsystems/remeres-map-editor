@@ -107,16 +107,6 @@ END_EVENT_TABLE()
 
 bool MapCanvas::processed[] = { 0 };
 
-static constexpr std::array<int, 10> attribList = {
-	WX_GL_CORE_PROFILE,
-	WX_GL_MAJOR_VERSION, 3,
-	WX_GL_MINOR_VERSION, 3,
-	WX_GL_RGBA,
-	WX_GL_DOUBLEBUFFER,
-	WX_GL_DEPTH_SIZE, 16,
-	0 // terminador
-};
-
 MapCanvas::MapCanvas(MapWindow* parent, Editor &editor, int* attriblist) :
 	wxGLCanvas(parent, wxID_ANY, attriblist, wxDefaultPosition, wxDefaultSize, wxWANTS_CHARS),
 	editor(editor),
