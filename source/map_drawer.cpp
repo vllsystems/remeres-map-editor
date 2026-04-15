@@ -1710,9 +1710,8 @@ void MapDrawer::DrawPositionIndicator(int z) {
 
 std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
 	float lineH = renderer->getLineHeight();
-	float maxW = static_cast<float>(MapTooltip::MAX_WIDTH);
 	float maxWidth = 0.0f;
-	int lines = 0;
+	int totalLines = 0;
 
 	for (const auto &entry : tp.entries) {
 		float labelW = 0.0f;
@@ -1720,32 +1719,51 @@ std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
 			labelW += renderer->getCharWidth(c);
 		}
 
-		float lineW = labelW;
-		for (size_t i = 0; i < entry.value.size(); i++) {
-			char c = entry.value[i];
-			if (iscntrl(c)) {
-				continue;
+		float currentLineW = labelW;
+		bool firstLine = true;
+		std::string val = entry.value;
+
+		size_t pos = 0;
+		while (pos < val.size()) {
+			size_t next_nl = val.find('\n', pos);
+			std::string line = val.substr(pos, (next_nl == std::string::npos ? std::string::npos : next_nl - pos));
+			
+			float valW = 0.0f;
+			for (char c : line) {
+				if (!iscntrl(c)) {
+					valW += renderer->getCharWidth(c);
+				}
 			}
-			float cw = renderer->getCharWidth(c);
-			if (lineW + cw > maxW && lineW > labelW) {
-				maxWidth = std::max(maxWidth, lineW);
-				lineW = labelW;
-				lines++;
+
+			if (firstLine) {
+				maxWidth = std::max(maxWidth, labelW + valW);
+				firstLine = false;
+			} else {
+				maxWidth = std::max(maxWidth, labelW + valW);
 			}
-			lineW += cw;
+			totalLines++;
+
+			if (next_nl == std::string::npos) {
+				break;
+			}
+			pos = next_nl + 1;
 		}
-		maxWidth = std::max(maxWidth, lineW);
-		lines++;
+
+		if (val.empty() || val.back() == '\n') {
+			if (val.empty()) {
+				maxWidth = std::max(maxWidth, labelW);
+				totalLines++;
+			}
+		}
 	}
 
 	float width = maxWidth + 8.0f;
-	float height = static_cast<float>(lines) * lineH + 4.0f;
+	float height = static_cast<float>(totalLines) * lineH + 4.0f;
 	return { width, height };
 }
 
 void MapDrawer::RenderTooltipText(const MapTooltip &tp, float startx, float starty, float fade) {
 	float lineH = renderer->getLineHeight();
-	float maxW = static_cast<float>(MapTooltip::MAX_WIDTH);
 	float x = startx + 4.0f;
 	float y = starty + renderer->getAscent() + 2.0f;
 
@@ -1770,21 +1788,30 @@ void MapDrawer::RenderTooltipText(const MapTooltip &tp, float startx, float star
 			renderer->drawBitmapChar(c);
 		}
 
-		float lineW = labelW;
 		renderer->setColor(valR, valG, valB, fa);
-		for (size_t i = 0; i < entry.value.size(); i++) {
-			char c = entry.value[i];
-			if (iscntrl(c)) {
-				continue;
-			}
-			float cw = renderer->getCharWidth(c);
-			if (lineW + cw > maxW && lineW > labelW) {
+		std::string val = entry.value;
+		size_t pos = 0;
+		bool firstLine = true;
+		while (pos < val.size()) {
+			size_t next_nl = val.find('\n', pos);
+			std::string line = val.substr(pos, (next_nl == std::string::npos ? std::string::npos : next_nl - pos));
+
+			if (!firstLine) {
 				y += lineH;
 				renderer->setRasterPos(x + labelW, y);
-				lineW = labelW;
 			}
-			renderer->drawBitmapChar(c);
-			lineW += cw;
+
+			for (char c : line) {
+				if (!iscntrl(c)) {
+					renderer->drawBitmapChar(c);
+				}
+			}
+
+			firstLine = false;
+			if (next_nl == std::string::npos) {
+				break;
+			}
+			pos = next_nl + 1;
 		}
 
 		y += lineH;

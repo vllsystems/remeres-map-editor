@@ -32,8 +32,8 @@ struct TooltipEntry {
 
 struct MapTooltip {
 	enum {
-		MAX_VALUE_DISPLAY = 60,
-		MAX_WIDTH = 150,
+		MAX_VALUE_DISPLAY = 1024,
+		MAX_WIDTH = 1024,
 	};
 
 	MapTooltip(int x, int y, uint8_t r, uint8_t g, uint8_t b) :
