@@ -1727,7 +1727,7 @@ std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
 		while (pos < val.size()) {
 			size_t next_nl = val.find('\n', pos);
 			std::string line = val.substr(pos, (next_nl == std::string::npos ? std::string::npos : next_nl - pos));
-			
+
 			float valW = 0.0f;
 			for (char c : line) {
 				if (!iscntrl(c)) {
