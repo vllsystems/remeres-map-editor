@@ -13,6 +13,7 @@
 #include "gl_renderer.h"
 #include <array>
 #include <cmath>
+#include <numbers>
 #include <fstream>
 #include <stb_truetype.h>
 
@@ -124,7 +125,9 @@ void GLRenderer::initFontAtlas() {
 
 	float scale = stbtt_ScaleForPixelHeight(&stbFont, fontSize);
 
-	int ascent, descent, lineGap;
+	int ascent;
+	int descent;
+	int lineGap;
 	stbtt_GetFontVMetrics(&stbFont, &ascent, &descent, &lineGap);
 	font.ascent = ascent * scale;
 	font.lineHeight = (ascent - descent + lineGap) * scale;
@@ -134,12 +137,16 @@ void GLRenderer::initFontAtlas() {
 	const int texH = 512;
 	std::vector<uint8_t> bitmap(texW * texH, 0);
 
-	int penX = 1, penY = 1;
+	int penX = 1;
+	int penY = 1;
 	int rowH = 0;
 
 	for (int i = 0; i < 96; i++) {
-		int ch = 32 + i;
-		int x0, y0, x1, y1;
+		const auto ch = 32 + i;
+		int x0;
+		int y0;
+		int x1;
+		int y1;
 		stbtt_GetCodepointBitmapBox(&stbFont, ch, scale, scale, &x0, &y0, &x1, &y1);
 
 		int gw = x1 - x0;
@@ -166,7 +173,8 @@ void GLRenderer::initFontAtlas() {
 		font.glyphs[i].w = static_cast<float>(gw);
 		font.glyphs[i].h = static_cast<float>(gh);
 
-		int advW, lsb;
+		int advW;
+		int lsb;
 		stbtt_GetCodepointHMetrics(&stbFont, ch, &advW, &lsb);
 		font.glyphs[i].advance = advW * scale;
 		font.advances[i] = advW * scale;
@@ -215,7 +223,7 @@ void GLRenderer::initFontAtlasFallback() {
 	for (int i = 0; i < 96; i++) {
 		int col = i % cols;
 		int row = i / cols;
-		char ch = static_cast<char>(32 + i);
+		const auto ch = static_cast<char>(32 + i);
 		dc.DrawText(wxString(ch), col * glyphW, row * glyphH);
 	}
 	dc.SelectObject(wxNullBitmap);
@@ -505,19 +513,21 @@ void GLRenderer::drawRoundedRect(float x, float y, float w, float h, float radiu
 	Vertex center = { cx, cy, 0, 0, fill.r, fill.g, fill.b, fill.a };
 
 	// corners: top-left, top-right, bottom-right, bottom-left
-	float corners[4][2] = {
+	std::array<std::array<float, 2>, 4> corners = { {
 		{ x + radius, y + radius },
 		{ x + w - radius, y + radius },
 		{ x + w - radius, y + h - radius },
 		{ x + radius, y + h - radius },
-	};
-	float startAngle[4] = { 3.14159265f, 1.5f * 3.14159265f, 0.0f, 0.5f * 3.14159265f };
+	} };
+
+	constexpr float pi = std::numbers::pi_v<float>;
+	std::array<float, 4> startAngle = { pi, 1.5f * pi, 0.0f, 0.5f * pi };
 
 	// build perimeter vertices
 	std::vector<Vertex> perimeter;
 	for (int c = 0; c < 4; ++c) {
 		for (int s = 0; s <= segments; ++s) {
-			float angle = startAngle[c] + (s / (float)segments) * (3.14159265f * 0.5f);
+			float angle = startAngle[c] + (s / static_cast<float>(segments)) * (pi * 0.5f);
 			float px = corners[c][0] + cosf(angle) * radius;
 			float py = corners[c][1] + sinf(angle) * radius;
 			perimeter.push_back({ px, py, 0, 0, fill.r, fill.g, fill.b, fill.a });
@@ -546,18 +556,20 @@ void GLRenderer::drawRoundedRect(float x, float y, float w, float h, float radiu
 void GLRenderer::drawRoundedRectOutline(float x, float y, float w, float h, float radius, const GLColor &color, float lineWidth) {
 	const int segments = 8;
 
-	float corners[4][2] = {
+	std::array<std::array<float, 2>, 4> corners = { {
 		{ x + radius, y + radius },
 		{ x + w - radius, y + radius },
 		{ x + w - radius, y + h - radius },
 		{ x + radius, y + h - radius },
-	};
-	float startAngle[4] = { 3.14159265f, 1.5f * 3.14159265f, 0.0f, 0.5f * 3.14159265f };
+	} };
+
+	constexpr float pi = std::numbers::pi_v<float>;
+	std::array<float, 4> startAngle = { pi, 1.5f * pi, 0.0f, 0.5f * pi };
 
 	std::vector<std::array<float, 2>> perimeter;
 	for (int c = 0; c < 4; ++c) {
 		for (int s = 0; s <= segments; ++s) {
-			float angle = startAngle[c] + (s / (float)segments) * (3.14159265f * 0.5f);
+			float angle = startAngle[c] + (s / static_cast<float>(segments)) * (pi * 0.5f);
 			float px = corners[c][0] + cosf(angle) * radius;
 			float py = corners[c][1] + sinf(angle) * radius;
 			perimeter.push_back({ px, py });
