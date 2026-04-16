@@ -1196,7 +1196,7 @@ void GameSprite::DrawTo(wxDC* dcWindow, SpriteSize spriteSize, int start_x, int 
 	}
 }
 
-std::vector<uint8_t> GameSprite::invertGLColors(int spriteHeight, int spriteWidth, uint8_t* rgba) {
+std::vector<uint8_t> GameSprite::invertGLColors(int spriteHeight, int spriteWidth, const uint8_t* rgba) {
 	std::vector<uint8_t> rgba_inverted(spriteWidth * spriteHeight * 4);
 	for (int i = 0; i < spriteWidth * spriteHeight; i++) {
 		rgba_inverted[i * 4 + 0] = rgba[i * 4 + 2]; // R -> B

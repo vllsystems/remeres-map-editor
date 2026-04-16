@@ -1498,7 +1498,9 @@ void MapDrawer::DrawTile(TileLocation* location) {
 	}
 
 	if (show_tooltips && position.z == floor) {
-		uint8_t tr = 255, tg = 255, tb = 255;
+		uint8_t tr = 255;
+		uint8_t tg = 255;
+		uint8_t tb = 255;
 		if (has_waypoint) {
 			tr = 0;
 			tg = 255;
@@ -1526,7 +1528,7 @@ void MapDrawer::DrawTile(TileLocation* location) {
 	}
 }
 
-void MapDrawer::DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_t g, uint8_t b) {
+void MapDrawer::DrawBrushIndicator(int x, int y, [[maybe_unused]] Brush* brush, uint8_t r, uint8_t g, uint8_t b) {
 	x += (rme::TileSize / 2);
 	y += (rme::TileSize / 2);
 
@@ -1548,7 +1550,7 @@ void MapDrawer::DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_
 	};
 
 	// circle
-	float fan[64]; // (1 center + 31 rim) * 2 floats
+	std::array<float, 64> fan; // (1 center + 31 rim) * 2 floats
 	fan[0] = static_cast<float>(x);
 	fan[1] = static_cast<float>(y);
 	for (int i = 0; i <= 30; i++) {
@@ -1556,25 +1558,25 @@ void MapDrawer::DrawBrushIndicator(int x, int y, Brush* brush, uint8_t r, uint8_
 		fan[(i + 1) * 2] = cos(angle) * (rme::TileSize / 2) + x;
 		fan[(i + 1) * 2 + 1] = sin(angle) * (rme::TileSize / 2) + y;
 	}
-	renderer->drawTriangleFan(fan, 32, 0x00, 0x00, 0x00, 0x50);
+	renderer->drawTriangleFan(fan.data(), 32, 0x00, 0x00, 0x00, 0x50);
 
 	// background
-	float poly[16];
+	std::array<float, 16> poly;
 	for (int i = 0; i < 8; ++i) {
 		poly[i * 2] = static_cast<float>(vertexes[i][0] + x);
 		poly[i * 2 + 1] = static_cast<float>(vertexes[i][1] + y);
 	}
-	renderer->drawPolygon(poly, 8, r, g, b, 0xB4);
+	renderer->drawPolygon(poly.data(), 8, r, g, b, 0xB4);
 
 	// borders
-	float lineVerts[32]; // 8 pairs * 4 floats
+	std::array<float, 32> lineVerts; // 8 pairs * 4 floats
 	for (int i = 0; i < 8; ++i) {
 		lineVerts[i * 4] = static_cast<float>(vertexes[i][0] + x);
 		lineVerts[i * 4 + 1] = static_cast<float>(vertexes[i][1] + y);
 		lineVerts[i * 4 + 2] = static_cast<float>(vertexes[i + 1][0] + x);
 		lineVerts[i * 4 + 3] = static_cast<float>(vertexes[i + 1][1] + y);
 	}
-	renderer->drawLines(lineVerts, 8, 0x00, 0x00, 0x00, 0xB4, 1.0f);
+	renderer->drawLines(lineVerts.data(), 8, 0x00, 0x00, 0x00, 0xB4, 1.0f);
 }
 
 void MapDrawer::DrawHookIndicator(int x, int y, const ItemType &type) {
@@ -1719,7 +1721,6 @@ std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
 			labelW += renderer->getCharWidth(c);
 		}
 
-		float currentLineW = labelW;
 		bool firstLine = true;
 		std::string val = entry.value;
 
@@ -1735,12 +1736,8 @@ std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
 				}
 			}
 
-			if (firstLine) {
-				maxWidth = std::max(maxWidth, labelW + valW);
-				firstLine = false;
-			} else {
-				maxWidth = std::max(maxWidth, labelW + valW);
-			}
+			maxWidth = std::max(maxWidth, labelW + valW);
+			firstLine = false;
 			totalLines++;
 
 			if (next_nl == std::string::npos) {
@@ -1749,11 +1746,9 @@ std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
 			pos = next_nl + 1;
 		}
 
-		if (val.empty() || val.back() == '\n') {
-			if (val.empty()) {
-				maxWidth = std::max(maxWidth, labelW);
-				totalLines++;
-			}
+		if (val.empty()) {
+			maxWidth = std::max(maxWidth, labelW);
+			totalLines++;
 		}
 	}
 
@@ -1768,7 +1763,12 @@ void MapDrawer::RenderTooltipText(const MapTooltip &tp, float startx, float star
 	float y = starty + renderer->getAscent() + 2.0f;
 
 	float lum = 0.299f * tp.r + 0.587f * tp.g + 0.114f * tp.b;
-	uint8_t valR, valG, valB, lblR, lblG, lblB;
+	uint8_t valR;
+	uint8_t valG;
+	uint8_t valB;
+	uint8_t lblR;
+	uint8_t lblG;
+	uint8_t lblB;
 	if (lum > 128.0f) {
 		valR = valG = valB = 0;
 		lblR = lblG = lblB = 100;
@@ -1802,9 +1802,10 @@ void MapDrawer::RenderTooltipText(const MapTooltip &tp, float startx, float star
 			}
 
 			for (char c : line) {
-				if (!iscntrl(c)) {
-					renderer->drawBitmapChar(c);
+				if (iscntrl(c)) {
+					continue;
 				}
+				renderer->drawBitmapChar(c);
 			}
 
 			firstLine = false;
@@ -1838,8 +1839,7 @@ void MapDrawer::DrawTooltips() {
 
 		uint64_t key = tooltipKey(tp.x, tp.y);
 		float prev = 0.0f;
-		auto it = tooltipFadeAlpha.find(key);
-		if (it != tooltipFadeAlpha.end()) {
+		if (auto it = tooltipFadeAlpha.find(key); it != tooltipFadeAlpha.end()) {
 			prev = it->second;
 		}
 		float fade = std::min(prev + fadeSpeed, 1.0f);
@@ -1854,28 +1854,26 @@ void MapDrawer::DrawTooltips() {
 		float starty = y - (height + space);
 		float endy = y - space;
 
-		auto fa = static_cast<uint8_t>(fade * 255);
-
 		// drop shadow
 		float radius = 4.0f;
 		float shadowOff = 3.0f;
 		auto shadowAlpha = static_cast<uint8_t>(fade * 70);
 		renderer->drawRoundedRect(startx + shadowOff, starty + shadowOff, endx - startx, endy - starty, radius, { 0, 0, 0, shadowAlpha });
-		float shadowArrow[6] = { x + space + shadowOff, endy + shadowOff, x + shadowOff, y + shadowOff, x - space + shadowOff, endy + shadowOff };
-		renderer->drawPolygon(shadowArrow, 3, 0, 0, 0, shadowAlpha);
+		std::array<float, 6> shadowArrow = { x + space + shadowOff, endy + shadowOff, x + shadowOff, y + shadowOff, x - space + shadowOff, endy + shadowOff };
+		renderer->drawPolygon(shadowArrow.data(), 3, 0, 0, 0, shadowAlpha);
 
 		// background (rounded rect body + arrow triangle)
 		auto bgAlpha = static_cast<uint8_t>(fade * 200);
 		renderer->drawRoundedRect(startx, starty, endx - startx, endy - starty, radius, { tp.r, tp.g, tp.b, bgAlpha });
 
-		float arrow[6] = { x + space, endy, x, y, x - space, endy };
-		renderer->drawPolygon(arrow, 3, tp.r, tp.g, tp.b, bgAlpha);
+		std::array<float, 6> arrow = { x + space, endy, x, y, x - space, endy };
+		renderer->drawPolygon(arrow.data(), 3, tp.r, tp.g, tp.b, bgAlpha);
 
 		// border (rounded rect outline + arrow lines)
 		auto borderAlpha = static_cast<uint8_t>(fade * 180);
 		renderer->drawRoundedRectOutline(startx, starty, endx - startx, endy - starty, radius, { 0, 0, 0, borderAlpha }, 1.0f);
 
-		float arrowLines[16] = {
+		std::array<float, 16> arrowLines = {
 			x + space,
 			endy,
 			x,
@@ -1885,7 +1883,7 @@ void MapDrawer::DrawTooltips() {
 			x - space,
 			endy,
 		};
-		renderer->drawLines(arrowLines, 2, 0, 0, 0, borderAlpha, 1.0f);
+		renderer->drawLines(arrowLines.data(), 2, 0, 0, 0, borderAlpha, 1.0f);
 
 		RenderTooltipText(tp, startx, starty, fade);
 	}

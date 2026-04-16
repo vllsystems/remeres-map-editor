@@ -31,7 +31,7 @@ struct TooltipEntry {
 };
 
 struct MapTooltip {
-	enum {
+	enum class Limits {
 		MAX_VALUE_DISPLAY = 1024,
 		MAX_WIDTH = 1024,
 	};
@@ -41,10 +41,10 @@ struct MapTooltip {
 
 	void addEntry(const std::string &label, const std::string &value) {
 		std::string val = value;
-		if (val.size() > MAX_VALUE_DISPLAY) {
-			val = val.substr(0, MAX_VALUE_DISPLAY) + "...";
+		if (val.size() > static_cast<size_t>(Limits::MAX_VALUE_DISPLAY)) {
+			val = val.substr(0, static_cast<size_t>(Limits::MAX_VALUE_DISPLAY)) + "...";
 		}
-		entries.push_back({ label, val });
+		entries.emplace_back(label, val);
 	}
 
 	int x, y;
