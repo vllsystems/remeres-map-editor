@@ -28,16 +28,18 @@ static constexpr float kAchromaticDelta = 0.05f;
 
 class Editor;
 
-enum MatchMode {
+enum class MatchMode {
 	MATCH_PIXEL_RGB = 0,
 	MATCH_HUE_HSL = 1,
 };
 
 struct ColorMapping {
-	uint8_t r, g, b;
+	uint8_t r;
+	uint8_t g;
+	uint8_t b;
 	std::string brushName;
 	bool ignore;
-	MatchMode matchMode = MATCH_PIXEL_RGB;
+	MatchMode matchMode = MatchMode::MATCH_PIXEL_RGB;
 };
 
 struct ConvertResult {
@@ -49,7 +51,7 @@ struct ConvertResult {
 
 class BitmapToMapConverter {
 public:
-	BitmapToMapConverter(Editor &editor);
+	explicit BitmapToMapConverter(Editor &editor);
 	~BitmapToMapConverter() = default;
 
 	ConvertResult convert(

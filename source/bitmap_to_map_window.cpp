@@ -597,7 +597,7 @@ void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
 	int offY = yOffsetCtrl->GetValue();
 	int offZ = zOffsetCtrl->GetValue();
 
-	MatchMode mode = (matchModeChoice->GetSelection() == 1) ? MATCH_HUE_HSL : MATCH_PIXEL_RGB;
+	MatchMode mode = (matchModeChoice->GetSelection() == 1) ? MatchMode::MATCH_HUE_HSL : MatchMode::MATCH_PIXEL_RGB;
 
 	// Apply scale
 	wxImage imageToConvert = loadedImage.Copy();

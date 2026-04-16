@@ -73,37 +73,29 @@ const ColorMapping* BitmapToMapConverter::findMatchingColor(
 			continue;
 		}
 
-		if (matchMode == MATCH_HUE_HSL) {
+		int distance = -1;
+		if (matchMode == MatchMode::MATCH_HUE_HSL) {
 			float pixelHue = rgbToHue(r, g, b);
 			float mappingHue = rgbToHue(mapping.r, mapping.g, mapping.b);
 
 			if (pixelHue < 0.0f || mappingHue < 0.0f) {
-				int distance = std::abs((int)r - (int)mapping.r)
+				distance = std::abs((int)r - (int)mapping.r)
 					+ std::abs((int)g - (int)mapping.g)
 					+ std::abs((int)b - (int)mapping.b);
-				if (distance <= tolerance && distance < bestDistance) {
-					bestDistance = distance;
-					bestMatch = &mapping;
-				}
 			} else {
 				float hueDiff = fabs(pixelHue - mappingHue);
-				if (hueDiff > 180.0f) {
-					hueDiff = 360.0f - hueDiff;
-				}
-				int distance = (int)hueDiff;
-				if (distance <= tolerance && distance < bestDistance) {
-					bestDistance = distance;
-					bestMatch = &mapping;
-				}
+				hueDiff = (hueDiff > 180.0f) ? 360.0f - hueDiff : hueDiff;
+				distance = static_cast<int>(hueDiff);
 			}
 		} else {
-			int distance = std::abs((int)r - (int)mapping.r)
+			distance = std::abs((int)r - (int)mapping.r)
 				+ std::abs((int)g - (int)mapping.g)
 				+ std::abs((int)b - (int)mapping.b);
-			if (distance <= tolerance && distance < bestDistance) {
-				bestDistance = distance;
-				bestMatch = &mapping;
-			}
+		}
+
+		if (distance >= 0 && distance <= tolerance && distance < bestDistance) {
+			bestDistance = distance;
+			bestMatch = &mapping;
 		}
 	}
 	return bestMatch;
@@ -150,74 +142,74 @@ ConvertResult BitmapToMapConverter::convert(
 	const unsigned char* alphaData = hasAlpha ? image.GetAlpha() : nullptr;
 
 	int pixelsDone = 0;
-	for (int py = 0; py < imgHeight; py++) {
-		for (int px = 0; px < imgWidth; px++) {
-			if (pixelsDone % 4096 == 0) {
-				g_gui.SetLoadDone(static_cast<int32_t>(50.0 * pixelsDone / totalPixels));
-			}
-			pixelsDone++;
+	auto processPixel = [&](int px, int py) {
+		if (pixelsDone % 4096 == 0) {
+			g_gui.SetLoadDone(static_cast<int32_t>(50.0 * pixelsDone / totalPixels));
+		}
+		pixelsDone++;
 
-			// Skip transparent pixels
-			if (hasAlpha && alphaData[py * imgWidth + px] < 128) {
-				result.tilesSkipped++;
-				continue;
-			}
+		// Skip transparent pixels
+		if (hasAlpha && alphaData[py * imgWidth + px] < 128) {
+			result.tilesSkipped++;
+			return;
+		}
 
-			int idx = (py * imgWidth + px) * 3;
-			uint8_t r = imgData[idx];
-			uint8_t g_color = imgData[idx + 1];
-			uint8_t b_color = imgData[idx + 2];
+		int idx = (py * imgWidth + px) * 3;
+		uint8_t r = imgData[idx];
+		uint8_t g_color = imgData[idx + 1];
+		uint8_t b_color = imgData[idx + 2];
 
-			const ColorMapping* mapping = findMatchingColor(r, g_color, b_color, mappings, tolerance, matchMode);
-			if (!mapping || mapping->ignore || mapping->brushName.empty()) {
-				result.tilesSkipped++;
-				continue;
-			}
+		const ColorMapping* mapping = findMatchingColor(r, g_color, b_color, mappings, tolerance, matchMode);
+		if (!mapping || mapping->ignore || mapping->brushName.empty()) {
+			result.tilesSkipped++;
+			return;
+		}
 
-			Brush* brush = g_brushes.getBrush(mapping->brushName);
-			if (!brush || !brush->isGround()) {
-				result.tilesSkipped++;
-				continue;
-			}
+		Brush* brush = g_brushes.getBrush(mapping->brushName);
+		if (!brush || !brush->isGround()) {
+			result.tilesSkipped++;
+			return;
+		}
 
-			GroundBrush* groundBrush = brush->asGround();
+		GroundBrush* groundBrush = brush->asGround();
 
-			int mapX = px + offsetX;
-			int mapY = py + offsetY;
-			int mapZ = offsetZ;
+		int mapX = px + offsetX;
+		int mapY = py + offsetY;
+		int mapZ = offsetZ;
 
-			if (mapX < 0 || mapY < 0 || mapX > rme::MapMaxWidth || mapY > rme::MapMaxHeight || mapZ < 0 || mapZ > rme::MapMaxLayer) {
-				result.tilesSkipped++;
-				continue;
-			}
+		if (mapX < 0 || mapY < 0 || mapX > rme::MapMaxWidth || mapY > rme::MapMaxHeight || mapZ < 0 || mapZ > rme::MapMaxLayer) {
+			result.tilesSkipped++;
+			return;
+		}
 
-			Position pos(mapX, mapY, mapZ);
+		Position pos(mapX, mapY, mapZ);
+		TileLocation* location = map.createTileL(pos);
+		Tile* tile = location->get();
+		Tile* new_tile = (tile) ? tile->deepCopy(map) : map.allocator(location);
 
-			TileLocation* location = map.createTileL(pos);
-			Tile* tile = location->get();
-			Tile* new_tile = nullptr;
+		if (tile) {
+			new_tile->cleanBorders();
+		}
 
-			if (tile) {
-				new_tile = tile->deepCopy(map);
-				new_tile->cleanBorders();
-			} else {
-				new_tile = map.allocator(location);
-			}
+		groundBrush->draw(&map, new_tile, nullptr);
+		action->addChange(newd Change(new_tile));
+		result.tilesPlaced++;
 
-			groundBrush->draw(&map, new_tile, nullptr);
-			action->addChange(newd Change(new_tile));
-			result.tilesPlaced++;
-
-			// Track neighbors for borderizing
-			for (int dy = -1; dy <= 1; dy++) {
-				for (int dx = -1; dx <= 1; dx++) {
-					int bx = mapX + dx;
-					int by = mapY + dy;
-					if (bx >= 0 && by >= 0 && bx <= rme::MapMaxWidth && by <= rme::MapMaxHeight) {
-						borderPositions.insert(Position(bx, by, mapZ));
-					}
+		// Track neighbors for borderizing
+		for (int dy = -1; dy <= 1; dy++) {
+			for (int dx = -1; dx <= 1; dx++) {
+				int bx = mapX + dx;
+				int by = mapY + dy;
+				if (bx >= 0 && by >= 0 && bx <= rme::MapMaxWidth && by <= rme::MapMaxHeight) {
+					borderPositions.insert(Position(bx, by, mapZ));
 				}
 			}
+		}
+	};
+
+	for (int py = 0; py < imgHeight; py++) {
+		for (int px = 0; px < imgWidth; px++) {
+			processPixel(px, py);
 		}
 	}
 
@@ -229,7 +221,7 @@ ConvertResult BitmapToMapConverter::convert(
 		action = editor.createAction(batch);
 
 		int bordersDone = 0;
-		int totalBorders = static_cast<int>(borderPositions.size());
+		auto totalBorders = static_cast<int>(borderPositions.size());
 
 		for (const Position &pos : borderPositions) {
 			if (bordersDone % 4096 == 0) {
@@ -245,12 +237,10 @@ ConvertResult BitmapToMapConverter::convert(
 				new_tile->borderize(&map);
 				action->addChange(newd Change(new_tile));
 			} else {
-				Tile* new_tile = map.allocator(location);
+				std::unique_ptr<Tile> new_tile(map.allocator(location));
 				new_tile->borderize(&map);
-				if (new_tile->size() > 0) {
-					action->addChange(newd Change(new_tile));
-				} else {
-					delete new_tile;
+				if (!new_tile->empty()) {
+					action->addChange(newd Change(new_tile.release()));
 				}
 			}
 		}
