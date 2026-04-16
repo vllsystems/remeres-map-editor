@@ -35,7 +35,7 @@
 #include <appearances.pb.h>
 
 #ifndef GL_CLAMP_TO_EDGE
-	#define GL_CLAMP_TO_EDGE 0x812F
+static constexpr uint32_t GL_CLAMP_TO_EDGE = 0x812F;
 #endif
 
 GraphicManager g_graphics;
@@ -1196,8 +1196,8 @@ void GameSprite::DrawTo(wxDC* dcWindow, SpriteSize spriteSize, int start_x, int 
 	}
 }
 
-uint8_t* GameSprite::invertGLColors(int spriteHeight, int spriteWidth, uint8_t* rgba) {
-	uint8_t* rgba_inverted = new uint8_t[spriteWidth * spriteHeight * 4];
+std::vector<uint8_t> GameSprite::invertGLColors(int spriteHeight, int spriteWidth, uint8_t* rgba) {
+	std::vector<uint8_t> rgba_inverted(spriteWidth * spriteHeight * 4);
 	for (int i = 0; i < spriteWidth * spriteHeight; i++) {
 		rgba_inverted[i * 4 + 0] = rgba[i * 4 + 2]; // R -> B
 		rgba_inverted[i * 4 + 1] = rgba[i * 4 + 1]; // G
@@ -1243,8 +1243,7 @@ void GameSprite::Image::createGLTexture(GLuint textureId) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Nearest Filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer);
-	delete[] invertedBuffer;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer.data());
 }
 
 void GameSprite::Image::unloadGLTexture(GLuint textureId) {
@@ -1348,8 +1347,7 @@ void GameSprite::NormalImage::createGLTexture(GLuint) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer);
-	delete[] invertedBuffer;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer.data());
 }
 
 void GameSprite::NormalImage::unloadGLTexture(GLuint) {
@@ -1559,8 +1557,7 @@ void GameSprite::OutfitImage::createGLTexture(GLuint spriteId, GLuint textureId)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Nearest Filtering
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer);
-	delete[] invertedBuffer;
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer.data());
 }
 
 GameSprite* GameSprite::createFromBitmap(const wxArtID &bitmapId) {

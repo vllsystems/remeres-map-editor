@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <vector>
 #include <algorithm>
+#include <array>
 
 // Minimal GL type forward declarations — full GL comes from glad in gl_renderer.cpp
 using GLuint = unsigned int;
@@ -78,9 +79,14 @@ private:
 	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color);
 
 	struct GlyphInfo {
-		float u0, v0, u1, v1; // UV coords in texture (normalized)
-		float xoff, yoff; // offset from cursor pos (pixels)
-		float w, h; // glyph size (pixels)
+		float u0;
+		float v0;
+		float u1;
+		float v1; // UV coords in texture (normalized)
+		float xoff;
+		float yoff; // offset from cursor pos (pixels)
+		float w;
+		float h; // glyph size (pixels)
 		float advance; // horizontal advance (pixels)
 	};
 
@@ -93,9 +99,10 @@ private:
 		float descent = 0;
 		float lineHeight = 0;
 		bool loaded = false;
-		GlyphInfo glyphs[96] {};
-		float advances[96] {};
+		std::array<GlyphInfo, 96> glyphs {};
+		std::array<float, 96> advances {};
 	};
+
 	FontData font;
 	void initFontAtlas();
 	void initFontAtlasFallback();
