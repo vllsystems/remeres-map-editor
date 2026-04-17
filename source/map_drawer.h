@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include <unordered_map>
+#include <utility>
 #include "light_drawer.h"
 #include "gl_renderer.h"
 
@@ -41,13 +42,15 @@ struct MapTooltip {
 
 	void addEntry(const std::string &label, const std::string &value) {
 		std::string val = value;
-		if (val.size() > static_cast<size_t>(Limits::MAX_VALUE_DISPLAY)) {
-			val = val.substr(0, static_cast<size_t>(Limits::MAX_VALUE_DISPLAY)) + "...";
+		if (val.size() > static_cast<size_t>(std::to_underlying(Limits::MAX_VALUE_DISPLAY))) {
+			val = val.substr(0, static_cast<size_t>(std::to_underlying(Limits::MAX_VALUE_DISPLAY))) + "...";
 		}
 		entries.emplace_back(label, val);
 	}
 
-	int map_x, map_y, map_z;
+	int map_x;
+	int map_y;
+	int map_z;
 	uint8_t r, g, b;
 	std::vector<TooltipEntry> entries;
 };

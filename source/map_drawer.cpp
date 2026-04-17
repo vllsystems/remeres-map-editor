@@ -1716,13 +1716,19 @@ std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
 	float maxWidth = 0.0f;
 	int totalLines = 0;
 
-	for (const auto &entry : tp.entries) {
-		float labelW = 0.0f;
-		for (char c : entry.label) {
-			labelW += renderer->getCharWidth(c);
+	auto getLineWidth = [this](const std::string &s) {
+		float w = 0.0f;
+		for (char c : s) {
+			if (!iscntrl(c)) {
+				w += renderer->getCharWidth(c);
+			}
 		}
+		return w;
+	};
 
-		bool firstLine = true;
+	for (const auto &entry : tp.entries) {
+		float labelW = getLineWidth(entry.label);
+
 		std::string val = entry.value;
 
 		size_t pos = 0;
@@ -1730,15 +1736,9 @@ std::pair<float, float> MapDrawer::MeasureTooltipText(const MapTooltip &tp) {
 			size_t next_nl = val.find('\n', pos);
 			std::string line = val.substr(pos, (next_nl == std::string::npos ? std::string::npos : next_nl - pos));
 
-			float valW = 0.0f;
-			for (char c : line) {
-				if (!iscntrl(c)) {
-					valW += renderer->getCharWidth(c);
-				}
-			}
+			float valW = getLineWidth(line);
 
 			maxWidth = std::max(maxWidth, labelW + valW);
-			firstLine = false;
 			totalLines++;
 
 			if (next_nl == std::string::npos) {
@@ -1779,6 +1779,14 @@ void MapDrawer::RenderTooltipText(const MapTooltip &tp, float startx, float star
 	}
 	auto fa = static_cast<uint8_t>(fade * 255);
 
+	auto drawString = [this](const std::string &s) {
+		for (char c : s) {
+			if (!iscntrl(c)) {
+				renderer->drawBitmapChar(c);
+			}
+		}
+	};
+
 	for (const auto &entry : tp.entries) {
 		renderer->setRasterPos(x, y);
 
@@ -1802,12 +1810,7 @@ void MapDrawer::RenderTooltipText(const MapTooltip &tp, float startx, float star
 				renderer->setRasterPos(x + labelW, y);
 			}
 
-			for (char c : line) {
-				if (iscntrl(c)) {
-					continue;
-				}
-				renderer->drawBitmapChar(c);
-			}
+			drawString(line);
 
 			firstLine = false;
 			if (next_nl == std::string::npos) {
