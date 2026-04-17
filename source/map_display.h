@@ -37,6 +37,10 @@ public:
 	virtual ~MapCanvas();
 	void Reset();
 
+#ifdef __LINUX__
+	bool DispatchMenuShortcut(wxKeyEvent &event);
+#endif
+
 	// All events
 	void OnPaint(wxPaintEvent &event);
 	void OnEraseBackground(wxEraseEvent &event) { }
