@@ -242,7 +242,7 @@ void MapDrawer::Draw() {
 	if (options.show_ingame_box) {
 		DrawIngameBox();
 	}
-	if (options.isTooltips()) {
+	if (options.isTooltips() || globalTooltipFade > 0.0f) {
 		DrawTooltips();
 	}
 	if (options.show_performance_stats) {
@@ -275,6 +275,7 @@ void MapDrawer::DrawShade(int map_z) {
 }
 
 void MapDrawer::DrawMap() {
+	tooltips.clear();
 	bool live_client = editor.IsLiveClient();
 
 	Brush* brush = g_gui.GetCurrentBrush();
@@ -1506,7 +1507,7 @@ void MapDrawer::DrawTile(TileLocation* location) {
 			tg = 255;
 			tb = 0;
 		}
-		auto &tip = MakeTooltip(draw_x, draw_y, tr, tg, tb);
+		auto &tip = MakeTooltip(position.x, position.y, position.z, tr, tg, tb);
 
 		if (has_waypoint) {
 			WriteTooltip(waypoint, tip);
@@ -1819,34 +1820,34 @@ void MapDrawer::RenderTooltipText(const MapTooltip &tp, float startx, float star
 	}
 }
 
-static uint64_t tooltipKey(int x, int y) {
-	return (static_cast<uint64_t>(static_cast<uint32_t>(x)) << 32) | static_cast<uint64_t>(static_cast<uint32_t>(y));
+static uint64_t tooltipKey(int x, int y, int z) {
+	return (static_cast<uint64_t>(x) << 40) | (static_cast<uint64_t>(y) << 16) | static_cast<uint64_t>(z);
 }
 
 void MapDrawer::DrawTooltips() {
-	if (!options.show_tooltips || tooltips.empty()) {
+	float fadeSpeed = 0.02f;
+	if (options.isTooltips()) {
+		globalTooltipFade = std::min(globalTooltipFade + fadeSpeed, 1.0f);
+	} else {
+		globalTooltipFade = std::max(globalTooltipFade - fadeSpeed, 0.0f);
+	}
+
+	if (globalTooltipFade <= 0.0f || tooltips.empty()) {
 		return;
 	}
 
 	renderer->flush();
-	renderer->setOrtho(0, screensize_x, screensize_y, 0);
-
-	float fadeSpeed = 0.12f;
-	std::unordered_map<uint64_t, float> newFadeAlpha;
+	renderer->setOrtho(0, static_cast<float>(screensize_x), static_cast<float>(screensize_y), 0);
 
 	for (const auto &tp : tooltips) {
 		auto [width, height] = MeasureTooltipText(tp);
 
-		uint64_t key = tooltipKey(tp.x, tp.y);
-		float prev = 0.0f;
-		if (auto it = tooltipFadeAlpha.find(key); it != tooltipFadeAlpha.end()) {
-			prev = it->second;
-		}
-		float fade = std::min(prev + fadeSpeed, 1.0f);
-		newFadeAlpha[key] = fade;
+		int screen_x;
+		int screen_y;
+		getDrawPosition(Position(tp.map_x, tp.map_y, tp.map_z), screen_x, screen_y);
 
-		float x = (tp.x + rme::TileSize / 2.0f) / zoom;
-		float y = (tp.y + rme::TileSize / 2.0f) / zoom;
+		float x = static_cast<float>(screen_x + rme::TileSize / 2) / zoom;
+		float y = static_cast<float>(screen_y + rme::TileSize / 2) / zoom;
 		float center = width / 2.0f;
 		float space = 7.0f;
 		float startx = x - center;
@@ -1857,20 +1858,20 @@ void MapDrawer::DrawTooltips() {
 		// drop shadow
 		float radius = 4.0f;
 		float shadowOff = 3.0f;
-		auto shadowAlpha = static_cast<uint8_t>(fade * 70);
+		auto shadowAlpha = static_cast<uint8_t>(globalTooltipFade * 70);
 		renderer->drawRoundedRect(startx + shadowOff, starty + shadowOff, endx - startx, endy - starty, radius, { 0, 0, 0, shadowAlpha });
 		std::array<float, 6> shadowArrow = { x + space + shadowOff, endy + shadowOff, x + shadowOff, y + shadowOff, x - space + shadowOff, endy + shadowOff };
 		renderer->drawPolygon(shadowArrow.data(), 3, 0, 0, 0, shadowAlpha);
 
 		// background (rounded rect body + arrow triangle)
-		auto bgAlpha = static_cast<uint8_t>(fade * 200);
+		auto bgAlpha = static_cast<uint8_t>(globalTooltipFade * 200);
 		renderer->drawRoundedRect(startx, starty, endx - startx, endy - starty, radius, { tp.r, tp.g, tp.b, bgAlpha });
 
 		std::array<float, 6> arrow = { x + space, endy, x, y, x - space, endy };
 		renderer->drawPolygon(arrow.data(), 3, tp.r, tp.g, tp.b, bgAlpha);
 
 		// border (rounded rect outline + arrow lines)
-		auto borderAlpha = static_cast<uint8_t>(fade * 180);
+		auto borderAlpha = static_cast<uint8_t>(globalTooltipFade * 180);
 		renderer->drawRoundedRectOutline(startx, starty, endx - startx, endy - starty, radius, { 0, 0, 0, borderAlpha }, 1.0f);
 
 		std::array<float, 16> arrowLines = {
@@ -1885,13 +1886,14 @@ void MapDrawer::DrawTooltips() {
 		};
 		renderer->drawLines(arrowLines.data(), 2, 0, 0, 0, borderAlpha, 1.0f);
 
-		RenderTooltipText(tp, startx, starty, fade);
+		RenderTooltipText(tp, startx, starty, globalTooltipFade);
 	}
 
-	tooltipFadeAlpha = std::move(newFadeAlpha);
-
 	renderer->flush();
-	renderer->setOrtho(0, screensize_x * zoom, screensize_y * zoom, 0);
+
+	std::array<int, 4> vPort {};
+	glGetIntegerv(GL_VIEWPORT, vPort.data());
+	renderer->setOrtho(0, vPort[2] * zoom, vPort[3] * zoom, 0);
 }
 
 void MapDrawer::UpdateRAMUsage() {
@@ -2047,8 +2049,8 @@ void MapDrawer::DrawLight() const {
 	light_drawer->draw(start_x, start_y, end_x, end_y, view_scroll_x, view_scroll_y, renderer.get());
 }
 
-MapTooltip &MapDrawer::MakeTooltip(int screenx, int screeny, uint8_t r, uint8_t g, uint8_t b) {
-	tooltips.emplace_back(screenx, screeny, r, g, b);
+MapTooltip &MapDrawer::MakeTooltip(int map_x, int map_y, int map_z, uint8_t r, uint8_t g, uint8_t b) {
+	tooltips.emplace_back(map_x, map_y, map_z, r, g, b);
 	return tooltips.back();
 }
 

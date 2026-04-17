@@ -36,8 +36,8 @@ struct MapTooltip {
 		MAX_WIDTH = 1024,
 	};
 
-	MapTooltip(int x, int y, uint8_t r, uint8_t g, uint8_t b) :
-		x(x), y(y), r(r), g(g), b(b) { }
+	MapTooltip(int map_x, int map_y, int map_z, uint8_t r, uint8_t g, uint8_t b) :
+		map_x(map_x), map_y(map_y), map_z(map_z), r(r), g(g), b(b) { }
 
 	void addEntry(const std::string &label, const std::string &value) {
 		std::string val = value;
@@ -47,7 +47,7 @@ struct MapTooltip {
 		entries.emplace_back(label, val);
 	}
 
-	int x, y;
+	int map_x, map_y, map_z;
 	uint8_t r, g, b;
 	std::vector<TooltipEntry> entries;
 };
@@ -108,6 +108,7 @@ class MapDrawer {
 	std::unique_ptr<GLRenderer> renderer = std::make_unique<GLRenderer>();
 
 	float zoom;
+	float globalTooltipFade = 0.0f;
 
 	uint32_t current_house_id;
 
@@ -210,7 +211,7 @@ protected:
 	void DrawLight() const;
 	void WriteTooltip(const Item* item, MapTooltip &tooltip);
 	void WriteTooltip(const Waypoint* waypoint, MapTooltip &tooltip);
-	MapTooltip &MakeTooltip(int screenx, int screeny, uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
+	MapTooltip &MakeTooltip(int map_x, int map_y, int map_z, uint8_t r = 255, uint8_t g = 255, uint8_t b = 255);
 	void AddLight(TileLocation* location);
 
 	enum BrushColor {
