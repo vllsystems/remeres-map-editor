@@ -636,11 +636,8 @@ bool MainFrame::LoadMap(FileName name) {
 }
 
 void MainFrame::OnExit(wxCloseEvent &event) {
-	// clicking 'x' button
-
-	// do you want to save map changes?
 	while (g_gui.IsEditorOpen()) {
-		if (!DoQuerySave()) {
+		if (!DoQuerySave(false)) {
 			if (event.CanVeto()) {
 				event.Veto();
 				return;
@@ -648,14 +645,9 @@ void MainFrame::OnExit(wxCloseEvent &event) {
 				break;
 			}
 		}
+		break;
 	}
-	g_gui.aui_manager->UnInit();
-	((Application &)wxGetApp()).Unload();
-#ifdef __RELEASE__
-	// Hack, "crash" gracefully in release builds, let OS handle cleanup of windows
 	exit(0);
-#endif
-	Destroy();
 }
 
 void MainFrame::AddRecentFile(const FileName &file) {
