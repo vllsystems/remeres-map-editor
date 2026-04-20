@@ -23,7 +23,7 @@ public:
 	void init();
 	void shutdown();
 
-	void drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color);
+	void drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color, float u0 = 0.f, float v0 = 0.f, float u1 = 1.f, float v1 = 1.f);
 	void drawColoredQuad(float x, float y, float w, float h, const GLColor &color);
 
 	void drawRect(float x, float y, float w, float h, const GLColor &color, float lineWidth = 1.0f);

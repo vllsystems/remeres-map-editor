@@ -60,6 +60,10 @@ struct SpriteLight {
 	uint8_t color = 0;
 };
 
+struct SpriteUV {
+	float u0, v0, u1, v1;
+};
+
 class Sprite {
 public:
 	Sprite() { }
@@ -91,6 +95,7 @@ public:
 
 	int getIndex(int width, int height, int layer, int pattern_x, int pattern_y, int pattern_z, int frame) const;
 	GLuint getHardwareID(int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame);
+	SpriteUV getAtlasUVs(int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame);
 	uint32_t getSpriteID(int _layer, int _count, int _pattern_x, int _pattern_y, int /*_pattern_z*/, int _frame);
 
 	virtual void DrawTo(wxDC* dc, SpriteSize sz, int start_x, int start_y, int width = -1, int height = -1);
@@ -147,16 +152,21 @@ protected:
 		NormalImage();
 		virtual ~NormalImage();
 
-		uint32_t id; // sprite ID (game data)
-		GLuint glTextureId = 0; // GL texture ID (driver-assigned)
+		uint32_t id;
+		GLuint glTextureId = 0;
 
-		// This contains the pixel data
+		float atlasU0 = 0, atlasV0 = 0, atlasU1 = 1, atlasV1 = 1;
+		GLuint atlasTextureId = 0;
+
 		uint16_t size;
 		uint8_t* m_cachedData;
 
-		virtual void clean(int time);
+		void clean(int time) override;
 
 		virtual GLuint getHardwareID();
+		SpriteUV getAtlasUVs() const {
+			return { atlasU0, atlasV0, atlasU1, atlasV1 };
+		}
 #if CLIENT_VERSION < 1100
 		virtual uint8_t* getRGBData() = 0;
 #endif
@@ -170,6 +180,8 @@ protected:
 	class EditorImage : public NormalImage {
 	public:
 		EditorImage(const wxArtID &bitmapId);
+
+		GLuint getHardwareID() override;
 
 	protected:
 		void createGLTexture(GLuint textureId) override;

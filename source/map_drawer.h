@@ -230,7 +230,7 @@ protected:
 	};
 
 	void getColor(Brush* brush, const Position &position, uint8_t &r, uint8_t &g, uint8_t &b);
-	void glBlitTexture(int x, int y, int textureId, int red, int green, int blue, int alpha, bool adjustZoom = false, bool isEditorSprite = false, const Outfit &outfit = {}, int spriteId = 0);
+	void glBlitTexture(int x, int y, int textureId, int red, int green, int blue, int alpha, bool adjustZoom = false, bool isEditorSprite = false, const Outfit &outfit = {}, int spriteId = 0, float u0 = 0.f, float v0 = 0.f, float u1 = 1.f, float v1 = 1.f);
 	void glBlitSquare(int x, int y, uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, int size = rme::TileSize) const;
 	void glBlitSquare(int x, int y, const wxColor &color, int size = rme::TileSize) const;
 	void getBrushColor(BrushColor color, uint8_t &r, uint8_t &g, uint8_t &b, uint8_t &a);

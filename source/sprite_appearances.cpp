@@ -21,6 +21,7 @@
 #include "settings.h"
 #include "filehandle.h"
 #include "gui.h"
+#include "gl_renderer.h"
 
 #include <lzma.h>
 
@@ -75,6 +76,11 @@ bool SpriteAppearances::loadCatalogContent(const std::string &dir, bool loadData
 			}
 		}
 	}
+
+	std::sort(sheets.begin(), sheets.end(), [](const SpriteSheetPtr &a, const SpriteSheetPtr &b) {
+		return a->lastId < b->lastId;
+	});
+
 	return true;
 }
 
@@ -182,17 +188,69 @@ void SpriteAppearances::unload() {
 	sheets.clear();
 }
 
+GLuint SpriteSheet::getOrUploadGLTexture() {
+	if (glTextureId != 0) {
+		return glTextureId;
+	}
+	if (!loaded || !data) {
+		return 0;
+	}
+
+	glGenTextures(1, &glTextureId);
+	glBindTexture(GL_TEXTURE_2D, glTextureId);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT, 0, GL_BGRA, GL_UNSIGNED_BYTE, data.get());
+	return glTextureId;
+}
+
+void SpriteSheet::releaseGLTexture() {
+	if (glTextureId != 0) {
+		GLRenderer::invalidateTexture(glTextureId);
+		glDeleteTextures(1, &glTextureId);
+		glTextureId = 0;
+	}
+}
+
+SpriteUV SpriteSheet::getSpriteUVs(int spriteId) const {
+	auto size = getSpriteSize();
+	int spriteOffset = spriteId - firstId;
+	int allColumns = (size.width == 32) ? 12 : 6;
+	int row = spriteOffset / allColumns;
+	int col = spriteOffset % allColumns;
+
+	constexpr float halfTexelU = 0.5f / float(SPRITE_SHEET_WIDTH);
+	constexpr float halfTexelV = 0.5f / float(SPRITE_SHEET_HEIGHT);
+
+	float u0 = float(col * size.width) / float(SPRITE_SHEET_WIDTH) + halfTexelU;
+	float v0 = float(row * size.height) / float(SPRITE_SHEET_HEIGHT) + halfTexelV;
+	float u1 = float((col + 1) * size.width) / float(SPRITE_SHEET_WIDTH) - halfTexelU;
+	float v1 = float((row + 1) * size.height) / float(SPRITE_SHEET_HEIGHT) - halfTexelV;
+	return { u0, v0, u1, v1 };
+}
+
+SpriteAppearances::AtlasInfo SpriteAppearances::getAtlasInfo(int spriteId) {
+	auto sheet = getSheetBySpriteId(spriteId);
+	if (!sheet) {
+		return { 0, { 0, 0, 1, 1 } };
+	}
+	GLuint texId = sheet->getOrUploadGLTexture();
+	SpriteUV uvs = sheet->getSpriteUVs(spriteId);
+	return { texId, uvs };
+}
+
 SpriteSheetPtr SpriteAppearances::getSheetBySpriteId(int id, bool load /* = true */) {
 	if (id == 0) {
 		return nullptr;
 	}
 
-	// find sheet
-	auto sheetIt = std::find_if(sheets.begin(), sheets.end(), [=](const SpriteSheetPtr &sheet) {
-		return id >= sheet->firstId && id <= sheet->lastId;
+	auto sheetIt = std::lower_bound(sheets.begin(), sheets.end(), id, [](const SpriteSheetPtr &sheet, int spriteId) {
+		return sheet->lastId < spriteId;
 	});
 
-	if (sheetIt == sheets.end()) {
+	if (sheetIt == sheets.end() || id < (*sheetIt)->firstId) {
 		return nullptr;
 	}
 

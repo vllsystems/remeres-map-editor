@@ -30,7 +30,7 @@ class GameSprite;
 
 #define SPRITE_SHEET_WIDTH 384
 #define SPRITE_SHEET_HEIGHT 384
-#define BYTES_IN_SPRITE_SHEET SPRITE_SHEET_WIDTH* SPRITE_SHEET_WIDTH * 4
+#define BYTES_IN_SPRITE_SHEET SPRITE_SHEET_WIDTH * SPRITE_SHEET_WIDTH * 4
 #define SPRITE_SHEET_WIDTH_BYTES SPRITE_SHEET_WIDTH * 4
 
 enum class SpriteLayout {
@@ -140,12 +140,18 @@ public:
 		return image.SaveFile(wxString(file), wxBITMAP_TYPE_PNG);
 	};
 
+	GLuint getOrUploadGLTexture();
+	void releaseGLTexture();
+	SpriteUV getSpriteUVs(int spriteId) const;
+
 	int firstId = 0;
 	int lastId = 0;
 	SpriteLayout spriteLayout = SpriteLayout::ONE_BY_ONE;
 	std::unique_ptr<uint8_t[]> data;
 	std::string path;
 	bool loaded = false;
+	GLuint glTextureId = 0;
+	int lastaccess = 0;
 };
 
 using SpritePtr = std::shared_ptr<Sprites>;
@@ -192,7 +198,15 @@ public:
 	bool loadSpriteSheet(const SpriteSheetPtr &sheet);
 	void saveSheetToFileBySprite(int id, const std::string &file);
 	void saveSheetToFile(const SpriteSheetPtr &sheet, const std::string &file);
+	struct AtlasInfo {
+		GLuint textureId;
+		SpriteUV uvs;
+	};
+	AtlasInfo getAtlasInfo(int spriteId);
 	SpriteSheetPtr getSheetBySpriteId(int id, bool load = true);
+	std::vector<SpriteSheetPtr> &getSheets() {
+		return sheets;
+	}
 
 	void addSpriteSheet(SpriteSheetPtr sheet) {
 		sheets.push_back(sheet);

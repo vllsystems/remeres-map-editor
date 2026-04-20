@@ -988,6 +988,14 @@ void GraphicManager::garbageCollection() {
 				iit->second->clean(t);
 				++iit;
 			}
+
+			int longevity = g_settings.getInteger(Config::TEXTURE_LONGEVITY);
+			for (auto &sheet : g_spriteAppearances.getSheets()) {
+				if (sheet->glTextureId != 0 && t - sheet->lastaccess > longevity) {
+					sheet->releaseGLTexture();
+				}
+			}
+
 			lastclean = t;
 		}
 	}
@@ -1110,6 +1118,24 @@ GLuint GameSprite::getHardwareID(int _layer, int _count, int _pattern_x, int _pa
 		}
 	}
 	return spriteList[v]->getHardwareID();
+}
+
+SpriteUV GameSprite::getAtlasUVs(int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame) {
+	uint32_t v = _count >= 0
+		? static_cast<uint32_t>(_count)
+		: static_cast<uint32_t>(getIndex(0, 0, _layer, _pattern_x, _pattern_y, _pattern_z, _frame));
+	if (v >= numsprites) {
+		if (numsprites == 1) {
+			v = 0;
+		} else {
+			v %= numsprites;
+		}
+	}
+	auto* img = spriteList[v];
+	if (img) {
+		return img->getAtlasUVs();
+	}
+	return { 0, 0, 1, 1 };
 }
 
 std::shared_ptr<GameSprite::OutfitImage> GameSprite::getOutfitImage(int spriteId, int spriteIndex, const Outfit &outfit) {
@@ -1263,6 +1289,16 @@ void GameSprite::Image::clean(int time) {
 	}
 }
 
+void GameSprite::NormalImage::clean(int time) {
+	// Verificar se o sheet GL texture ainda é válido
+	if (atlasTextureId != 0) {
+		auto sheet = g_spriteAppearances.getSheetBySpriteId(id, false);
+		if (!sheet || sheet->glTextureId == 0) {
+			atlasTextureId = 0;
+		}
+	}
+}
+
 GameSprite::NormalImage::NormalImage() :
 	id(0),
 	size(0),
@@ -1272,14 +1308,6 @@ GameSprite::NormalImage::NormalImage() :
 
 GameSprite::NormalImage::~NormalImage() {
 	m_cachedData = nullptr;
-}
-
-void GameSprite::NormalImage::clean(int time) {
-	Image::clean(time);
-	// We keep dumps around for 5 seconds.
-	if (time - lastaccess > 5) {
-		m_cachedData = nullptr;
-	}
 }
 
 uint8_t* GameSprite::NormalImage::getRGBAData() {
@@ -1294,11 +1322,31 @@ uint8_t* GameSprite::NormalImage::getRGBAData() {
 }
 
 GLuint GameSprite::NormalImage::getHardwareID() {
-	if (!isGLLoaded) {
-		createGLTexture(0);
+	if (atlasTextureId == 0) {
+		auto sheet = g_spriteAppearances.getSheetBySpriteId(id);
+		if (sheet) {
+			atlasTextureId = sheet->getOrUploadGLTexture();
+			auto uvs = sheet->getSpriteUVs(id);
+			atlasU0 = uvs.u0;
+			atlasV0 = uvs.v0;
+			atlasU1 = uvs.u1;
+			atlasV1 = uvs.v1;
+			sheet->lastaccess = time(nullptr);
+		} else {
+			if (!isGLLoaded) {
+				createGLTexture(0);
+			}
+			visit();
+			return glTextureId;
+		}
+	} else {
+		auto sheet = g_spriteAppearances.getSheetBySpriteId(id, false);
+		if (sheet) {
+			sheet->lastaccess = time(nullptr);
+		}
 	}
 	visit();
-	return glTextureId;
+	return atlasTextureId;
 }
 
 uint32_t GameSprite::getSpriteID(int _layer, int _count, int _pattern_x, int _pattern_y, int /*_pattern_z*/, int _frame) {
@@ -1319,50 +1367,25 @@ uint32_t GameSprite::getSpriteID(int _layer, int _count, int _pattern_x, int _pa
 }
 
 void GameSprite::NormalImage::createGLTexture(GLuint) {
-	ASSERT(!isGLLoaded);
-
-	uint8_t* rgba = getRGBAData();
-	if (!rgba) {
-		return;
-	}
-
-	const auto &sheet = g_spriteAppearances.getSheetBySpriteId(id);
-	if (!sheet) {
-		return;
-	}
-
-	auto spriteWidth = sheet->getSpriteSize().width;
-	auto spriteHeight = sheet->getSpriteSize().height;
-	auto invertedBuffer = invertGLColors(spriteHeight, spriteWidth, rgba);
-
-	isGLLoaded = true;
-	g_gui.gfx.loaded_textures += 1;
-
-	if (glTextureId == 0) {
-		glGenTextures(1, &glTextureId);
-	}
-
-	glBindTexture(GL_TEXTURE_2D, glTextureId);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer.data());
+	// no-op: NormalImage agora usa atlas via getHardwareID()
 }
 
 void GameSprite::NormalImage::unloadGLTexture(GLuint) {
-	if (glTextureId != 0) {
-		isGLLoaded = false;
-		g_gui.gfx.loaded_textures -= 1;
-		GLRenderer::invalidateTexture(glTextureId);
-		glDeleteTextures(1, &glTextureId);
-		glTextureId = 0;
-	}
+	// no-op: textura pertence ao SpriteSheet, não ao sprite individual
+	atlasTextureId = 0;
 }
 
 GameSprite::EditorImage::EditorImage(const wxArtID &bitmapId) :
 	NormalImage(),
 	bitmapId(bitmapId) { }
+
+GLuint GameSprite::EditorImage::getHardwareID() {
+	if (!isGLLoaded) {
+		createGLTexture(0);
+	}
+	visit();
+	return glTextureId;
+}
 
 void GameSprite::EditorImage::createGLTexture(GLuint textureId) {
 	ASSERT(!isGLLoaded);

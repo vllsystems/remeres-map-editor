@@ -1114,7 +1114,8 @@ void MapDrawer::BlitItem(int &draw_x, int &draw_y, const Tile* tile, const Item*
 	int frame = item->getFrame();
 	int texnum = sprite->getHardwareID(0, subtype, pattern_x, pattern_y, pattern_z, frame);
 	int sprId = sprite->getSpriteID(0, subtype, pattern_x, pattern_y, pattern_z, frame);
-	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId);
+	auto uvs = sprite->getAtlasUVs(0, subtype, pattern_x, pattern_y, pattern_z, frame);
+	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId, uvs.u0, uvs.v0, uvs.u1, uvs.v1);
 
 	if (options.show_hooks && (type.hookSouth || type.hookEast || type.hook != ITEM_HOOK_NONE)) {
 		DrawHookIndicator(draw_x, draw_y, type);
@@ -1209,7 +1210,8 @@ void MapDrawer::BlitItem(int &draw_x, int &draw_y, const Position &pos, const It
 	int frame = item->getFrame();
 	int texnum = sprite->getHardwareID(0, subtype, pattern_x, pattern_y, pattern_z, frame);
 	int sprId = sprite->getSpriteID(0, subtype, pattern_x, pattern_y, pattern_z, frame);
-	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId);
+	auto uvs = sprite->getAtlasUVs(0, subtype, pattern_x, pattern_y, pattern_z, frame);
+	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId, uvs.u0, uvs.v0, uvs.u1, uvs.v1);
 
 	if (options.show_hooks && (type.hookSouth || type.hookEast) && zoom <= 3.0) {
 		DrawHookIndicator(draw_x, draw_y, type);
@@ -1237,7 +1239,8 @@ void MapDrawer::BlitSpriteType(int screenx, int screeny, uint32_t spriteid, int 
 	int frame = 0;
 	int texnum = sprite->getHardwareID(0, -1, 0, 0, 0, 0);
 	int sprId = sprite->getSpriteID(0, -1, 0, 0, 0, 0);
-	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId);
+	auto uvs = sprite->getAtlasUVs(0, -1, 0, 0, 0, 0);
+	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId, uvs.u0, uvs.v0, uvs.u1, uvs.v1);
 }
 
 void MapDrawer::BlitSpriteType(int screenx, int screeny, GameSprite* sprite, int red, int green, int blue, int alpha) {
@@ -1251,7 +1254,8 @@ void MapDrawer::BlitSpriteType(int screenx, int screeny, GameSprite* sprite, int
 	int frame = 0;
 	int texnum = sprite->getHardwareID(0, -1, 0, 0, 0, 0);
 	int sprId = sprite->getSpriteID(0, -1, 0, 0, 0, 0);
-	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId);
+	auto uvs = sprite->getAtlasUVs(0, -1, 0, 0, 0, 0);
+	glBlitTexture(screenx, screeny, texnum, red, green, blue, alpha, false, false, {}, sprId, uvs.u0, uvs.v0, uvs.u1, uvs.v1);
 }
 
 void MapDrawer::BlitCreature(int screenx, int screeny, const Outfit &outfit, const Direction &dir, int red, int green, int blue, int alpha) {
@@ -2113,7 +2117,7 @@ void MapDrawer::ShowPositionIndicator(const Position &position) {
 	pos_indicator_timer.Start();
 }
 
-void MapDrawer::glBlitTexture(int sx, int sy, int textureId, int red, int green, int blue, int alpha, bool adjustZoom, bool isEditorSprite, const Outfit &outfit, int spriteId) {
+void MapDrawer::glBlitTexture(int sx, int sy, int textureId, int red, int green, int blue, int alpha, bool adjustZoom, bool isEditorSprite, const Outfit &outfit, int spriteId, float u0, float v0, float u1, float v1) {
 	if (textureId <= 0) {
 		return;
 	}
@@ -2161,7 +2165,7 @@ void MapDrawer::glBlitTexture(int sx, int sy, int textureId, int red, int green,
 		spdlog::debug("Blitting outfit {} at ({}, {})", outfit.name, sx, sy);
 	}
 
-	renderer->drawTexturedQuad(sx, sy, width, height, textureId, { uint8_t(red), uint8_t(green), uint8_t(blue), uint8_t(alpha) });
+	renderer->drawTexturedQuad(sx, sy, width, height, textureId, { uint8_t(red), uint8_t(green), uint8_t(blue), uint8_t(alpha) }, u0, v0, u1, v1);
 }
 
 void MapDrawer::glBlitSquare(int x, int y, uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, int size /* = rme::TileSize */) const {
