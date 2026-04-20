@@ -1222,18 +1222,6 @@ void GameSprite::DrawTo(wxDC* dcWindow, SpriteSize spriteSize, int start_x, int 
 	}
 }
 
-std::vector<uint8_t> GameSprite::invertGLColors(int spriteHeight, int spriteWidth, const uint8_t* rgba) {
-	std::vector<uint8_t> rgba_inverted(spriteWidth * spriteHeight * 4);
-	for (int i = 0; i < spriteWidth * spriteHeight; i++) {
-		rgba_inverted[i * 4 + 0] = rgba[i * 4 + 2]; // R -> B
-		rgba_inverted[i * 4 + 1] = rgba[i * 4 + 1]; // G
-		rgba_inverted[i * 4 + 2] = rgba[i * 4 + 0]; // B -> R
-		rgba_inverted[i * 4 + 3] = rgba[i * 4 + 3]; // A
-	}
-
-	return rgba_inverted;
-}
-
 GameSprite::Image::Image() :
 	isGLLoaded(false),
 	lastaccess(0) {
@@ -1245,31 +1233,7 @@ GameSprite::Image::~Image() {
 }
 
 void GameSprite::Image::createGLTexture(GLuint textureId) {
-	ASSERT(!isGLLoaded);
-
-	uint8_t* rgba = getRGBAData();
-	if (!rgba) {
-		return;
-	}
-
-	const auto &sheet = g_spriteAppearances.getSheetBySpriteId(textureId);
-	if (!sheet) {
-		return;
-	}
-
-	auto spriteWidth = sheet->getSpriteSize().width;
-	auto spriteHeight = sheet->getSpriteSize().height;
-	auto invertedBuffer = invertGLColors(spriteHeight, spriteWidth, rgba);
-
-	isGLLoaded = true;
-	g_gui.gfx.loaded_textures += 1;
-
-	glBindTexture(GL_TEXTURE_2D, textureId);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // Nearest Filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Nearest Filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer.data());
+	// No-op: base class texture creation no longer used (subclasses override)
 }
 
 void GameSprite::Image::unloadGLTexture(GLuint textureId) {
@@ -1371,8 +1335,7 @@ void GameSprite::NormalImage::createGLTexture(GLuint) {
 }
 
 void GameSprite::NormalImage::unloadGLTexture(GLuint) {
-	// no-op: textura pertence ao SpriteSheet, não ao sprite individual
-	atlasTextureId = 0;
+	// No-op: atlas textures are managed by SpriteSheet::releaseGLTexture
 }
 
 GameSprite::EditorImage::EditorImage(const wxArtID &bitmapId) :
@@ -1570,17 +1533,15 @@ void GameSprite::OutfitImage::createGLTexture(GLuint spriteId, GLuint textureId)
 
 	auto spriteWidth = sheet->getSpriteSize().width;
 	auto spriteHeight = sheet->getSpriteSize().height;
-	auto invertedBuffer = m_parent->invertGLColors(spriteHeight, spriteWidth, rgba);
-
 	m_isGLLoaded = true;
 	g_gui.gfx.loaded_textures += 1;
 
 	glBindTexture(GL_TEXTURE_2D, textureId > 0 ? textureId : spriteId);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); // Nearest Filtering
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); // Nearest Filtering
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, invertedBuffer.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, spriteWidth, spriteHeight, 0, GL_BGRA, GL_UNSIGNED_BYTE, rgba);
 }
 
 GameSprite* GameSprite::createFromBitmap(const wxArtID &bitmapId) {

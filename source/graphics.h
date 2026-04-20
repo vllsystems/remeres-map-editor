@@ -106,7 +106,6 @@ public:
 	wxPoint getDrawOffset();
 	uint8_t getWidth();
 	uint8_t getHeight();
-	static std::vector<uint8_t> invertGLColors(int spriteHeight, int spriteWidth, const uint8_t* rgba);
 	uint8_t getMiniMapColor() const;
 
 	bool hasLight() const noexcept {
