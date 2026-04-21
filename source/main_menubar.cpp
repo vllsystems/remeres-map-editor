@@ -22,6 +22,7 @@
 #include "preferences.h"
 #include "about_window.h"
 #include "minimap_window.h"
+#include "bitmap_to_map_window.h"
 #include "dat_debug_view.h"
 #include "result_window.h"
 #include "find_item_window.h"
@@ -62,6 +63,8 @@ MainMenuBar::MainMenuBar(MainFrame* frame) :
 	MAKE_ACTION(IMPORT_MONSTERS, wxITEM_NORMAL, OnImportMonsterData);
 	MAKE_ACTION(IMPORT_NPCS, wxITEM_NORMAL, OnImportNpcData);
 	MAKE_ACTION(IMPORT_MINIMAP, wxITEM_NORMAL, OnImportMinimap);
+	MAKE_ACTION(IMPORT_BITMAP_TO_MAP, wxITEM_NORMAL, OnImportBitmapToMap);
+
 	MAKE_ACTION(EXPORT_MINIMAP, wxITEM_NORMAL, OnExportMinimap);
 	MAKE_ACTION(EXPORT_TILESETS, wxITEM_NORMAL, OnExportTilesets);
 
@@ -538,10 +541,10 @@ void MainMenuBar::LoadScriptsMenu() {
 		wxString label = wxString::FromUTF8(script->getDisplayName());
 		wxMenuItem* item = scriptsMenu->Append(wxID_ANY, label);
 		frame->Bind(
-			wxEVT_MENU, [i](wxCommandEvent &) {  
-			std::string error;  
-			if (!g_luaScripts.executeScript(i, error)) {  
-				wxMessageBox(wxString::FromUTF8(error), "Script Error", wxOK | wxICON_ERROR);  
+			wxEVT_MENU, [i](wxCommandEvent &) {
+			std::string error;
+			if (!g_luaScripts.executeScript(i, error)) {
+				wxMessageBox(wxString::FromUTF8(error), "Script Error", wxOK | wxICON_ERROR);
 			} }, item->GetId()
 		);
 	}
@@ -552,8 +555,8 @@ void MainMenuBar::LoadScriptsMenu() {
 	}
 	wxMenuItem* reloadItem = scriptsMenu->Append(wxID_ANY, "Reload Scripts");
 	frame->Bind(
-		wxEVT_MENU, [this](wxCommandEvent &) {  
-		g_luaScripts.reloadScripts();  
+		wxEVT_MENU, [this](wxCommandEvent &) {
+		g_luaScripts.reloadScripts();
 		LoadScriptsMenu(); }, reloadItem->GetId()
 	);
 }
@@ -851,6 +854,14 @@ void MainMenuBar::OnImportMinimap(wxCommandEvent &WXUNUSED(event)) {
 	ASSERT(g_gui.IsEditorOpen());
 	// wxDialog* importmap = newd ImportMapWindow();
 	// importmap->ShowModal();
+}
+
+void MainMenuBar::OnImportBitmapToMap(wxCommandEvent &WXUNUSED(event)) {
+	if (!g_gui.IsEditorOpen()) {
+		return;
+	}
+	BitmapToMapWindow dlg(g_gui.root, *g_gui.GetCurrentEditor());
+	dlg.ShowModal();
 }
 
 void MainMenuBar::OnExportMinimap(wxCommandEvent &WXUNUSED(event)) {

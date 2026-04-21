@@ -20,7 +20,7 @@
 #include "gl_renderer.h"
 
 #ifndef GL_CLAMP_TO_EDGE
-static constexpr uint32_t GL_CLAMP_TO_EDGE = 0x812F;
+	#define GL_CLAMP_TO_EDGE 0x812F
 #endif
 
 LightDrawer::LightDrawer() {
