@@ -312,6 +312,14 @@ int Application::OnExit() {
 	return 1;
 }
 
+void Application::ShutdownServices() {
+	g_luaScripts.shutdown();
+#ifdef _USE_PROCESS_COM
+	wxDELETE(m_proc_server);
+	wxDELETE(m_single_instance_checker);
+#endif
+}
+
 void Application::OnFatalException() {
 	////
 }
@@ -480,12 +488,12 @@ bool MainFrame::DoQuerySaveTileset(bool doclose) {
 	return !g_materials.needSave();
 }
 
-bool MainFrame::DoQuerySave(bool doclose) {
+bool MainFrame::DoQuerySave(bool doclose, bool checkTileset) {
 	if (!g_gui.IsEditorOpen()) {
 		return true;
 	}
 
-	if (!DoQuerySaveTileset()) {
+	if (checkTileset && !DoQuerySaveTileset()) {
 		return false;
 	}
 
@@ -636,24 +644,36 @@ bool MainFrame::LoadMap(FileName name) {
 }
 
 void MainFrame::OnExit(wxCloseEvent &event) {
+	if (!DoQuerySaveTileset()) {
+		if (event.CanVeto()) {
+			event.Veto();
+			return;
+		}
+	}
+
 	std::set<Map*> prompted;
 	for (int i = 0; i < g_gui.tabbook->GetTabCount(); ++i) {
 		auto* mapTab = dynamic_cast<MapTab*>(g_gui.tabbook->GetTab(i));
 		if (mapTab && mapTab->GetMap() && mapTab->GetMap()->hasChanged()
-			&& prompted.find(mapTab->GetMap()) == prompted.end()) {
+			&& !prompted.contains(mapTab->GetMap())) {
 			prompted.insert(mapTab->GetMap());
 			g_gui.tabbook->SetFocusedTab(i);
-			if (!DoQuerySave(false) && event.CanVeto()) {
-				event.Veto();
-				return;
+			if (!DoQuerySave(false, false)) {
+				if (event.CanVeto()) {
+					event.Veto();
+					return;
+				}
+				break;
 			}
 		}
 	}
+
 	g_gui.SaveHotkeys();
 	g_gui.SavePerspective();
 	g_gui.root->SaveRecentFiles();
 	ClientAssets::save();
 	g_settings.save(true);
+	wxGetApp().ShutdownServices();
 	exit(0);
 }
 
