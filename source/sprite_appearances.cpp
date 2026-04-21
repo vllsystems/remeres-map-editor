@@ -184,6 +184,11 @@ bool SpriteAppearances::loadSpriteSheet(const SpriteSheetPtr &sheet) {
 }
 
 void SpriteAppearances::unload() {
+	for (auto &sheet : sheets) {
+		if (sheet) {
+			sheet->releaseGLTexture();
+		}
+	}
 	spritesCount = 0;
 	sheets.clear();
 }

@@ -23,6 +23,7 @@
 #include "enums.h"
 
 #include <wx/artprov.h>
+#include <chrono>
 
 // Forward declarations
 namespace canary {
@@ -61,7 +62,10 @@ struct SpriteLight {
 };
 
 struct SpriteUV {
-	float u0, v0, u1, v1;
+	float u0;
+	float v0;
+	float u1;
+	float v1;
 };
 
 class Sprite {
@@ -130,10 +134,10 @@ protected:
 		virtual ~Image();
 
 		bool isGLLoaded;
-		int lastaccess;
+		std::chrono::steady_clock::time_point lastaccess;
 
 		void visit();
-		virtual void clean(int time);
+		virtual void clean(std::chrono::steady_clock::time_point now);
 
 		virtual GLuint getHardwareID() = 0;
 #if CLIENT_VERSION < 1100
@@ -154,13 +158,16 @@ protected:
 		uint32_t id;
 		GLuint glTextureId = 0;
 
-		float atlasU0 = 0, atlasV0 = 0, atlasU1 = 1, atlasV1 = 1;
+		float atlasU0 = 0;
+		float atlasV0 = 0;
+		float atlasU1 = 1;
+		float atlasV1 = 1;
 		GLuint atlasTextureId = 0;
 
 		uint16_t size;
 		uint8_t* m_cachedData;
 
-		void clean(int time) override;
+		void clean(std::chrono::steady_clock::time_point now) override;
 
 		virtual GLuint getHardwareID();
 		SpriteUV getAtlasUVs() const {
@@ -382,7 +389,7 @@ private:
 	wxFileName sprites_file;
 
 	int loaded_textures;
-	int lastclean;
+	std::chrono::steady_clock::time_point lastclean;
 
 	wxStopWatch* animation_timer;
 

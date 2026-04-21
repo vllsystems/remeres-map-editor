@@ -21,6 +21,7 @@
 #include "definitions.h"
 #include "main.h"
 #include "graphics.h"
+#include <chrono>
 
 class GameSprite;
 
@@ -30,7 +31,7 @@ class GameSprite;
 
 #define SPRITE_SHEET_WIDTH 384
 #define SPRITE_SHEET_HEIGHT 384
-#define BYTES_IN_SPRITE_SHEET SPRITE_SHEET_WIDTH* SPRITE_SHEET_WIDTH * 4
+#define BYTES_IN_SPRITE_SHEET SPRITE_SHEET_WIDTH * SPRITE_SHEET_WIDTH * 4
 #define SPRITE_SHEET_WIDTH_BYTES SPRITE_SHEET_WIDTH * 4
 
 enum class SpriteLayout {
@@ -151,7 +152,7 @@ public:
 	std::string path;
 	bool loaded = false;
 	GLuint glTextureId = 0;
-	int lastaccess = 0;
+	std::chrono::steady_clock::time_point lastaccess;
 };
 
 using SpritePtr = std::shared_ptr<Sprites>;

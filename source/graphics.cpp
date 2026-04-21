@@ -184,7 +184,7 @@ GraphicManager::GraphicManager() :
 	has_frame_durations(false),
 	has_frame_groups(false),
 	loaded_textures(0),
-	lastclean(0) {
+	lastclean {} {
 	animation_timer = newd wxStopWatch();
 	animation_timer->Start();
 }
@@ -236,7 +236,7 @@ void GraphicManager::clear() {
 	item_count = 0;
 	creature_count = 0;
 	loaded_textures = 0;
-	lastclean = time(nullptr);
+	lastclean = std::chrono::steady_clock::now();
 }
 
 void GraphicManager::cleanSoftwareSprites() {
@@ -980,25 +980,27 @@ void GraphicManager::addSpriteToCleanup(GameSprite* spr) {
 }
 
 void GraphicManager::garbageCollection() {
-	if (g_settings.getInteger(Config::TEXTURE_MANAGEMENT)) {
-		int t = time(nullptr);
-		if (loaded_textures > g_settings.getInteger(Config::TEXTURE_CLEAN_THRESHOLD) && t - lastclean > g_settings.getInteger(Config::TEXTURE_CLEAN_PULSE)) {
-			ImageMap::iterator iit = image_space.begin();
-			while (iit != image_space.end()) {
-				iit->second->clean(t);
-				++iit;
-			}
+	if (!g_settings.getInteger(Config::TEXTURE_MANAGEMENT)) {
+		return;
+	}
 
-			int longevity = g_settings.getInteger(Config::TEXTURE_LONGEVITY);
-			for (auto &sheet : g_spriteAppearances.getSheets()) {
-				if (sheet->glTextureId != 0 && t - sheet->lastaccess > longevity) {
-					sheet->releaseGLTexture();
-				}
-			}
+	auto now = std::chrono::steady_clock::now();
+	if (loaded_textures <= g_settings.getInteger(Config::TEXTURE_CLEAN_THRESHOLD) || now - lastclean <= std::chrono::seconds(g_settings.getInteger(Config::TEXTURE_CLEAN_PULSE))) {
+		return;
+	}
 
-			lastclean = t;
+	for (auto iit = image_space.begin(); iit != image_space.end(); ++iit) {
+		iit->second->clean(now);
+	}
+
+	auto longevity = std::chrono::seconds(g_settings.getInteger(Config::TEXTURE_LONGEVITY));
+	for (auto &sheet : g_spriteAppearances.getSheets()) {
+		if (sheet->glTextureId != 0 && now - sheet->lastaccess > longevity) {
+			sheet->releaseGLTexture();
 		}
 	}
+
+	lastclean = now;
 }
 
 EditorSprite::EditorSprite(wxBitmap* b16x16, wxBitmap* b32x32) {
@@ -1131,8 +1133,7 @@ SpriteUV GameSprite::getAtlasUVs(int _layer, int _count, int _pattern_x, int _pa
 			v %= numsprites;
 		}
 	}
-	auto* img = spriteList[v];
-	if (img) {
+	if (const auto* img = spriteList[v]; img) {
 		return img->getAtlasUVs();
 	}
 	return { 0, 0, 1, 1 };
@@ -1224,7 +1225,7 @@ void GameSprite::DrawTo(wxDC* dcWindow, SpriteSize spriteSize, int start_x, int 
 
 GameSprite::Image::Image() :
 	isGLLoaded(false),
-	lastaccess(0) {
+	lastaccess {} {
 	////
 }
 
@@ -1244,17 +1245,17 @@ void GameSprite::Image::unloadGLTexture(GLuint textureId) {
 }
 
 void GameSprite::Image::visit() {
-	lastaccess = time(nullptr);
+	lastaccess = std::chrono::steady_clock::now();
 }
 
-void GameSprite::Image::clean(int time) {
-	if (isGLLoaded && time - lastaccess > g_settings.getInteger(Config::TEXTURE_LONGEVITY)) {
+void GameSprite::Image::clean(std::chrono::steady_clock::time_point now) {
+	if (isGLLoaded && now - lastaccess > std::chrono::seconds(g_settings.getInteger(Config::TEXTURE_LONGEVITY))) {
 		unloadGLTexture(0);
 	}
 }
 
-void GameSprite::NormalImage::clean(int time) {
-	// Verificar se o sheet GL texture ainda é válido
+void GameSprite::NormalImage::clean(std::chrono::steady_clock::time_point now) {
+	// Check if the GL texture sheet is still valid
 	if (atlasTextureId != 0) {
 		auto sheet = g_spriteAppearances.getSheetBySpriteId(id, false);
 		if (!sheet || sheet->glTextureId == 0) {
@@ -1286,29 +1287,29 @@ uint8_t* GameSprite::NormalImage::getRGBAData() {
 }
 
 GLuint GameSprite::NormalImage::getHardwareID() {
-	if (atlasTextureId == 0) {
-		auto sheet = g_spriteAppearances.getSheetBySpriteId(id);
-		if (sheet) {
-			atlasTextureId = sheet->getOrUploadGLTexture();
-			auto uvs = sheet->getSpriteUVs(id);
-			atlasU0 = uvs.u0;
-			atlasV0 = uvs.v0;
-			atlasU1 = uvs.u1;
-			atlasV1 = uvs.v1;
-			sheet->lastaccess = time(nullptr);
-		} else {
-			if (!isGLLoaded) {
-				createGLTexture(0);
-			}
-			visit();
-			return glTextureId;
-		}
-	} else {
-		auto sheet = g_spriteAppearances.getSheetBySpriteId(id, false);
-		if (sheet) {
-			sheet->lastaccess = time(nullptr);
-		}
+	auto sheet = g_spriteAppearances.getSheetBySpriteId(id);
+	if (!sheet) {
+		visit();
+		return 0;
 	}
+
+	GLuint currentAtlasTextureId = sheet->getOrUploadGLTexture();
+	if (currentAtlasTextureId == 0) {
+		atlasTextureId = 0;
+		visit();
+		return 0;
+	}
+
+	if (atlasTextureId != currentAtlasTextureId) {
+		auto uvs = sheet->getSpriteUVs(id);
+		atlasU0 = uvs.u0;
+		atlasV0 = uvs.v0;
+		atlasU1 = uvs.u1;
+		atlasV1 = uvs.v1;
+		atlasTextureId = currentAtlasTextureId;
+	}
+
+	sheet->lastaccess = std::chrono::steady_clock::now();
 	visit();
 	return atlasTextureId;
 }
