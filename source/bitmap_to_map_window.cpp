@@ -30,21 +30,22 @@
 #include <wx/dcgraph.h>
 #include <cmath>
 #include <algorithm>
+#include <array>
 
 BEGIN_EVENT_TABLE(BitmapToMapWindow, wxDialog)
-EVT_BUTTON(BITMAP_TO_MAP_BROWSE, BitmapToMapWindow::OnClickBrowse)
-EVT_BUTTON(BITMAP_TO_MAP_GENERATE, BitmapToMapWindow::OnClickGenerate)
-EVT_BUTTON(BITMAP_TO_MAP_ROTATE_LEFT, BitmapToMapWindow::OnClickRotateLeft)
-EVT_BUTTON(BITMAP_TO_MAP_ROTATE_RIGHT, BitmapToMapWindow::OnClickRotateRight)
-EVT_BUTTON(BITMAP_TO_MAP_FLIP, BitmapToMapWindow::OnClickFlip)
-EVT_BUTTON(BITMAP_TO_MAP_CROP, BitmapToMapWindow::OnClickCrop)
-EVT_BUTTON(BITMAP_TO_MAP_SAVE_PRESET, BitmapToMapWindow::OnClickSavePreset)
-EVT_BUTTON(BITMAP_TO_MAP_LOAD_PRESET, BitmapToMapWindow::OnClickLoadPreset)
-EVT_BUTTON(BITMAP_TO_MAP_DELETE_COLOR, BitmapToMapWindow::OnClickDeleteColor)
-EVT_TEXT(BITMAP_TO_MAP_FILTER, BitmapToMapWindow::OnFilterColors)
-EVT_LIST_ITEM_ACTIVATED(BITMAP_TO_MAP_COLOR_LIST, BitmapToMapWindow::OnColorListActivated)
-EVT_CHOICE(BITMAP_TO_MAP_MATCH_MODE, BitmapToMapWindow::OnMatchModeChanged)
-EVT_SPINCTRL(BITMAP_TO_MAP_TOLERANCE, BitmapToMapWindow::OnToleranceChanged)
+EVT_BUTTON(toWxId(BitmapToMapId::BROWSE), BitmapToMapWindow::OnClickBrowse)
+EVT_BUTTON(toWxId(BitmapToMapId::GENERATE), BitmapToMapWindow::OnClickGenerate)
+EVT_BUTTON(toWxId(BitmapToMapId::ROTATE_LEFT), BitmapToMapWindow::OnClickRotateLeft)
+EVT_BUTTON(toWxId(BitmapToMapId::ROTATE_RIGHT), BitmapToMapWindow::OnClickRotateRight)
+EVT_BUTTON(toWxId(BitmapToMapId::FLIP), BitmapToMapWindow::OnClickFlip)
+EVT_BUTTON(toWxId(BitmapToMapId::CROP), BitmapToMapWindow::OnClickCrop)
+EVT_BUTTON(toWxId(BitmapToMapId::SAVE_PRESET), BitmapToMapWindow::OnClickSavePreset)
+EVT_BUTTON(toWxId(BitmapToMapId::LOAD_PRESET), BitmapToMapWindow::OnClickLoadPreset)
+EVT_BUTTON(toWxId(BitmapToMapId::DELETE_COLOR), BitmapToMapWindow::OnClickDeleteColor)
+EVT_TEXT(toWxId(BitmapToMapId::FILTER), BitmapToMapWindow::OnFilterColors)
+EVT_LIST_ITEM_ACTIVATED(toWxId(BitmapToMapId::COLOR_LIST), BitmapToMapWindow::OnColorListActivated)
+EVT_CHOICE(toWxId(BitmapToMapId::MATCH_MODE), BitmapToMapWindow::OnMatchModeChanged)
+EVT_SPINCTRL(toWxId(BitmapToMapId::TOLERANCE), BitmapToMapWindow::OnToleranceChanged)
 END_EVENT_TABLE()
 
 BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
@@ -63,8 +64,6 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	progressBar(nullptr),
 	scaleChoice(nullptr),
 	pixelInfoLabel(nullptr),
-	cropSelectionMode(false),
-	cropDragging(false),
 	cropButton(nullptr) {
 	wxBoxSizer* mainSizer = newd wxBoxSizer(wxHORIZONTAL);
 
@@ -90,16 +89,16 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 
 	// Image manipulation buttons
 	wxBoxSizer* imgBtnSizer = newd wxBoxSizer(wxHORIZONTAL);
-	imgBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_ROTATE_LEFT, "Rotate L"), 0, wxALL, 2);
-	imgBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_ROTATE_RIGHT, "Rotate R"), 0, wxALL, 2);
-	imgBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_FLIP, "Flip H"), 0, wxALL, 2);
-	cropButton = newd wxButton(this, BITMAP_TO_MAP_CROP, "Crop");
+	imgBtnSizer->Add(newd wxButton(this, toWxId(BitmapToMapId::ROTATE_LEFT), "Rotate L"), 0, wxALL, 2);
+	imgBtnSizer->Add(newd wxButton(this, toWxId(BitmapToMapId::ROTATE_RIGHT), "Rotate R"), 0, wxALL, 2);
+	imgBtnSizer->Add(newd wxButton(this, toWxId(BitmapToMapId::FLIP), "Flip H"), 0, wxALL, 2);
+	cropButton = newd wxButton(this, toWxId(BitmapToMapId::CROP), "Crop");
 	imgBtnSizer->Add(cropButton, 0, wxALL, 2);
 	leftSizer->Add(imgBtnSizer, 0, wxALIGN_CENTER);
 
 	wxBoxSizer* matchSizer = newd wxBoxSizer(wxHORIZONTAL);
 	wxStaticText* matchLabel = newd wxStaticText(this, wxID_ANY, "Match Mode:");
-	matchModeChoice = newd wxChoice(this, BITMAP_TO_MAP_MATCH_MODE);
+	matchModeChoice = newd wxChoice(this, toWxId(BitmapToMapId::MATCH_MODE));
 	matchModeChoice->Append("Pixel (RGB)");
 	matchModeChoice->Append("Hue (HSL)");
 	matchModeChoice->SetSelection(0);
@@ -114,7 +113,7 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 
 	// Browse
 	wxBoxSizer* browseSizer = newd wxBoxSizer(wxHORIZONTAL);
-	browseSizer->Add(newd wxButton(this, BITMAP_TO_MAP_BROWSE, "Browse Image..."), 0, wxALL, 5);
+	browseSizer->Add(newd wxButton(this, toWxId(BitmapToMapId::BROWSE), "Browse Image..."), 0, wxALL, 5);
 	rightSizer->Add(browseSizer, 0, wxEXPAND);
 
 	// Offsets
@@ -133,7 +132,7 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	// Tolerance
 	wxBoxSizer* tolSizer = newd wxBoxSizer(wxHORIZONTAL);
 	tolSizer->Add(newd wxStaticText(this, wxID_ANY, "Tolerance:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 5);
-	toleranceCtrl = newd wxSpinCtrl(this, BITMAP_TO_MAP_TOLERANCE, "30", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 765, 30);
+	toleranceCtrl = newd wxSpinCtrl(this, toWxId(BitmapToMapId::TOLERANCE), "30", wxDefaultPosition, wxSize(60, -1), wxSP_ARROW_KEYS, 0, 765, 30);
 	tolSizer->Add(toleranceCtrl, 0, wxALL, 2);
 	rightSizer->Add(tolSizer, 0, wxEXPAND);
 
@@ -154,12 +153,12 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	// Filter
 	wxBoxSizer* filterSizer = newd wxBoxSizer(wxHORIZONTAL);
 	filterSizer->Add(newd wxStaticText(this, wxID_ANY, "Filter:"), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 5);
-	filterCtrl = newd wxTextCtrl(this, BITMAP_TO_MAP_FILTER, "", wxDefaultPosition, wxSize(150, -1));
+	filterCtrl = newd wxTextCtrl(this, toWxId(BitmapToMapId::FILTER), "", wxDefaultPosition, wxSize(150, -1));
 	filterSizer->Add(filterCtrl, 1, wxALL, 2);
 	rightSizer->Add(filterSizer, 0, wxEXPAND);
 
 	// Color list
-	colorListCtrl = newd wxListCtrl(this, BITMAP_TO_MAP_COLOR_LIST, wxDefaultPosition, wxSize(450, 250), wxLC_REPORT | wxLC_SINGLE_SEL);
+	colorListCtrl = newd wxListCtrl(this, toWxId(BitmapToMapId::COLOR_LIST), wxDefaultPosition, wxSize(450, 250), wxLC_REPORT | wxLC_SINGLE_SEL);
 	colorListCtrl->InsertColumn(0, "Color", wxLIST_FORMAT_LEFT, 80);
 	colorListCtrl->InsertColumn(1, "Pixels", wxLIST_FORMAT_RIGHT, 60);
 	colorListCtrl->InsertColumn(2, "Brush", wxLIST_FORMAT_LEFT, 150);
@@ -169,18 +168,18 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 
 	// Color list buttons
 	wxBoxSizer* colorBtnSizer = newd wxBoxSizer(wxHORIZONTAL);
-	colorBtnSizer->Add(newd wxButton(this, BITMAP_TO_MAP_DELETE_COLOR, "Delete Color"), 0, wxALL, 2);
+	colorBtnSizer->Add(newd wxButton(this, toWxId(BitmapToMapId::DELETE_COLOR), "Delete Color"), 0, wxALL, 2);
 	rightSizer->Add(colorBtnSizer, 0, wxALIGN_CENTER);
 
 	// Action buttons
 	wxBoxSizer* actionSizer = newd wxBoxSizer(wxHORIZONTAL);
-	actionSizer->Add(newd wxButton(this, BITMAP_TO_MAP_GENERATE, "Generate"), 0, wxALL, 5);
+	actionSizer->Add(newd wxButton(this, toWxId(BitmapToMapId::GENERATE), "Generate"), 0, wxALL, 5);
 	rightSizer->Add(actionSizer, 0, wxALIGN_CENTER);
 
 	// Preset buttons
 	wxBoxSizer* presetSizer = newd wxBoxSizer(wxHORIZONTAL);
-	presetSizer->Add(newd wxButton(this, BITMAP_TO_MAP_SAVE_PRESET, "Save Preset"), 0, wxALL, 2);
-	presetSizer->Add(newd wxButton(this, BITMAP_TO_MAP_LOAD_PRESET, "Load Preset"), 0, wxALL, 2);
+	presetSizer->Add(newd wxButton(this, toWxId(BitmapToMapId::SAVE_PRESET), "Save Preset"), 0, wxALL, 2);
+	presetSizer->Add(newd wxButton(this, toWxId(BitmapToMapId::LOAD_PRESET), "Load Preset"), 0, wxALL, 2);
 	rightSizer->Add(presetSizer, 0, wxALIGN_CENTER);
 
 	// Progress bar
@@ -192,9 +191,6 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	SetSizer(mainSizer);
 	Layout();
 	Centre(wxBOTH);
-}
-
-BitmapToMapWindow::~BitmapToMapWindow() {
 }
 
 void BitmapToMapWindow::OnClickBrowse(wxCommandEvent &event) {
@@ -216,13 +212,13 @@ void BitmapToMapWindow::OnClickBrowse(wxCommandEvent &event) {
 	imageLoaded = true;
 
 	// Reset crop state
-	cropSelectionMode = false;
-	cropDragging = false;
-	cropStart = wxPoint(0, 0);
-	cropEnd = wxPoint(0, 0);
+	cropState.selectionMode = false;
+	cropState.dragging = false;
+	cropState.start = wxPoint(0, 0);
+	cropState.end = wxPoint(0, 0);
 	cropButton->SetLabel("Crop");
 	imagePreview->SetCursor(wxNullCursor);
-	cropBaseBitmap = wxBitmap();
+	cropState.baseBitmap = wxBitmap();
 
 	// Clear previous colors
 	detectedColors.clear();
@@ -234,6 +230,48 @@ void BitmapToMapWindow::OnClickBrowse(wxCommandEvent &event) {
 
 	// Detect colors
 	detectColors();
+}
+
+static int computeBucketKey(uint8_t r, uint8_t g, uint8_t b, bool useHue, int tolerance) {
+	if (useHue) {
+		float rf = r / 255.0f;
+		float gf = g / 255.0f;
+		float bf = b / 255.0f;
+		float maxC = std::max({ rf, gf, bf });
+		float minC = std::min({ rf, gf, bf });
+		float delta = maxC - minC;
+
+		if (delta < kAchromaticDelta) {
+			int brightness = (r + g + b) / 3;
+			if (brightness < 64) {
+				return 1000;
+			} else if (brightness < 192) {
+				return 1001;
+			}
+			return 1002;
+		}
+
+		float hue = 0.0f;
+		if (maxC == rf) {
+			hue = 60.0f * fmod((gf - bf) / delta, 6.0f);
+		} else if (maxC == gf) {
+			hue = 60.0f * ((bf - rf) / delta + 2.0f);
+		} else {
+			hue = 60.0f * ((rf - gf) / delta + 4.0f);
+		}
+		if (hue < 0.0f) {
+			hue += 360.0f;
+		}
+
+		int bucketSize = std::max(tolerance, 1);
+		return static_cast<int>(hue / bucketSize);
+	}
+
+	int q = std::max(tolerance, 1);
+	int rq = (r / q) * q;
+	int gq = (g / q) * q;
+	int bq = (b / q) * q;
+	return (rq << 16) | (gq << 8) | bq;
 }
 
 void BitmapToMapWindow::detectColors() {
@@ -252,7 +290,6 @@ void BitmapToMapWindow::detectColors() {
 	bool useHue = (matchModeChoice->GetSelection() == 1);
 
 	std::map<int, std::tuple<long long, long long, long long, int>> buckets;
-	// buckets[key] = {sumR, sumG, sumB, count}
 
 	for (int i = 0; i < w * h; i++) {
 		if (hasAlpha && alpha[i] < 128) {
@@ -263,59 +300,15 @@ void BitmapToMapWindow::detectColors() {
 		uint8_t g = data[i * 3 + 1];
 		uint8_t b_val = data[i * 3 + 2];
 
-		int key;
-
-		if (useHue) {
-			// Group by hue bucket
-			float rf = r / 255.0f;
-			float gf = g / 255.0f;
-			float bf = b_val / 255.0f;
-			float maxC = std::max({ rf, gf, bf });
-			float minC = std::min({ rf, gf, bf });
-			float delta = maxC - minC;
-
-			if (delta < kAchromaticDelta) {
-				// Achromatic: group by brightness
-				int brightness = (r + g + b_val) / 3;
-				if (brightness < 64) {
-					key = 1000; // black
-				} else if (brightness < 192) {
-					key = 1001; // gray
-				} else {
-					key = 1002; // white
-				}
-			} else {
-				float hue = 0.0f;
-				if (maxC == rf) {
-					hue = 60.0f * fmod((gf - bf) / delta, 6.0f);
-				} else if (maxC == gf) {
-					hue = 60.0f * ((bf - rf) / delta + 2.0f);
-				} else {
-					hue = 60.0f * ((rf - gf) / delta + 4.0f);
-				}
-				if (hue < 0.0f) {
-					hue += 360.0f;
-				}
-
-				int bucketSize = std::max(tolerance, 1);
-				key = (int)(hue / bucketSize);
-			}
-		} else {
-			// Group by quantized RGB
-			int q = std::max(tolerance, 1);
-			int rq = (r / q) * q;
-			int gq = (g / q) * q;
-			int bq = (b_val / q) * q;
-			key = (rq << 16) | (gq << 8) | bq;
-		}
+		int key = computeBucketKey(r, g, b_val, useHue, tolerance);
 
 		auto it = buckets.find(key);
 		if (it != buckets.end()) {
-			auto &b = it->second;
-			std::get<0>(b) += r;
-			std::get<1>(b) += g;
-			std::get<2>(b) += b_val;
-			std::get<3>(b) += 1;
+			auto &[sumR, sumG, sumB, count] = it->second;
+			sumR += r;
+			sumG += g;
+			sumB += b_val;
+			count += 1;
 		} else {
 			buckets[key] = std::make_tuple((long long)r, (long long)g, (long long)b_val, 1);
 		}
@@ -325,14 +318,12 @@ void BitmapToMapWindow::detectColors() {
 		}
 	}
 
-	// Convert buckets to DetectedColor using average RGB
-	for (auto &pair : buckets) {
-		auto &b = pair.second;
-		int count = std::get<3>(b);
+	for (auto &[key, bucket] : buckets) {
+		auto &[sumR, sumG, sumB, count] = bucket;
 		DetectedColor dc;
-		dc.r = (uint8_t)(std::get<0>(b) / count);
-		dc.g = (uint8_t)(std::get<1>(b) / count);
-		dc.b = (uint8_t)(std::get<2>(b) / count);
+		dc.r = static_cast<uint8_t>(sumR / count);
+		dc.g = static_cast<uint8_t>(sumG / count);
+		dc.b = static_cast<uint8_t>(sumB / count);
 		dc.pixelCount = count;
 		dc.ignore = false;
 		detectedColors.push_back(dc);
@@ -356,7 +347,9 @@ void BitmapToMapWindow::autoSuggestBrushes() {
 	wxBusyCursor wait;
 	struct BrushColor {
 		std::string name;
-		uint8_t r, g, b;
+		uint8_t r;
+		uint8_t g;
+		uint8_t b;
 	};
 
 	std::vector<BrushColor> brushColors;
@@ -449,7 +442,7 @@ void BitmapToMapWindow::OnColorListActivated(wxListEvent &event) {
 		return;
 	}
 
-	size_t dataIdx = (size_t)colorListCtrl->GetItemData(sel);
+	auto dataIdx = static_cast<size_t>(colorListCtrl->GetItemData(sel));
 	if (dataIdx >= detectedColors.size()) {
 		return;
 	}
@@ -498,7 +491,7 @@ void BitmapToMapWindow::OnClickDeleteColor(wxCommandEvent &event) {
 		return;
 	}
 
-	size_t dataIdx = (size_t)colorListCtrl->GetItemData(sel);
+	auto dataIdx = static_cast<size_t>(colorListCtrl->GetItemData(sel));
 	if (dataIdx >= detectedColors.size()) {
 		return;
 	}
@@ -517,8 +510,8 @@ void BitmapToMapWindow::OnClickRotateLeft(wxCommandEvent &event) {
 	}
 	loadedImage = loadedImage.Rotate90(false);
 	originalImage = loadedImage.Copy();
-	cropSelectionMode = false;
-	cropDragging = false;
+	cropState.selectionMode = false;
+	cropState.dragging = false;
 	updatePreview();
 	detectColors();
 }
@@ -529,8 +522,8 @@ void BitmapToMapWindow::OnClickRotateRight(wxCommandEvent &event) {
 	}
 	loadedImage = loadedImage.Rotate90(true);
 	originalImage = loadedImage.Copy();
-	cropSelectionMode = false;
-	cropDragging = false;
+	cropState.selectionMode = false;
+	cropState.dragging = false;
 	updatePreview();
 	detectColors();
 }
@@ -541,8 +534,8 @@ void BitmapToMapWindow::OnClickFlip(wxCommandEvent &event) {
 	}
 	loadedImage = loadedImage.Mirror(true);
 	originalImage = loadedImage.Copy();
-	cropSelectionMode = false;
-	cropDragging = false;
+	cropState.selectionMode = false;
+	cropState.dragging = false;
 	updatePreview();
 }
 
@@ -552,10 +545,10 @@ void BitmapToMapWindow::OnClickCrop(wxCommandEvent &event) {
 		return;
 	}
 
-	if (cropSelectionMode) {
+	if (cropState.selectionMode) {
 		// Cancel crop mode
-		cropSelectionMode = false;
-		cropDragging = false;
+		cropState.selectionMode = false;
+		cropState.dragging = false;
 		cropButton->SetLabel("Crop");
 		previewPanel->SetCursor(wxNullCursor);
 		imagePreview->SetCursor(wxNullCursor);
@@ -563,8 +556,8 @@ void BitmapToMapWindow::OnClickCrop(wxCommandEvent &event) {
 		return;
 	}
 
-	cropSelectionMode = true;
-	cropDragging = false;
+	cropState.selectionMode = true;
+	cropState.dragging = false;
 	cropButton->SetLabel("Cancel Crop");
 	previewPanel->SetCursor(wxCursor(wxCURSOR_CROSS));
 	imagePreview->SetCursor(wxCursor(wxCURSOR_CROSS));
@@ -598,8 +591,8 @@ void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
 	// Apply scale
 	wxImage imageToConvert = loadedImage.Copy();
 	int scaleIndex = scaleChoice->GetSelection();
-	const double scaleFactors[] = { 0.25, 0.5, 1.0, 2.0, 4.0 };
-	if (scaleIndex >= 0 && scaleIndex < 5) {
+	constexpr std::array<double, 5> scaleFactors = { 0.25, 0.5, 1.0, 2.0, 4.0 };
+	if (scaleIndex >= 0 && scaleIndex < static_cast<int>(scaleFactors.size())) {
 		double factor = scaleFactors[scaleIndex];
 		if (factor != 1.0) {
 			int newW = std::max(1, (int)std::lround(imageToConvert.GetWidth() * factor));
@@ -639,24 +632,24 @@ void BitmapToMapWindow::updatePreview() {
 	}
 	imagePreview->SetBitmap(wxBitmap(scaled));
 
-	if (cropSelectionMode) {
+	if (cropState.selectionMode) {
 		imagePreview->SetCursor(wxCursor(wxCURSOR_CROSS));
 	}
 }
 
 void BitmapToMapWindow::OnPreviewMouseMove(wxMouseEvent &event) {
-	if (cropDragging && cropSelectionMode) {
-		cropEnd = event.GetPosition();
+	if (cropState.dragging && cropState.selectionMode) {
+		cropState.end = event.GetPosition();
 
-		wxBitmap bmp(cropBaseBitmap);
+		wxBitmap bmp(cropState.baseBitmap);
 		if (bmp.IsOk()) {
 			wxMemoryDC memDC(bmp);
 			wxGCDC dc(memDC);
 
-			int x1 = std::min(cropStart.x, cropEnd.x);
-			int y1 = std::min(cropStart.y, cropEnd.y);
-			int x2 = std::max(cropStart.x, cropEnd.x);
-			int y2 = std::max(cropStart.y, cropEnd.y);
+			int x1 = std::min(cropState.start.x, cropState.end.x);
+			int y1 = std::min(cropState.start.y, cropState.end.y);
+			int x2 = std::max(cropState.start.x, cropState.end.x);
+			int y2 = std::max(cropState.start.y, cropState.end.y);
 
 			// Darken outside selection
 			dc.SetBrush(wxBrush(wxColour(0, 0, 0, 120)));
@@ -868,29 +861,29 @@ void BitmapToMapWindow::OnMatchModeChanged(wxCommandEvent &event) {
 }
 
 void BitmapToMapWindow::OnPreviewLeftDown(wxMouseEvent &event) {
-	if (!cropSelectionMode || !imageLoaded) {
+	if (!cropState.selectionMode || !imageLoaded) {
 		event.Skip();
 		return;
 	}
 
-	cropDragging = true;
-	cropStart = event.GetPosition();
-	cropEnd = cropStart;
-	cropBaseBitmap = imagePreview->GetBitmap();
+	cropState.dragging = true;
+	cropState.start = event.GetPosition();
+	cropState.end = cropState.start;
+	cropState.baseBitmap = imagePreview->GetBitmap();
 }
 
 void BitmapToMapWindow::OnPreviewLeftUp(wxMouseEvent &event) {
-	if (!cropDragging || !cropSelectionMode) {
+	if (!cropState.dragging || !cropState.selectionMode) {
 		event.Skip();
 		return;
 	}
 
-	cropDragging = false;
-	cropEnd = event.GetPosition();
+	cropState.dragging = false;
+	cropState.end = event.GetPosition();
 
-	wxBitmap currentBmp = cropBaseBitmap;
+	wxBitmap currentBmp = cropState.baseBitmap;
 	if (!currentBmp.IsOk()) {
-		cropSelectionMode = false;
+		cropState.selectionMode = false;
 		cropButton->SetLabel("Crop");
 		previewPanel->SetCursor(wxNullCursor);
 		imagePreview->SetCursor(wxNullCursor);
@@ -904,10 +897,10 @@ void BitmapToMapWindow::OnPreviewLeftUp(wxMouseEvent &event) {
 	int imgH = loadedImage.GetHeight();
 
 	// Convert display coordinates to image coordinates
-	int dispX1 = std::min(cropStart.x, cropEnd.x);
-	int dispY1 = std::min(cropStart.y, cropEnd.y);
-	int dispX2 = std::max(cropStart.x, cropEnd.x);
-	int dispY2 = std::max(cropStart.y, cropEnd.y);
+	int dispX1 = std::min(cropState.start.x, cropState.end.x);
+	int dispY1 = std::min(cropState.start.y, cropState.end.y);
+	int dispX2 = std::max(cropState.start.x, cropState.end.x);
+	int dispY2 = std::max(cropState.start.y, cropState.end.y);
 
 	int imgX = dispX1 * imgW / bmpW;
 	int imgY = dispY1 * imgH / bmpH;
@@ -918,7 +911,7 @@ void BitmapToMapWindow::OnPreviewLeftUp(wxMouseEvent &event) {
 	int cropH = imgY2 - imgY;
 
 	if (cropW < 2 || cropH < 2) {
-		cropSelectionMode = false;
+		cropState.selectionMode = false;
 		cropButton->SetLabel("Crop");
 		previewPanel->SetCursor(wxNullCursor);
 		imagePreview->SetCursor(wxNullCursor);
@@ -944,7 +937,7 @@ void BitmapToMapWindow::OnPreviewLeftUp(wxMouseEvent &event) {
 		detectColors();
 	}
 
-	cropSelectionMode = false;
+	cropState.selectionMode = false;
 	cropButton->SetLabel("Crop");
 	previewPanel->SetCursor(wxNullCursor);
 	imagePreview->SetCursor(wxNullCursor);

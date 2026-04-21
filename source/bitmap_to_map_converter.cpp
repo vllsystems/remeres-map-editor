@@ -101,6 +101,146 @@ const ColorMapping* BitmapToMapConverter::findMatchingColor(
 	return bestMatch;
 }
 
+bool BitmapToMapConverter::isValidMapPosition(int x, int y, int z) const {
+	return x >= 0 && y >= 0 && x <= rme::MapMaxWidth && y <= rme::MapMaxHeight && z >= 0 && z <= rme::MapMaxLayer;
+}
+
+void BitmapToMapConverter::trackBorderNeighbors(int mapX, int mapY, int mapZ, std::set<Position> &borderPositions) const {
+	for (int dy = -1; dy <= 1; dy++) {
+		for (int dx = -1; dx <= 1; dx++) {
+			int bx = mapX + dx;
+			int by = mapY + dy;
+			if (isValidMapPosition(bx, by, mapZ)) {
+				borderPositions.insert(Position(bx, by, mapZ));
+			}
+		}
+	}
+}
+
+void BitmapToMapConverter::placeGroundTiles(
+	const wxImage &image,
+	const std::vector<ColorMapping> &mappings,
+	int tolerance, MatchMode matchMode,
+	int offsetX, int offsetY, int offsetZ,
+	BatchAction* batch,
+	std::set<Position> &borderPositions,
+	ConvertResult &result
+) {
+	Map &map = editor.getMap();
+	int imgWidth = image.GetWidth();
+	int imgHeight = image.GetHeight();
+	int totalPixels = imgWidth * imgHeight;
+
+	Action* action = editor.createAction(batch);
+
+	const unsigned char* imgData = image.GetData();
+	bool hasAlpha = image.HasAlpha();
+	const unsigned char* alphaData = hasAlpha ? image.GetAlpha() : nullptr;
+
+	int pixelsDone = 0;
+	for (int py = 0; py < imgHeight; py++) {
+		for (int px = 0; px < imgWidth; px++) {
+			if (pixelsDone % 4096 == 0) {
+				g_gui.SetLoadDone(static_cast<int32_t>(50.0 * pixelsDone / totalPixels));
+			}
+			pixelsDone++;
+
+			if (hasAlpha && alphaData[py * imgWidth + px] < 128) {
+				result.tilesSkipped++;
+				continue;
+			}
+
+			int idx = (py * imgWidth + px) * 3;
+			uint8_t r = imgData[idx];
+			uint8_t g_color = imgData[idx + 1];
+			uint8_t b_color = imgData[idx + 2];
+
+			const ColorMapping* mapping = findMatchingColor(r, g_color, b_color, mappings, tolerance, matchMode);
+			if (!mapping) {
+				result.tilesSkipped++;
+				continue;
+			}
+
+			Brush* brush = g_brushes.getBrush(mapping->brushName);
+			if (!brush || !brush->isGround()) {
+				result.tilesSkipped++;
+				continue;
+			}
+
+			int mapX = px + offsetX;
+			int mapY = py + offsetY;
+			int mapZ = offsetZ;
+
+			if (!isValidMapPosition(mapX, mapY, mapZ)) {
+				result.tilesSkipped++;
+				continue;
+			}
+
+			Position pos(mapX, mapY, mapZ);
+			TileLocation* location = map.createTileL(pos);
+			Tile* tile = location->get();
+			Tile* new_tile = nullptr;
+
+			if (tile) {
+				new_tile = tile->deepCopy(map);
+				new_tile->cleanBorders();
+			} else {
+				new_tile = map.allocator(location);
+			}
+
+			brush->asGround()->draw(&map, new_tile, nullptr);
+			action->addChange(newd Change(new_tile));
+			result.tilesPlaced++;
+
+			trackBorderNeighbors(mapX, mapY, mapZ, borderPositions);
+		}
+	}
+
+	batch->addAndCommitAction(action);
+}
+
+void BitmapToMapConverter::borderizeTiles(
+	const std::set<Position> &borderPositions,
+	BatchAction* batch
+) {
+	if (borderPositions.empty()) {
+		return;
+	}
+
+	Map &map = editor.getMap();
+	Action* action = editor.createAction(batch);
+
+	int bordersDone = 0;
+	int totalBorders = static_cast<int>(borderPositions.size());
+
+	for (const Position &pos : borderPositions) {
+		if (bordersDone % 4096 == 0) {
+			g_gui.SetLoadDone(static_cast<int32_t>(50 + 49.0 * bordersDone / totalBorders));
+		}
+		bordersDone++;
+
+		TileLocation* location = map.createTileL(pos);
+		Tile* tile = location->get();
+
+		if (tile) {
+			Tile* new_tile = tile->deepCopy(map);
+			new_tile->borderize(&map);
+			action->addChange(newd Change(new_tile));
+			continue;
+		}
+
+		Tile* new_tile = map.allocator(location);
+		new_tile->borderize(&map);
+		if (new_tile->size() > 0) {
+			action->addChange(newd Change(new_tile));
+		} else {
+			delete new_tile;
+		}
+	}
+
+	batch->addAndCommitAction(action);
+}
+
 ConvertResult BitmapToMapConverter::convert(
 	const wxImage &image,
 	const std::vector<ColorMapping> &mappings,
@@ -123,132 +263,14 @@ ConvertResult BitmapToMapConverter::convert(
 		return result;
 	}
 
-	Map &map = editor.getMap();
-	int imgWidth = image.GetWidth();
-	int imgHeight = image.GetHeight();
-	int totalPixels = imgWidth * imgHeight;
-
 	g_gui.CreateLoadBar("Generating map from bitmap...");
 
-	// Phase 1: Place ground tiles
 	BatchAction* batch = editor.createBatch(ACTION_DRAW);
-	Action* action = editor.createAction(batch);
-
-	// Track positions that need borderizing (placed tiles + neighbors)
 	std::set<Position> borderPositions;
 
-	const unsigned char* imgData = image.GetData();
-	bool hasAlpha = image.HasAlpha();
-	const unsigned char* alphaData = hasAlpha ? image.GetAlpha() : nullptr;
+	placeGroundTiles(image, mappings, tolerance, matchMode, offsetX, offsetY, offsetZ, batch, borderPositions, result);
+	borderizeTiles(borderPositions, batch);
 
-	int pixelsDone = 0;
-	auto processPixel = [&](int px, int py) {
-		if (pixelsDone % 4096 == 0) {
-			g_gui.SetLoadDone(static_cast<int32_t>(50.0 * pixelsDone / totalPixels));
-		}
-		pixelsDone++;
-
-		// Skip transparent pixels
-		if (hasAlpha && alphaData[py * imgWidth + px] < 128) {
-			result.tilesSkipped++;
-			return;
-		}
-
-		int idx = (py * imgWidth + px) * 3;
-		uint8_t r = imgData[idx];
-		uint8_t g_color = imgData[idx + 1];
-		uint8_t b_color = imgData[idx + 2];
-
-		const ColorMapping* mapping = findMatchingColor(r, g_color, b_color, mappings, tolerance, matchMode);
-		if (!mapping || mapping->ignore || mapping->brushName.empty()) {
-			result.tilesSkipped++;
-			return;
-		}
-
-		Brush* brush = g_brushes.getBrush(mapping->brushName);
-		if (!brush || !brush->isGround()) {
-			result.tilesSkipped++;
-			return;
-		}
-
-		GroundBrush* groundBrush = brush->asGround();
-
-		int mapX = px + offsetX;
-		int mapY = py + offsetY;
-		int mapZ = offsetZ;
-
-		if (mapX < 0 || mapY < 0 || mapX > rme::MapMaxWidth || mapY > rme::MapMaxHeight || mapZ < 0 || mapZ > rme::MapMaxLayer) {
-			result.tilesSkipped++;
-			return;
-		}
-
-		Position pos(mapX, mapY, mapZ);
-		TileLocation* location = map.createTileL(pos);
-		Tile* tile = location->get();
-		Tile* new_tile = (tile) ? tile->deepCopy(map) : map.allocator(location);
-
-		if (tile) {
-			new_tile->cleanBorders();
-		}
-
-		groundBrush->draw(&map, new_tile, nullptr);
-		action->addChange(newd Change(new_tile));
-		result.tilesPlaced++;
-
-		// Track neighbors for borderizing
-		for (int dy = -1; dy <= 1; dy++) {
-			for (int dx = -1; dx <= 1; dx++) {
-				int bx = mapX + dx;
-				int by = mapY + dy;
-				if (bx >= 0 && by >= 0 && bx <= rme::MapMaxWidth && by <= rme::MapMaxHeight) {
-					borderPositions.insert(Position(bx, by, mapZ));
-				}
-			}
-		}
-	};
-
-	for (int py = 0; py < imgHeight; py++) {
-		for (int px = 0; px < imgWidth; px++) {
-			processPixel(px, py);
-		}
-	}
-
-	// Commit ground tiles to map
-	batch->addAndCommitAction(action);
-
-	// Phase 2: Borderize all affected tiles
-	if (!borderPositions.empty()) {
-		action = editor.createAction(batch);
-
-		int bordersDone = 0;
-		auto totalBorders = static_cast<int>(borderPositions.size());
-
-		for (const Position &pos : borderPositions) {
-			if (bordersDone % 4096 == 0) {
-				g_gui.SetLoadDone(static_cast<int32_t>(50 + 49.0 * bordersDone / totalBorders));
-			}
-			bordersDone++;
-
-			TileLocation* location = map.createTileL(pos);
-			Tile* tile = location->get();
-
-			if (tile) {
-				Tile* new_tile = tile->deepCopy(map);
-				new_tile->borderize(&map);
-				action->addChange(newd Change(new_tile));
-			} else {
-				std::unique_ptr<Tile> new_tile(map.allocator(location));
-				new_tile->borderize(&map);
-				if (!new_tile->empty()) {
-					action->addChange(newd Change(new_tile.release()));
-				}
-			}
-		}
-
-		batch->addAndCommitAction(action);
-	}
-
-	// Phase 3: Finalize
 	editor.addBatch(batch);
 	editor.updateActions();
 

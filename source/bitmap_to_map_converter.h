@@ -24,8 +24,11 @@
 #include <vector>
 #include <set>
 
+#include "position.h"
+
 static constexpr float kAchromaticDelta = 0.05f;
 
+class BatchAction;
 class Editor;
 
 enum class MatchMode {
@@ -71,6 +74,25 @@ private:
 		int tolerance,
 		MatchMode matchMode
 	) const;
+
+	bool isValidMapPosition(int x, int y, int z) const;
+
+	void trackBorderNeighbors(int mapX, int mapY, int mapZ, std::set<Position> &borderPositions) const;
+
+	void placeGroundTiles(
+		const wxImage &image,
+		const std::vector<ColorMapping> &mappings,
+		int tolerance, MatchMode matchMode,
+		int offsetX, int offsetY, int offsetZ,
+		BatchAction* batch,
+		std::set<Position> &borderPositions,
+		ConvertResult &result
+	);
+
+	void borderizeTiles(
+		const std::set<Position> &borderPositions,
+		BatchAction* batch
+	);
 };
 
 #endif // RME_BITMAP_TO_MAP_CONVERTER_H_

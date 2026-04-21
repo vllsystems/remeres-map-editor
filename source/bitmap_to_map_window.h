@@ -25,15 +25,16 @@
 class Editor;
 
 struct DetectedColor {
-	uint8_t r, g, b;
-	int pixelCount;
+	uint8_t r = 0;
+	uint8_t g = 0;
+	uint8_t b = 0;
+	int pixelCount = 0;
 	wxString suggestedBrush;
-	bool ignore;
+	bool ignore = false;
 
-	DetectedColor() :
-		r(0), g(0), b(0), pixelCount(0), ignore(false) { }
+	DetectedColor() = default;
 	DetectedColor(uint8_t r, uint8_t g, uint8_t b, int count) :
-		r(r), g(g), b(b), pixelCount(count), ignore(false) { }
+		r(r), g(g), b(b), pixelCount(count) { }
 
 	wxString toHex() const {
 		return wxString::Format("#%02X%02X%02X", r, g, b);
@@ -45,26 +46,29 @@ struct DetectedColor {
 	}
 };
 
-enum {
-	BITMAP_TO_MAP_BROWSE = wxID_HIGHEST + 1,
-	BITMAP_TO_MAP_GENERATE,
-	BITMAP_TO_MAP_ROTATE_LEFT,
-	BITMAP_TO_MAP_ROTATE_RIGHT,
-	BITMAP_TO_MAP_FLIP,
-	BITMAP_TO_MAP_CROP,
-	BITMAP_TO_MAP_SAVE_PRESET,
-	BITMAP_TO_MAP_LOAD_PRESET,
-	BITMAP_TO_MAP_DELETE_COLOR,
-	BITMAP_TO_MAP_FILTER,
-	BITMAP_TO_MAP_MATCH_MODE,
-	BITMAP_TO_MAP_TOLERANCE,
-	BITMAP_TO_MAP_COLOR_LIST,
+enum class BitmapToMapId : int {
+	BROWSE = wxID_HIGHEST + 1,
+	GENERATE,
+	ROTATE_LEFT,
+	ROTATE_RIGHT,
+	FLIP,
+	CROP,
+	SAVE_PRESET,
+	LOAD_PRESET,
+	DELETE_COLOR,
+	FILTER,
+	MATCH_MODE,
+	TOLERANCE,
+	COLOR_LIST,
 };
+
+inline int toWxId(BitmapToMapId id) {
+	return static_cast<int>(id);
+}
 
 class BitmapToMapWindow : public wxDialog {
 public:
 	BitmapToMapWindow(wxWindow* parent, Editor &editor);
-	virtual ~BitmapToMapWindow();
 
 private:
 	void OnClickBrowse(wxCommandEvent &event);
@@ -110,11 +114,14 @@ private:
 	wxChoice* scaleChoice;
 	wxStaticText* pixelInfoLabel;
 	wxImage originalImage;
-	bool cropSelectionMode;
-	bool cropDragging;
-	wxPoint cropStart;
-	wxPoint cropEnd;
-	wxBitmap cropBaseBitmap;
+
+	struct CropState {
+		bool selectionMode = false;
+		bool dragging = false;
+		wxPoint start;
+		wxPoint end;
+		wxBitmap baseBitmap;
+	} cropState;
 
 	// Data
 	std::vector<DetectedColor> detectedColors;
