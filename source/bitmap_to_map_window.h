@@ -48,7 +48,6 @@ struct DetectedColor {
 enum {
 	BITMAP_TO_MAP_BROWSE = wxID_HIGHEST + 1,
 	BITMAP_TO_MAP_GENERATE,
-	BITMAP_TO_MAP_PREVIEW,
 	BITMAP_TO_MAP_ROTATE_LEFT,
 	BITMAP_TO_MAP_ROTATE_RIGHT,
 	BITMAP_TO_MAP_FLIP,
@@ -60,7 +59,6 @@ enum {
 	BITMAP_TO_MAP_MATCH_MODE,
 	BITMAP_TO_MAP_TOLERANCE,
 	BITMAP_TO_MAP_COLOR_LIST,
-	BITMAP_TO_MAP_INSTRUCTIONS,
 };
 
 class BitmapToMapWindow : public wxDialog {
@@ -71,7 +69,6 @@ public:
 private:
 	void OnClickBrowse(wxCommandEvent &event);
 	void OnClickGenerate(wxCommandEvent &event);
-	void OnClickPreview(wxCommandEvent &event);
 	void OnClickRotateLeft(wxCommandEvent &event);
 	void OnClickRotateRight(wxCommandEvent &event);
 	void OnClickFlip(wxCommandEvent &event);
@@ -79,12 +76,10 @@ private:
 	void OnPreviewLeftDown(wxMouseEvent &event);
 	void OnPreviewLeftUp(wxMouseEvent &event);
 	void OnPreviewMouseMove(wxMouseEvent &event);
-	void generateColorizedPreview();
 	void updatePreview();
 	void OnClickSavePreset(wxCommandEvent &event);
 	void OnClickLoadPreset(wxCommandEvent &event);
 	void OnClickDeleteColor(wxCommandEvent &event);
-	void OnClickInstructions(wxCommandEvent &event);
 	void OnMatchModeChanged(wxCommandEvent &event);
 	void OnToleranceChanged(wxSpinEvent &event);
 	void OnFilterColors(wxCommandEvent &event);

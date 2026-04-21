@@ -34,7 +34,6 @@
 BEGIN_EVENT_TABLE(BitmapToMapWindow, wxDialog)
 EVT_BUTTON(BITMAP_TO_MAP_BROWSE, BitmapToMapWindow::OnClickBrowse)
 EVT_BUTTON(BITMAP_TO_MAP_GENERATE, BitmapToMapWindow::OnClickGenerate)
-EVT_BUTTON(BITMAP_TO_MAP_PREVIEW, BitmapToMapWindow::OnClickPreview)
 EVT_BUTTON(BITMAP_TO_MAP_ROTATE_LEFT, BitmapToMapWindow::OnClickRotateLeft)
 EVT_BUTTON(BITMAP_TO_MAP_ROTATE_RIGHT, BitmapToMapWindow::OnClickRotateRight)
 EVT_BUTTON(BITMAP_TO_MAP_FLIP, BitmapToMapWindow::OnClickFlip)
@@ -42,7 +41,6 @@ EVT_BUTTON(BITMAP_TO_MAP_CROP, BitmapToMapWindow::OnClickCrop)
 EVT_BUTTON(BITMAP_TO_MAP_SAVE_PRESET, BitmapToMapWindow::OnClickSavePreset)
 EVT_BUTTON(BITMAP_TO_MAP_LOAD_PRESET, BitmapToMapWindow::OnClickLoadPreset)
 EVT_BUTTON(BITMAP_TO_MAP_DELETE_COLOR, BitmapToMapWindow::OnClickDeleteColor)
-EVT_BUTTON(BITMAP_TO_MAP_INSTRUCTIONS, BitmapToMapWindow::OnClickInstructions)
 EVT_TEXT(BITMAP_TO_MAP_FILTER, BitmapToMapWindow::OnFilterColors)
 EVT_LIST_ITEM_ACTIVATED(BITMAP_TO_MAP_COLOR_LIST, BitmapToMapWindow::OnColorListActivated)
 EVT_CHOICE(BITMAP_TO_MAP_MATCH_MODE, BitmapToMapWindow::OnMatchModeChanged)
@@ -176,7 +174,6 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 
 	// Action buttons
 	wxBoxSizer* actionSizer = newd wxBoxSizer(wxHORIZONTAL);
-	actionSizer->Add(newd wxButton(this, BITMAP_TO_MAP_PREVIEW, "Preview Colors"), 0, wxALL, 5);
 	actionSizer->Add(newd wxButton(this, BITMAP_TO_MAP_GENERATE, "Generate"), 0, wxALL, 5);
 	rightSizer->Add(actionSizer, 0, wxALIGN_CENTER);
 
@@ -184,7 +181,6 @@ BitmapToMapWindow::BitmapToMapWindow(wxWindow* parent, Editor &editor) :
 	wxBoxSizer* presetSizer = newd wxBoxSizer(wxHORIZONTAL);
 	presetSizer->Add(newd wxButton(this, BITMAP_TO_MAP_SAVE_PRESET, "Save Preset"), 0, wxALL, 2);
 	presetSizer->Add(newd wxButton(this, BITMAP_TO_MAP_LOAD_PRESET, "Load Preset"), 0, wxALL, 2);
-	presetSizer->Add(newd wxButton(this, BITMAP_TO_MAP_INSTRUCTIONS, "Instructions"), 0, wxALL, 2);
 	rightSizer->Add(presetSizer, 0, wxALIGN_CENTER);
 
 	// Progress bar
@@ -625,85 +621,6 @@ void BitmapToMapWindow::OnClickGenerate(wxCommandEvent &event) {
 	}
 }
 
-void BitmapToMapWindow::OnClickPreview(wxCommandEvent &event) {
-	if (!imageLoaded) {
-		return;
-	}
-	generateColorizedPreview();
-}
-
-void BitmapToMapWindow::generateColorizedPreview() {
-	wxImage preview = loadedImage.Copy();
-	int w = preview.GetWidth();
-	int h = preview.GetHeight();
-	unsigned char* data = preview.GetData();
-	bool hasAlpha = preview.HasAlpha();
-	unsigned char* alpha = hasAlpha ? preview.GetAlpha() : nullptr;
-	int tolerance = toleranceCtrl->GetValue();
-
-	for (int i = 0; i < w * h; ++i) {
-		if (hasAlpha && alpha && alpha[i] < 128) {
-			data[i * 3] = 0;
-			data[i * 3 + 1] = 0;
-			data[i * 3 + 2] = 0;
-			continue;
-		}
-
-		uint8_t pr = data[i * 3];
-		uint8_t pg = data[i * 3 + 1];
-		uint8_t pb = data[i * 3 + 2];
-
-		bool matched = false;
-		for (const auto &dc : detectedColors) {
-			if (dc.ignore) {
-				continue;
-			}
-			int dist = std::abs((int)pr - dc.r) + std::abs((int)pg - dc.g) + std::abs((int)pb - dc.b);
-			if (dist <= tolerance) {
-				if (!dc.suggestedBrush.IsEmpty()) {
-					Brush* brush = g_brushes.getBrush(dc.suggestedBrush.ToStdString());
-					if (brush) {
-						int lookId = brush->getLookID();
-						if (lookId > 0) {
-							const ItemType &type = g_items.getItemType(lookId);
-							if (type.id != 0 && type.sprite) {
-								uint16_t mc = type.sprite->getMiniMapColor();
-								if (mc != 0) {
-									wxColor rgb = colorFromEightBit(mc);
-									data[i * 3] = rgb.Red();
-									data[i * 3 + 1] = rgb.Green();
-									data[i * 3 + 2] = rgb.Blue();
-									matched = true;
-								}
-							}
-						}
-					}
-				}
-				break;
-			}
-		}
-
-		if (!matched) {
-			// Dim unmatched pixels
-			data[i * 3] = pr / 3;
-			data[i * 3 + 1] = pg / 3;
-			data[i * 3 + 2] = pb / 3;
-		}
-	}
-
-	int pw = previewPanel->GetClientSize().GetWidth();
-	int ph = previewPanel->GetClientSize().GetHeight();
-	if (pw > 0 && ph > 0) {
-		double scaleX = (double)pw / preview.GetWidth();
-		double scaleY = (double)ph / preview.GetHeight();
-		double fitScale = std::min(scaleX, scaleY);
-		int newW = std::max(1, (int)(preview.GetWidth() * fitScale));
-		int newH = std::max(1, (int)(preview.GetHeight() * fitScale));
-		preview.Rescale(newW, newH, wxIMAGE_QUALITY_NEAREST);
-	}
-	imagePreview->SetBitmap(wxBitmap(preview));
-}
-
 void BitmapToMapWindow::updatePreview() {
 	if (!imageLoaded) {
 		return;
@@ -1032,43 +949,4 @@ void BitmapToMapWindow::OnPreviewLeftUp(wxMouseEvent &event) {
 	previewPanel->SetCursor(wxNullCursor);
 	imagePreview->SetCursor(wxNullCursor);
 	updatePreview();
-}
-
-void BitmapToMapWindow::OnClickInstructions(wxCommandEvent &event) {
-	wxString info;
-	info << "=== Bitmap to Map - Instructions ===\n\n";
-	info << "1. Paint your map image using the colors below\n";
-	info << "2. Save as PNG (never JPEG)\n";
-	info << "3. Load the image in this dialog\n";
-	info << "4. Colors are auto-detected and brushes auto-suggested\n";
-	info << "5. Double-click a color to change its brush\n";
-	info << "6. Click Generate to create the map\n\n";
-	info << "=== Minimap Color Reference ===\n\n";
-	info << "Hex        RGB              Terrain\n";
-	info << "---------- ---------------- --------------------------\n";
-	info << "#33CC00    (51, 204, 0)     Grass (grama)\n";
-	info << "#336600    (51, 102, 0)     Dark grass / swamp\n";
-	info << "#006600    (0, 102, 0)      Trees / floresta densa\n";
-	info << "#00CC00    (0, 204, 0)      Light vegetation\n";
-	info << "#00FF00    (0, 255, 0)      Bright green\n";
-	info << "#0066CC    (0, 102, 204)    Deep water (agua funda)\n";
-	info << "#66CCFF    (102, 204, 255)  Shallow water / ice\n";
-	info << "#CCCC66    (204, 204, 102)  Sand (areia)\n";
-	info << "#996633    (153, 102, 51)   Dirt (terra)\n";
-	info << "#993300    (153, 51, 0)     Wood / brown\n";
-	info << "#999999    (153, 153, 153)  Stone / pavement\n";
-	info << "#666666    (102, 102, 102)  Cave floor / dark stone\n";
-	info << "#CCCCCC    (204, 204, 204)  Light stone / marble\n";
-	info << "#FFFFFF    (255, 255, 255)  Snow / ice\n";
-	info << "#CC3300    (204, 51, 0)     Lava\n";
-	info << "#FFFF00    (255, 255, 0)    Yellow (special)\n";
-	info << "#000000    (0, 0, 0)        Void / ignore\n\n";
-	info << "=== Tips ===\n\n";
-	info << "- Use solid colors (bucket fill, no anti-aliasing)\n";
-	info << "- PNG format preserves exact colors\n";
-	info << "- JPEG creates color artifacts - avoid it\n";
-	info << "- Tolerance controls how much color variation is accepted\n";
-	info << "- Use View > Show as Minimap in RME to see actual colors\n";
-
-	g_gui.ShowTextBox(this, "Bitmap to Map - Instructions", info);
 }
