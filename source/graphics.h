@@ -130,7 +130,7 @@ protected:
 
 	class Image {
 	public:
-		Image();
+		Image() = default;
 		virtual ~Image();
 
 		bool isGLLoaded = false;

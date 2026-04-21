@@ -1237,10 +1237,6 @@ void GameSprite::DrawTo(wxDC* dcWindow, SpriteSize spriteSize, int start_x, int 
 	}
 }
 
-GameSprite::Image::Image() {
-	////
-}
-
 GameSprite::Image::~Image() {
 	unloadGLTexture(0);
 }
