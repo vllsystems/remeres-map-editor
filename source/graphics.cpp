@@ -985,18 +985,22 @@ void GraphicManager::garbageCollection() {
 	}
 
 	auto now = std::chrono::steady_clock::now();
-	if (loaded_textures <= g_settings.getInteger(Config::TEXTURE_CLEAN_THRESHOLD) || now - lastclean <= std::chrono::seconds(g_settings.getInteger(Config::TEXTURE_CLEAN_PULSE))) {
+	if (now - lastclean <= std::chrono::seconds(g_settings.getInteger(Config::TEXTURE_CLEAN_PULSE))) {
 		return;
 	}
 
-	for (auto iit = image_space.begin(); iit != image_space.end(); ++iit) {
-		iit->second->clean(now);
-	}
-
+	// Sheet GC runs independently of per-sprite texture threshold
 	auto longevity = std::chrono::seconds(g_settings.getInteger(Config::TEXTURE_LONGEVITY));
-	for (auto &sheet : g_spriteAppearances.getSheets()) {
+	for (const auto &sheet : g_spriteAppearances.getSheets()) {
 		if (sheet->glTextureId != 0 && now - sheet->lastaccess > longevity) {
 			sheet->releaseGLTexture();
+		}
+	}
+
+	// Per-sprite image GC only runs when threshold is exceeded
+	if (loaded_textures > g_settings.getInteger(Config::TEXTURE_CLEAN_THRESHOLD)) {
+		for (auto iit = image_space.begin(); iit != image_space.end(); ++iit) {
+			iit->second->clean(now);
 		}
 	}
 
@@ -1109,28 +1113,38 @@ int GameSprite::getIndex(int width, int height, int layer, int pattern_x, int pa
 }
 
 GLuint GameSprite::getHardwareID(int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame) {
+	if (numsprites == 0 || spriteList.empty()) {
+		return 0;
+	}
+
+	const auto spriteCount = std::min<uint32_t>(numsprites, static_cast<uint32_t>(spriteList.size()));
 	uint32_t v = _count >= 0
 		? static_cast<uint32_t>(_count)
 		: static_cast<uint32_t>(getIndex(0, 0, _layer, _pattern_x, _pattern_y, _pattern_z, _frame));
-	if (v >= numsprites) {
-		if (numsprites == 1) {
+	if (v >= spriteCount) {
+		if (spriteCount == 1) {
 			v = 0;
 		} else {
-			v %= numsprites;
+			v %= spriteCount;
 		}
 	}
 	return spriteList[v]->getHardwareID();
 }
 
 SpriteUV GameSprite::getAtlasUVs(int _layer, int _count, int _pattern_x, int _pattern_y, int _pattern_z, int _frame) {
+	if (numsprites == 0 || spriteList.empty()) {
+		return { 0, 0, 1, 1 };
+	}
+
+	const auto spriteCount = std::min<uint32_t>(numsprites, static_cast<uint32_t>(spriteList.size()));
 	uint32_t v = _count >= 0
 		? static_cast<uint32_t>(_count)
 		: static_cast<uint32_t>(getIndex(0, 0, _layer, _pattern_x, _pattern_y, _pattern_z, _frame));
-	if (v >= numsprites) {
-		if (numsprites == 1) {
+	if (v >= spriteCount) {
+		if (spriteCount == 1) {
 			v = 0;
 		} else {
-			v %= numsprites;
+			v %= spriteCount;
 		}
 	}
 	if (const auto* img = spriteList[v]; img) {
@@ -1223,9 +1237,7 @@ void GameSprite::DrawTo(wxDC* dcWindow, SpriteSize spriteSize, int start_x, int 
 	}
 }
 
-GameSprite::Image::Image() :
-	isGLLoaded(false),
-	lastaccess {} {
+GameSprite::Image::Image() {
 	////
 }
 

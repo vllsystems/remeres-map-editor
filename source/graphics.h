@@ -133,8 +133,8 @@ protected:
 		Image();
 		virtual ~Image();
 
-		bool isGLLoaded;
-		std::chrono::steady_clock::time_point lastaccess;
+		bool isGLLoaded = false;
+		std::chrono::steady_clock::time_point lastaccess {};
 
 		void visit();
 		virtual void clean(std::chrono::steady_clock::time_point now);
