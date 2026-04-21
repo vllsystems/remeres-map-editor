@@ -636,17 +636,24 @@ bool MainFrame::LoadMap(FileName name) {
 }
 
 void MainFrame::OnExit(wxCloseEvent &event) {
-	while (g_gui.IsEditorOpen()) {
-		if (!DoQuerySave(false)) {
-			if (event.CanVeto()) {
+	std::set<Map*> prompted;
+	for (int i = 0; i < g_gui.tabbook->GetTabCount(); ++i) {
+		auto* mapTab = dynamic_cast<MapTab*>(g_gui.tabbook->GetTab(i));
+		if (mapTab && mapTab->GetMap() && mapTab->GetMap()->hasChanged()
+			&& prompted.find(mapTab->GetMap()) == prompted.end()) {
+			prompted.insert(mapTab->GetMap());
+			g_gui.tabbook->SetFocusedTab(i);
+			if (!DoQuerySave(false) && event.CanVeto()) {
 				event.Veto();
 				return;
-			} else {
-				break;
 			}
 		}
-		break;
 	}
+	g_gui.SaveHotkeys();
+	g_gui.SavePerspective();
+	g_gui.root->SaveRecentFiles();
+	ClientAssets::save();
+	g_settings.save(true);
 	exit(0);
 }
 
