@@ -29,9 +29,7 @@
 #include "sprites.h"
 #include "pngfiles.h"
 
-#ifndef GL_BGRA
-	#define GL_BGRA 0x80E1
-#endif
+#include "gl_compat.h"
 
 #include "gl_renderer.h"
 

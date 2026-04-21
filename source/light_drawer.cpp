@@ -19,9 +19,7 @@
 #include "light_drawer.h"
 #include "gl_renderer.h"
 
-#ifndef GL_CLAMP_TO_EDGE
-	#define GL_CLAMP_TO_EDGE 0x812F
-#endif
+#include "gl_compat.h"
 
 LightDrawer::LightDrawer() {
 	texture = 0;

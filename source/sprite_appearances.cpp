@@ -25,13 +25,7 @@
 
 #include <lzma.h>
 
-#ifndef GL_CLAMP_TO_EDGE
-	#define GL_CLAMP_TO_EDGE 0x812F
-#endif
-
-#ifndef GL_BGRA
-	#define GL_BGRA 0x80E1
-#endif
+#include "gl_compat.h"
 
 namespace fs = std::filesystem;
 
