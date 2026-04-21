@@ -654,17 +654,18 @@ void MainFrame::OnExit(wxCloseEvent &event) {
 	std::set<Map*> prompted;
 	for (int i = 0; i < g_gui.tabbook->GetTabCount(); ++i) {
 		auto* mapTab = dynamic_cast<MapTab*>(g_gui.tabbook->GetTab(i));
-		if (mapTab && mapTab->GetMap() && mapTab->GetMap()->hasChanged()
-			&& !prompted.contains(mapTab->GetMap())) {
-			prompted.insert(mapTab->GetMap());
-			g_gui.tabbook->SetFocusedTab(i);
-			if (!DoQuerySave(false, false)) {
-				if (event.CanVeto()) {
-					event.Veto();
-					return;
-				}
-				break;
+		if (!mapTab || !mapTab->GetMap() || !mapTab->GetMap()->hasChanged()
+			|| prompted.contains(mapTab->GetMap())) {
+			continue;
+		}
+		prompted.insert(mapTab->GetMap());
+		g_gui.tabbook->SetFocusedTab(i);
+		if (!DoQuerySave(false, false)) {
+			if (event.CanVeto()) {
+				event.Veto();
+				return;
 			}
+			break;
 		}
 	}
 
