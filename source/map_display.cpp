@@ -191,6 +191,9 @@ void MapCanvas::GetViewBox(int* view_scroll_x, int* view_scroll_y, int* screensi
 }
 
 void MapCanvas::OnPaint(wxPaintEvent &event) {
+	if (!IsShownOnScreen()) {
+		return;
+	}
 	SetCurrent(*g_gui.GetGLContext(this));
 
 	if (g_gui.IsRenderingEnabled()) {
