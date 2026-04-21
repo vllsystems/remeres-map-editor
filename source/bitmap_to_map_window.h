@@ -21,6 +21,7 @@
 #include "main.h"
 #include <wx/listctrl.h>
 #include <wx/spinctrl.h>
+#include <utility>
 
 class Editor;
 
@@ -63,7 +64,7 @@ enum class BitmapToMapId : int {
 };
 
 inline int toWxId(BitmapToMapId id) {
-	return static_cast<int>(id);
+	return std::to_underlying(id);
 }
 
 class BitmapToMapWindow : public wxDialog {
@@ -121,7 +122,9 @@ private:
 		wxPoint start;
 		wxPoint end;
 		wxBitmap baseBitmap;
-	} cropState;
+	};
+
+	CropState cropState;
 
 	// Data
 	std::vector<DetectedColor> detectedColors;

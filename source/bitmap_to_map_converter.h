@@ -79,11 +79,18 @@ private:
 
 	void trackBorderNeighbors(int mapX, int mapY, int mapZ, std::set<Position> &borderPositions) const;
 
+	struct ConvertParams {
+		const wxImage &image;
+		const std::vector<ColorMapping> &mappings;
+		int tolerance;
+		MatchMode matchMode;
+		int offsetX;
+		int offsetY;
+		int offsetZ;
+	};
+
 	void placeGroundTiles(
-		const wxImage &image,
-		const std::vector<ColorMapping> &mappings,
-		int tolerance, MatchMode matchMode,
-		int offsetX, int offsetY, int offsetZ,
+		const ConvertParams &params,
 		BatchAction* batch,
 		std::set<Position> &borderPositions,
 		ConvertResult &result

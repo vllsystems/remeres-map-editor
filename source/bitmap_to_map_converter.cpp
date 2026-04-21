@@ -118,24 +118,21 @@ void BitmapToMapConverter::trackBorderNeighbors(int mapX, int mapY, int mapZ, st
 }
 
 void BitmapToMapConverter::placeGroundTiles(
-	const wxImage &image,
-	const std::vector<ColorMapping> &mappings,
-	int tolerance, MatchMode matchMode,
-	int offsetX, int offsetY, int offsetZ,
+	const ConvertParams &params,
 	BatchAction* batch,
 	std::set<Position> &borderPositions,
 	ConvertResult &result
 ) {
 	Map &map = editor.getMap();
-	int imgWidth = image.GetWidth();
-	int imgHeight = image.GetHeight();
+	int imgWidth = params.image.GetWidth();
+	int imgHeight = params.image.GetHeight();
 	int totalPixels = imgWidth * imgHeight;
 
 	Action* action = editor.createAction(batch);
 
-	const unsigned char* imgData = image.GetData();
-	bool hasAlpha = image.HasAlpha();
-	const unsigned char* alphaData = hasAlpha ? image.GetAlpha() : nullptr;
+	const unsigned char* imgData = params.image.GetData();
+	bool hasAlpha = params.image.HasAlpha();
+	const unsigned char* alphaData = hasAlpha ? params.image.GetAlpha() : nullptr;
 
 	int pixelsDone = 0;
 	for (int py = 0; py < imgHeight; py++) {
@@ -155,7 +152,7 @@ void BitmapToMapConverter::placeGroundTiles(
 			uint8_t g_color = imgData[idx + 1];
 			uint8_t b_color = imgData[idx + 2];
 
-			const ColorMapping* mapping = findMatchingColor(r, g_color, b_color, mappings, tolerance, matchMode);
+			const ColorMapping* mapping = findMatchingColor(r, g_color, b_color, params.mappings, params.tolerance, params.matchMode);
 			if (!mapping) {
 				result.tilesSkipped++;
 				continue;
@@ -167,9 +164,9 @@ void BitmapToMapConverter::placeGroundTiles(
 				continue;
 			}
 
-			int mapX = px + offsetX;
-			int mapY = py + offsetY;
-			int mapZ = offsetZ;
+			int mapX = px + params.offsetX;
+			int mapY = py + params.offsetY;
+			int mapZ = params.offsetZ;
 
 			if (!isValidMapPosition(mapX, mapY, mapZ)) {
 				result.tilesSkipped++;
@@ -211,7 +208,7 @@ void BitmapToMapConverter::borderizeTiles(
 	Action* action = editor.createAction(batch);
 
 	int bordersDone = 0;
-	int totalBorders = static_cast<int>(borderPositions.size());
+	auto totalBorders = static_cast<int>(borderPositions.size());
 
 	for (const Position &pos : borderPositions) {
 		if (bordersDone % 4096 == 0) {
@@ -229,12 +226,10 @@ void BitmapToMapConverter::borderizeTiles(
 			continue;
 		}
 
-		Tile* new_tile = map.allocator(location);
+		std::unique_ptr<Tile> new_tile(map.allocator(location));
 		new_tile->borderize(&map);
-		if (new_tile->size() > 0) {
-			action->addChange(newd Change(new_tile));
-		} else {
-			delete new_tile;
+		if (!new_tile->empty()) {
+			action->addChange(newd Change(new_tile.release()));
 		}
 	}
 
@@ -268,7 +263,8 @@ ConvertResult BitmapToMapConverter::convert(
 	BatchAction* batch = editor.createBatch(ACTION_DRAW);
 	std::set<Position> borderPositions;
 
-	placeGroundTiles(image, mappings, tolerance, matchMode, offsetX, offsetY, offsetZ, batch, borderPositions, result);
+	ConvertParams params { image, mappings, tolerance, matchMode, offsetX, offsetY, offsetZ };
+	placeGroundTiles(params, batch, borderPositions, result);
 	borderizeTiles(borderPositions, batch);
 
 	editor.addBatch(batch);

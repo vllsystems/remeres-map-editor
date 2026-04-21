@@ -242,8 +242,7 @@ static int computeBucketKey(uint8_t r, uint8_t g, uint8_t b, bool useHue, int to
 		float delta = maxC - minC;
 
 		if (delta < kAchromaticDelta) {
-			int brightness = (r + g + b) / 3;
-			if (brightness < 64) {
+			if (int brightness = (r + g + b) / 3; brightness < 64) {
 				return 1000;
 			} else if (brightness < 192) {
 				return 1001;
