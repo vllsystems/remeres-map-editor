@@ -429,16 +429,16 @@ void GLRenderer::flushBatch() {
 	batch.clear();
 }
 
-void GLRenderer::drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color) {
+void GLRenderer::drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color, float u0, float v0_, float u1, float v1_) {
 	if (current_texture != textureId && !batch.empty()) {
 		flushBatch();
 	}
 	current_texture = textureId;
 
-	Vertex v0 = { x, y, 0, 0, color.r, color.g, color.b, color.a };
-	Vertex v1 = { x + w, y, 1, 0, color.r, color.g, color.b, color.a };
-	Vertex v2 = { x + w, y + h, 1, 1, color.r, color.g, color.b, color.a };
-	Vertex v3 = { x, y + h, 0, 1, color.r, color.g, color.b, color.a };
+	Vertex v0 = { x, y, u0, v0_, color.r, color.g, color.b, color.a };
+	Vertex v1 = { x + w, y, u1, v0_, color.r, color.g, color.b, color.a };
+	Vertex v2 = { x + w, y + h, u1, v1_, color.r, color.g, color.b, color.a };
+	Vertex v3 = { x, y + h, u0, v1_, color.r, color.g, color.b, color.a };
 
 	batch.push_back(v0);
 	batch.push_back(v1);
