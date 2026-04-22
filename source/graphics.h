@@ -152,11 +152,11 @@ protected:
 
 	class NormalImage : public Image {
 	public:
-		NormalImage();
+		NormalImage() = default;
 		virtual ~NormalImage();
 
-		uint32_t id;
-		GLuint glTextureId = 0;
+		uint32_t id = 0;
+		GLuint glTextureId = 0; // used by EditorImage (which inherits from NormalImage)
 
 		float atlasU0 = 0;
 		float atlasV0 = 0;
@@ -164,8 +164,8 @@ protected:
 		float atlasV1 = 1;
 		GLuint atlasTextureId = 0;
 
-		uint16_t size;
-		uint8_t* m_cachedData;
+		uint16_t size = 0;
+		uint8_t* m_cachedData = nullptr;
 
 		void clean(std::chrono::steady_clock::time_point now) override;
 

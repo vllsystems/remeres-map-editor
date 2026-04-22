@@ -1275,13 +1275,6 @@ void GameSprite::NormalImage::clean(std::chrono::steady_clock::time_point now) {
 	}
 }
 
-GameSprite::NormalImage::NormalImage() :
-	id(0),
-	size(0),
-	m_cachedData(nullptr) {
-	////
-}
-
 GameSprite::NormalImage::~NormalImage() {
 	m_cachedData = nullptr;
 }
