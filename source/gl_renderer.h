@@ -58,6 +58,7 @@ private:
 	bool initialized = false;
 	GLuint vao = 0;
 	GLuint vbo = 0;
+	GLuint ebo = 0;
 	GLuint whitePixelTexture = 0;
 	GLuint program = 0;
 	GLint loc_projection = -1;
@@ -87,9 +88,11 @@ private:
 	struct DrawCommand {
 		DrawState state;
 		std::vector<Vertex> vertices;
+		bool isQuadBatch = true;
 	};
 
 	std::vector<Vertex> batch;
+	std::vector<GLuint> indexBatch;
 	GLuint current_texture = 0;
 	std::vector<DrawCommand> commandList;
 	unsigned int activeBlendSrc = 0;

@@ -338,9 +338,11 @@ void GLRenderer::init() {
 
 	glGenVertexArrays(1, &vao);
 	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ebo);
 
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));
@@ -381,6 +383,10 @@ void GLRenderer::shutdown() {
 		glDeleteBuffers(1, &vbo);
 		vbo = 0;
 	}
+	if (ebo) {
+		glDeleteBuffers(1, &ebo);
+		ebo = 0;
+	}
 	if (vao) {
 		glDeleteVertexArrays(1, &vao);
 		vao = 0;
@@ -420,15 +426,19 @@ void GLRenderer::flushBatch() {
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, batch.size() * sizeof(Vertex), batch.data(), GL_DYNAMIC_DRAW);
 
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBatch.size() * sizeof(GLuint), indexBatch.data(), GL_DYNAMIC_DRAW);
+
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, current_texture);
 	glUniform1i(loc_texture, 0);
 
-	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)batch.size());
+	glDrawElements(GL_TRIANGLES, (GLsizei)indexBatch.size(), GL_UNSIGNED_INT, nullptr);
 
 	glBindVertexArray(0);
 	glUseProgram(0);
 	batch.clear();
+	indexBatch.clear();
 }
 
 void GLRenderer::drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color, float u0, float v0_, float u1, float v1_) {
@@ -436,11 +446,10 @@ void GLRenderer::drawTexturedQuad(float x, float y, float w, float h, GLuint tex
 	cmd.state.textureId = textureId;
 	cmd.state.blendSrc = activeBlendSrc;
 	cmd.state.blendDst = activeBlendDst;
+	cmd.isQuadBatch = true;
 	cmd.vertices = {
 		{ x, y, u0, v0_, color.r, color.g, color.b, color.a },
 		{ x + w, y, u1, v0_, color.r, color.g, color.b, color.a },
-		{ x + w, y + h, u1, v1_, color.r, color.g, color.b, color.a },
-		{ x, y, u0, v0_, color.r, color.g, color.b, color.a },
 		{ x + w, y + h, u1, v1_, color.r, color.g, color.b, color.a },
 		{ x, y + h, u0, v1_, color.r, color.g, color.b, color.a },
 	};
@@ -452,11 +461,10 @@ void GLRenderer::drawColoredQuad(float x, float y, float w, float h, const GLCol
 	cmd.state.textureId = whitePixelTexture;
 	cmd.state.blendSrc = activeBlendSrc;
 	cmd.state.blendDst = activeBlendDst;
+	cmd.isQuadBatch = true;
 	cmd.vertices = {
 		{ x, y, 0, 0, color.r, color.g, color.b, color.a },
 		{ x + w, y, 0, 0, color.r, color.g, color.b, color.a },
-		{ x + w, y + h, 0, 0, color.r, color.g, color.b, color.a },
-		{ x, y, 0, 0, color.r, color.g, color.b, color.a },
 		{ x + w, y + h, 0, 0, color.r, color.g, color.b, color.a },
 		{ x, y + h, 0, 0, color.r, color.g, color.b, color.a },
 	};
@@ -477,11 +485,10 @@ void GLRenderer::drawThickLineSegment(float x1, float y1, float x2, float y2, fl
 	cmd.state.textureId = whitePixelTexture;
 	cmd.state.blendSrc = activeBlendSrc;
 	cmd.state.blendDst = activeBlendDst;
+	cmd.isQuadBatch = true;
 	cmd.vertices = {
 		{ x1 + nx, y1 + ny, 0, 0, color.r, color.g, color.b, color.a },
 		{ x1 - nx, y1 - ny, 0, 0, color.r, color.g, color.b, color.a },
-		{ x2 - nx, y2 - ny, 0, 0, color.r, color.g, color.b, color.a },
-		{ x1 + nx, y1 + ny, 0, 0, color.r, color.g, color.b, color.a },
 		{ x2 - nx, y2 - ny, 0, 0, color.r, color.g, color.b, color.a },
 		{ x2 + nx, y2 + ny, 0, 0, color.r, color.g, color.b, color.a },
 	};
@@ -526,6 +533,7 @@ void GLRenderer::drawRoundedRect(float x, float y, float w, float h, float radiu
 	cmd.state.textureId = whitePixelTexture;
 	cmd.state.blendSrc = activeBlendSrc;
 	cmd.state.blendDst = activeBlendDst;
+	cmd.isQuadBatch = false;
 	for (size_t i = 0; i < perimeter.size(); ++i) {
 		size_t next = (i + 1) % perimeter.size();
 		cmd.vertices.push_back(center);
@@ -627,6 +635,7 @@ void GLRenderer::drawPolygon(const float* vertices, int vertexCount, uint8_t r, 
 	cmd.state.textureId = whitePixelTexture;
 	cmd.state.blendSrc = activeBlendSrc;
 	cmd.state.blendDst = activeBlendDst;
+	cmd.isQuadBatch = false;
 	for (int i = 1; i < vertexCount - 1; ++i) {
 		cmd.vertices.push_back({ vertices[0], vertices[1], 0, 0, r, g, b, a });
 		cmd.vertices.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
@@ -643,6 +652,7 @@ void GLRenderer::drawTriangleFan(const float* vertices, int vertexCount, uint8_t
 	cmd.state.textureId = whitePixelTexture;
 	cmd.state.blendSrc = activeBlendSrc;
 	cmd.state.blendDst = activeBlendDst;
+	cmd.isQuadBatch = false;
 	for (int i = 1; i < vertexCount - 1; ++i) {
 		cmd.vertices.push_back({ vertices[0], vertices[1], 0, 0, r, g, b, a });
 		cmd.vertices.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
@@ -693,11 +703,10 @@ void GLRenderer::drawBitmapChar(char c) {
 	cmd.state.textureId = font.texture;
 	cmd.state.blendSrc = activeBlendSrc;
 	cmd.state.blendDst = activeBlendDst;
+	cmd.isQuadBatch = true;
 	cmd.vertices = {
 		{ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a },
 		{ qx + qw, qy, g.u1, g.v0, textColor.r, textColor.g, textColor.b, textColor.a },
-		{ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a },
-		{ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a },
 		{ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a },
 		{ qx, qy + qh, g.u0, g.v1, textColor.r, textColor.g, textColor.b, textColor.a },
 	};
@@ -715,7 +724,7 @@ void GLRenderer::flushCommands() {
 	if (commandList.size() > 1) {
 		size_t write = 0;
 		for (size_t read = 1; read < commandList.size(); ++read) {
-			if (commandList[write].state == commandList[read].state) {
+			if (commandList[write].state == commandList[read].state && commandList[write].isQuadBatch == commandList[read].isQuadBatch) {
 				auto &src = commandList[read].vertices;
 				auto &dst = commandList[write].vertices;
 				dst.insert(dst.end(), src.begin(), src.end());
@@ -751,7 +760,25 @@ void GLRenderer::flushCommands() {
 		}
 
 		current_texture = cmd.state.textureId;
-		batch.insert(batch.end(), cmd.vertices.begin(), cmd.vertices.end());
+		if (cmd.isQuadBatch) {
+			GLuint base = (GLuint)batch.size();
+			batch.insert(batch.end(), cmd.vertices.begin(), cmd.vertices.end());
+			for (size_t q = 0; q < cmd.vertices.size(); q += 4) {
+				GLuint b = base + (GLuint)q;
+				indexBatch.push_back(b);
+				indexBatch.push_back(b + 1);
+				indexBatch.push_back(b + 2);
+				indexBatch.push_back(b);
+				indexBatch.push_back(b + 2);
+				indexBatch.push_back(b + 3);
+			}
+		} else {
+			GLuint base = (GLuint)batch.size();
+			batch.insert(batch.end(), cmd.vertices.begin(), cmd.vertices.end());
+			for (GLuint i = 0; i < (GLuint)cmd.vertices.size(); ++i) {
+				indexBatch.push_back(base + i);
+			}
+		}
 	}
 	commandList.clear();
 	flushBatch();
