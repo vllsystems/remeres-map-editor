@@ -31,7 +31,7 @@ class GameSprite;
 
 #define SPRITE_SHEET_WIDTH 384
 #define SPRITE_SHEET_HEIGHT 384
-#define BYTES_IN_SPRITE_SHEET SPRITE_SHEET_WIDTH* SPRITE_SHEET_WIDTH * 4
+#define BYTES_IN_SPRITE_SHEET SPRITE_SHEET_WIDTH * SPRITE_SHEET_WIDTH * 4
 #define SPRITE_SHEET_WIDTH_BYTES SPRITE_SHEET_WIDTH * 4
 
 enum class SpriteLayout {
@@ -137,6 +137,9 @@ public:
 	}
 
 	bool exportSheetImage(const std::string &file, bool fixMagenta = false) {
+		if (!data) {
+			return false;
+		}
 		wxImage image(384, 384, data.get(), true);
 		return image.SaveFile(wxString(file), wxBITMAP_TYPE_PNG);
 	};

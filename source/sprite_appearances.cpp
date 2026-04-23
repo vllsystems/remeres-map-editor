@@ -87,7 +87,7 @@ bool SpriteAppearances::loadCatalogContent(const std::string &dir, bool loadData
 }
 
 bool SpriteAppearances::loadSpriteSheet(const SpriteSheetPtr &sheet) {
-	if (sheet->loaded) {
+	if (sheet->loaded && sheet->data) {
 		return false;
 	}
 
@@ -193,14 +193,23 @@ void SpriteAppearances::unload() {
 	}
 	spritesCount = 0;
 	sheets.clear();
+	sprites.clear();
 }
 
 GLuint SpriteSheet::getOrUploadGLTexture() {
 	if (glTextureId != 0) {
 		return glTextureId;
 	}
-	if (!loaded || !data) {
+	if (!loaded) {
 		return 0;
+	}
+	if (!data) {
+		g_spriteAppearances.loadSpriteSheet(
+			g_spriteAppearances.getSheetBySpriteId(firstId, false)
+		);
+		if (!data) {
+			return 0;
+		}
 	}
 
 	glGenTextures(1, &glTextureId);
@@ -219,6 +228,7 @@ GLuint SpriteSheet::getOrUploadGLTexture() {
 	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+	data.reset();
 	return glTextureId;
 }
 
@@ -228,6 +238,7 @@ void SpriteSheet::releaseGLTexture() {
 		glDeleteTextures(1, &glTextureId);
 		glTextureId = 0;
 	}
+	loaded = false;
 }
 
 SpriteUV SpriteSheet::getSpriteUVs(int spriteId) const {
@@ -384,10 +395,14 @@ SpritePtr SpriteAppearances::getSprite(int spriteId) {
 		return nullptr;
 	}
 
-	// Validate memory for sheet->data
+	// Reload sheet data if it was freed after GL upload
 	if (!sheet->data) {
-		spdlog::error("Sheet data is null for sprite {}.", spriteId);
-		return nullptr;
+		sheet->loaded = false;
+		loadSpriteSheet(sheet);
+		if (!sheet->data) {
+			spdlog::error("Sheet data is null for sprite {}.", spriteId);
+			return nullptr;
+		}
 	}
 
 	// Update bufferSize based on actual sheet height
