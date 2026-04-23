@@ -17,6 +17,10 @@
 
 #include "main.h"
 
+#ifdef __linux__
+	#include <malloc.h>
+#endif
+
 #include "gui.h"
 #include "editor.h"
 #include "map.h"
@@ -55,6 +59,9 @@ MapTab::~MapTab() {
 	if (iref->owner_count <= 0) {
 		delete iref->editor;
 		delete iref;
+#ifdef __linux__
+		malloc_trim(0);
+#endif
 	}
 }
 
