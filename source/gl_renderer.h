@@ -56,7 +56,7 @@ public:
 	void endFBO();
 	void blitFBO(float w, float h);
 	bool hasFBO() const {
-		return mapFbo != 0;
+		return fboData.fbo != 0;
 	}
 
 	void flush();
@@ -112,12 +112,16 @@ private:
 	unsigned int activeBlendSrc = 0;
 	unsigned int activeBlendDst = 0;
 
-	GLuint mapFbo = 0;
-	GLuint mapFboTexture = 0;
-	int fboWidth = 0;
-	int fboHeight = 0;
+	struct FBOData {
+		GLuint fbo = 0;
+		GLuint texture = 0;
+		int width = 0;
+		int height = 0;
+	};
+	FBOData fboData;
 
 	void flushBatch();
+	void mergeCommands();
 	void flushCommands();
 	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color);
 
@@ -144,15 +148,14 @@ private:
 		bool loaded = false;
 		std::array<GlyphInfo, 96> glyphs {};
 		std::array<float, 96> advances {};
+		float cursorX = 0;
+		float cursorY = 0;
+		GLColor textColor { 255, 255, 255, 255 };
 	};
 
 	FontData font;
 	void initFontAtlas();
 	void initFontAtlasFallback();
-
-	float cursorX = 0;
-	float cursorY = 0;
-	GLColor textColor { 255, 255, 255, 255 };
 };
 
 #endif

@@ -361,12 +361,12 @@ void GLRenderer::init() {
 
 	initFontAtlas();
 
-	uint8_t white[4] = { 255, 255, 255, 255 };
+	std::array<uint8_t, 4> white = { 255, 255, 255, 255 };
 	glGenTextures(1, &whitePixelTexture);
 	glBindTexture(GL_TEXTURE_2D, whitePixelTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white.data());
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	initialized = true;
@@ -690,7 +690,7 @@ void GLRenderer::drawTriangleFan(const float* vertices, int vertexCount, uint8_t
 }
 
 void GLRenderer::drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-	textColor = { r, g, b, a };
+	font.textColor = { r, g, b, a };
 	setRasterPos(x, y);
 	for (char c : text) {
 		drawBitmapChar(c);
@@ -713,8 +713,8 @@ float GLRenderer::getAscent() const {
 }
 
 void GLRenderer::setRasterPos(float x, float y) {
-	cursorX = x;
-	cursorY = y;
+	font.cursorX = x;
+	font.cursorY = y;
 }
 
 void GLRenderer::drawBitmapChar(char c) {
@@ -723,8 +723,8 @@ void GLRenderer::drawBitmapChar(char c) {
 	}
 	int idx = c - 32;
 	const auto &g = font.glyphs[idx];
-	float qx = cursorX + g.xoff;
-	float qy = cursorY + g.yoff;
+	float qx = font.cursorX + g.xoff;
+	float qy = font.cursorY + g.yoff;
 	float qw = g.w;
 	float qh = g.h;
 	DrawCommand cmd;
@@ -733,38 +733,42 @@ void GLRenderer::drawBitmapChar(char c) {
 	cmd.state.blendDst = activeBlendDst;
 	cmd.isQuadBatch = true;
 	cmd.vertices = {
-		{ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a },
-		{ qx + qw, qy, g.u1, g.v0, textColor.r, textColor.g, textColor.b, textColor.a },
-		{ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a },
-		{ qx, qy + qh, g.u0, g.v1, textColor.r, textColor.g, textColor.b, textColor.a },
+		{ qx, qy, g.u0, g.v0, font.textColor.r, font.textColor.g, font.textColor.b, font.textColor.a },
+		{ qx + qw, qy, g.u1, g.v0, font.textColor.r, font.textColor.g, font.textColor.b, font.textColor.a },
+		{ qx + qw, qy + qh, g.u1, g.v1, font.textColor.r, font.textColor.g, font.textColor.b, font.textColor.a },
+		{ qx, qy + qh, g.u0, g.v1, font.textColor.r, font.textColor.g, font.textColor.b, font.textColor.a },
 	};
 	commandList.push_back(std::move(cmd));
-	cursorX += g.advance;
+	font.cursorX += g.advance;
 }
 
 void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 	flushCommands();
-	textColor = { r, g, b, a };
+	font.textColor = { r, g, b, a };
+}
+
+void GLRenderer::mergeCommands() {
+	if (commandList.size() <= 1) {
+		return;
+	}
+	size_t write = 0;
+	for (size_t read = 1; read < commandList.size(); ++read) {
+		if (commandList[write].state == commandList[read].state && commandList[write].isQuadBatch == commandList[read].isQuadBatch) {
+			auto &src = commandList[read].vertices;
+			auto &dst = commandList[write].vertices;
+			dst.insert(dst.end(), src.begin(), src.end());
+		} else {
+			++write;
+			if (write != read) {
+				commandList[write] = std::move(commandList[read]);
+			}
+		}
+	}
+	commandList.resize(write + 1);
 }
 
 void GLRenderer::flushCommands() {
-	// Merge consecutive commands with same state
-	if (commandList.size() > 1) {
-		size_t write = 0;
-		for (size_t read = 1; read < commandList.size(); ++read) {
-			if (commandList[write].state == commandList[read].state && commandList[write].isQuadBatch == commandList[read].isQuadBatch) {
-				auto &src = commandList[read].vertices;
-				auto &dst = commandList[write].vertices;
-				dst.insert(dst.end(), src.begin(), src.end());
-			} else {
-				++write;
-				if (write != read) {
-					commandList[write] = std::move(commandList[read]);
-				}
-			}
-		}
-		commandList.resize(write + 1);
-	}
+	mergeCommands();
 
 	unsigned int currentBlendSrc = 0;
 	unsigned int currentBlendDst = 0;
@@ -839,67 +843,67 @@ void GLRenderer::invalidateTexture(GLuint id) {
 }
 
 void GLRenderer::ensureFBO(int w, int h) {
-	if (mapFbo != 0 && fboWidth == w && fboHeight == h) {
+	if (fboData.fbo != 0 && fboData.width == w && fboData.height == h) {
 		return;
 	}
 	destroyFBO();
 
-	glGenFramebuffers(1, &mapFbo);
-	glBindFramebuffer(GL_FRAMEBUFFER, mapFbo);
+	glGenFramebuffers(1, &fboData.fbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, fboData.fbo);
 
-	glGenTextures(1, &mapFboTexture);
-	glBindTexture(GL_TEXTURE_2D, mapFboTexture);
+	glGenTextures(1, &fboData.texture);
+	glBindTexture(GL_TEXTURE_2D, fboData.texture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mapFboTexture, 0);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fboData.texture, 0);
 
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		spdlog::error("[GLRenderer::ensureFBO] Framebuffer incomplete");
-		glDeleteTextures(1, &mapFboTexture);
-		glDeleteFramebuffers(1, &mapFbo);
-		mapFbo = 0;
-		mapFboTexture = 0;
+		glDeleteTextures(1, &fboData.texture);
+		glDeleteFramebuffers(1, &fboData.fbo);
+		fboData.fbo = 0;
+		fboData.texture = 0;
 	}
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	fboWidth = w;
-	fboHeight = h;
+	fboData.width = w;
+	fboData.height = h;
 }
 
 void GLRenderer::destroyFBO() {
-	if (mapFboTexture != 0) {
-		glDeleteTextures(1, &mapFboTexture);
-		mapFboTexture = 0;
+	if (fboData.texture != 0) {
+		glDeleteTextures(1, &fboData.texture);
+		fboData.texture = 0;
 	}
-	if (mapFbo != 0) {
-		glDeleteFramebuffers(1, &mapFbo);
-		mapFbo = 0;
+	if (fboData.fbo != 0) {
+		glDeleteFramebuffers(1, &fboData.fbo);
+		fboData.fbo = 0;
 	}
-	fboWidth = 0;
-	fboHeight = 0;
+	fboData.width = 0;
+	fboData.height = 0;
 }
 
 void GLRenderer::beginFBO() {
-	if (mapFbo != 0) {
-		glBindFramebuffer(GL_FRAMEBUFFER, mapFbo);
+	if (fboData.fbo != 0) {
+		glBindFramebuffer(GL_FRAMEBUFFER, fboData.fbo);
 	}
 }
 
 void GLRenderer::endFBO() {
-	if (mapFbo != 0) {
+	if (fboData.fbo != 0) {
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 }
 
 void GLRenderer::blitFBO(float w, float h) {
-	if (mapFbo == 0) {
+	if (fboData.fbo == 0) {
 		return;
 	}
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glEnable(GL_BLEND);
-	drawTexturedQuad(0, 0, w, h, mapFboTexture, { 255, 255, 255, 255 }, 0.f, 1.f, 1.f, 0.f);
+	drawTexturedQuad(0, 0, w, h, fboData.texture, { 255, 255, 255, 255 }, 0.f, 1.f, 1.f, 0.f);
 	flush();
 }
