@@ -299,6 +299,7 @@ void MapDrawer::DrawMap() {
 		}
 
 		if (map_z >= end_z) {
+			deferred_drawing = true;
 
 			int nd_start_x = start_x & ~3;
 			int nd_start_y = start_y & ~3;
@@ -347,6 +348,9 @@ void MapDrawer::DrawMap() {
 					}
 				}
 			}
+
+			flushDrawCommands();
+			deferred_drawing = false;
 
 			DrawPositionIndicator(map_z);
 		}
@@ -1471,6 +1475,7 @@ void MapDrawer::DrawTile(TileLocation* location) {
 				tile->ground->animate();
 			}
 
+			current_draw_layer = 0;
 			BlitItem(draw_x, draw_y, tile, tile->ground, false, r, g, b);
 		}
 	}
@@ -1485,13 +1490,16 @@ void MapDrawer::DrawTile(TileLocation* location) {
 			}
 
 			if (item->isBorder()) {
+				current_draw_layer = 1;
 				BlitItem(draw_x, draw_y, tile, item, false, r, g, b);
 			} else {
+				current_draw_layer = 2;
 				BlitItem(draw_x, draw_y, tile, item);
 			}
 		}
 	}
 
+	current_draw_layer = 3;
 	if (!hidden && options.show_monsters && !tile->monsters.empty()) {
 		for (auto monster : tile->monsters) {
 			BlitCreature(draw_x, draw_y, monster);
@@ -1618,6 +1626,7 @@ void MapDrawer::DrawLightStrength(int x, int y, const Item*&item) {
 }
 
 void MapDrawer::DrawTileIndicators(TileLocation* location) {
+	current_draw_layer = 4;
 	if (!location) {
 		return;
 	}
@@ -2023,7 +2032,7 @@ void MapDrawer::UpdateCPUUsage() {
 }
 
 std::string MapDrawer::FormatPerformanceStats() const {
-	return std::format("FPS: {:.1f} | CPU: {:.1f}% | RAM: {} MB", current_fps, current_cpu, current_ram);
+	return std::format("FPS: {:.1f} | CPU: {:.1f}% | RAM: {} MB | Flushes: {}/frame", current_fps, current_cpu, current_ram, current_flushes);
 }
 
 void MapDrawer::DrawPerformanceStats() {
@@ -2031,6 +2040,8 @@ void MapDrawer::DrawPerformanceStats() {
 	long elapsed = perf_update_timer.Time();
 	if (elapsed >= 500) {
 		current_fps = (frame_count * 1000.0) / elapsed;
+		current_flushes = frame_count > 0 ? renderer->getFlushCount() / frame_count : 0;
+		renderer->resetFlushCount();
 		frame_count = 0;
 		UpdateRAMUsage();
 		UpdateCPUUsage();
@@ -2165,7 +2176,30 @@ void MapDrawer::glBlitTexture(int sx, int sy, int textureId, const GLColor &colo
 		spdlog::debug("Blitting outfit {} at ({}, {})", opts.outfit.name, sx, sy);
 	}
 
-	renderer->drawTexturedQuad(sx, sy, width, height, textureId, color, opts.uv.u0, opts.uv.v0, opts.uv.u1, opts.uv.v1);
+	if (deferred_drawing) {
+		draw_commands.push_back({ float(sx), float(sy), float(width), float(height), GLuint(textureId), color, opts.uv.u0, opts.uv.v0, opts.uv.u1, opts.uv.v1, current_draw_layer });
+	} else {
+		renderer->drawTexturedQuad(sx, sy, width, height, textureId, color, opts.uv.u0, opts.uv.v0, opts.uv.u1, opts.uv.v1);
+	}
+}
+
+void MapDrawer::flushDrawCommands() {
+	if (draw_commands.empty()) {
+		return;
+	}
+
+	std::stable_sort(draw_commands.begin(), draw_commands.end(), [](const DrawCommand &a, const DrawCommand &b) {
+		if (a.layer != b.layer) {
+			return a.layer < b.layer;
+		}
+		return a.textureId < b.textureId;
+	});
+
+	for (const auto &cmd : draw_commands) {
+		renderer->drawTexturedQuad(cmd.x, cmd.y, cmd.w, cmd.h, cmd.textureId, cmd.color, cmd.u0, cmd.v0, cmd.u1, cmd.v1);
+	}
+
+	draw_commands.clear();
 }
 
 void MapDrawer::glBlitSquare(int x, int y, uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha, int size /* = rme::TileSize */) const {

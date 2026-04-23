@@ -49,6 +49,12 @@ public:
 
 	void flush();
 	static void invalidateTexture(GLuint id);
+	int getFlushCount() const {
+		return flush_count;
+	}
+	void resetFlushCount() {
+		flush_count = 0;
+	}
 
 private:
 	static std::vector<GLRenderer*> s_instances;
@@ -74,6 +80,7 @@ private:
 
 	std::vector<Vertex> batch;
 	GLuint current_texture = 0;
+	int flush_count = 0;
 
 	void flushBatch();
 	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color);

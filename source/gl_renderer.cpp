@@ -408,6 +408,8 @@ void GLRenderer::flushBatch() {
 		return;
 	}
 
+	++flush_count;
+
 	glUseProgram(program);
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);

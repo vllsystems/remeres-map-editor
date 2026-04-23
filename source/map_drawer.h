@@ -55,6 +55,14 @@ struct MapTooltip {
 	std::vector<TooltipEntry> entries;
 };
 
+struct DrawCommand {
+	float x, y, w, h;
+	GLuint textureId;
+	GLColor color;
+	float u0, v0, u1, v1;
+	uint8_t layer;
+};
+
 // Storage during drawing, for option caching
 struct DrawingOptions {
 public:
@@ -133,6 +141,9 @@ class MapDrawer {
 
 protected:
 	std::vector<MapTooltip> tooltips;
+	std::vector<DrawCommand> draw_commands;
+	bool deferred_drawing = false;
+	uint8_t current_draw_layer = 0;
 	std::unordered_map<uint64_t, float> tooltipFadeAlpha;
 
 	wxStopWatch pos_indicator_timer;
@@ -145,6 +156,7 @@ protected:
 	wxStopWatch perf_update_timer;
 	double current_cpu = 0.0;
 	size_t current_ram = 0;
+	int current_flushes = 0;
 
 #ifdef __WINDOWS__
 	ULARGE_INTEGER last_cpu_time;
@@ -213,6 +225,7 @@ protected:
 	void BlitCreature(int screenx, int screeny, const Npc* c, int red = 255, int green = 255, int blue = 255, int alpha = 255);
 	void BlitCreature(int screenx, int screeny, const Outfit &outfit, const Direction &dir, int red = 255, int green = 255, int blue = 255, int alpha = 255);
 	void DrawTile(TileLocation* tile);
+	void flushDrawCommands();
 	void DrawBrushIndicator(int x, int y, [[maybe_unused]] Brush* brush, uint8_t r, uint8_t g, uint8_t b);
 	void DrawHookIndicator(int x, int y, const ItemType &type);
 	void DrawLightStrength(int x, int y, const Item*&item);
