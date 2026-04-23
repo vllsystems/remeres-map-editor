@@ -118,6 +118,18 @@ class MapDrawer {
 	std::shared_ptr<LightDrawer> light_drawer = std::make_shared<LightDrawer>();
 	std::unique_ptr<GLRenderer> renderer = std::make_unique<GLRenderer>();
 
+	bool isSceneDirty() const;
+
+	// Scene cache tracking
+	int prevScrollX = -1;
+	int prevScrollY = -1;
+	float prevZoom = -1.f;
+	int prevFloor = -1;
+	int prevStartZ = -1;
+	int prevScreenW = -1;
+	int prevScreenH = -1;
+	bool fboDirty = true;
+
 	float zoom;
 	float globalTooltipFade = 0.0f;
 
@@ -158,6 +170,9 @@ protected:
 public:
 	MapDrawer(MapCanvas* canvas);
 	~MapDrawer();
+	void markDirty() {
+		fboDirty = true;
+	}
 
 	bool dragging;
 	bool dragging_draw;

@@ -159,6 +159,7 @@ void MapCanvas::Refresh() {
 		refresh_watch.Start();
 		wxGLCanvas::Update();
 	}
+	drawer->markDirty();
 	wxGLCanvas::Refresh();
 }
 

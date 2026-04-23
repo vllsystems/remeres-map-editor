@@ -378,6 +378,7 @@ void GLRenderer::shutdown() {
 	if (!initialized) {
 		return;
 	}
+	destroyFBO();
 	if (program) {
 		glDeleteProgram(program);
 		program = 0;
@@ -835,4 +836,70 @@ void GLRenderer::invalidateTexture(GLuint id) {
 			inst->current_texture = 0;
 		}
 	}
+}
+
+void GLRenderer::ensureFBO(int w, int h) {
+	if (mapFbo != 0 && fboWidth == w && fboHeight == h) {
+		return;
+	}
+	destroyFBO();
+
+	glGenFramebuffers(1, &mapFbo);
+	glBindFramebuffer(GL_FRAMEBUFFER, mapFbo);
+
+	glGenTextures(1, &mapFboTexture);
+	glBindTexture(GL_TEXTURE_2D, mapFboTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mapFboTexture, 0);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		spdlog::error("[GLRenderer::ensureFBO] Framebuffer incomplete");
+		glDeleteTextures(1, &mapFboTexture);
+		glDeleteFramebuffers(1, &mapFbo);
+		mapFbo = 0;
+		mapFboTexture = 0;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	fboWidth = w;
+	fboHeight = h;
+}
+
+void GLRenderer::destroyFBO() {
+	if (mapFboTexture != 0) {
+		glDeleteTextures(1, &mapFboTexture);
+		mapFboTexture = 0;
+	}
+	if (mapFbo != 0) {
+		glDeleteFramebuffers(1, &mapFbo);
+		mapFbo = 0;
+	}
+	fboWidth = 0;
+	fboHeight = 0;
+}
+
+void GLRenderer::beginFBO() {
+	if (mapFbo != 0) {
+		glBindFramebuffer(GL_FRAMEBUFFER, mapFbo);
+	}
+}
+
+void GLRenderer::endFBO() {
+	if (mapFbo != 0) {
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+}
+
+void GLRenderer::blitFBO(float w, float h) {
+	if (mapFbo == 0) {
+		return;
+	}
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glEnable(GL_BLEND);
+	drawTexturedQuad(0, 0, w, h, mapFboTexture, { 255, 255, 255, 255 }, 0.f, 1.f, 1.f, 0.f);
+	flush();
 }

@@ -50,6 +50,15 @@ public:
 	void setBlendMode(unsigned int src, unsigned int dst);
 	void resetBlendMode();
 
+	void ensureFBO(int w, int h);
+	void destroyFBO();
+	void beginFBO();
+	void endFBO();
+	void blitFBO(float w, float h);
+	bool hasFBO() const {
+		return mapFbo != 0;
+	}
+
 	void flush();
 	static void invalidateTexture(GLuint id);
 
@@ -102,6 +111,11 @@ private:
 	std::vector<DrawCommand> commandList;
 	unsigned int activeBlendSrc = 0;
 	unsigned int activeBlendDst = 0;
+
+	GLuint mapFbo = 0;
+	GLuint mapFboTexture = 0;
+	int fboWidth = 0;
+	int fboHeight = 0;
 
 	void flushBatch();
 	void flushCommands();

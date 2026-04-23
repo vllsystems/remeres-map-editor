@@ -1312,7 +1312,7 @@ bool GUI::DoUndo() {
 		SetStatusText("Undo action");
 		UpdateMinimap();
 		root->UpdateMenubar();
-		root->Refresh();
+		RefreshView();
 		return true;
 	}
 	return false;
@@ -1328,7 +1328,7 @@ bool GUI::DoRedo() {
 		SetStatusText("Redo action");
 		UpdateMinimap();
 		root->UpdateMenubar();
-		root->Refresh();
+		RefreshView();
 		return true;
 	}
 	return false;
