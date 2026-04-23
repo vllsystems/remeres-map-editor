@@ -47,6 +47,9 @@ public:
 
 	void setOrtho(float left, float right, float bottom, float top);
 
+	void setBlendMode(unsigned int src, unsigned int dst);
+	void resetBlendMode();
+
 	void flush();
 	static void invalidateTexture(GLuint id);
 
@@ -55,9 +58,9 @@ private:
 	bool initialized = false;
 	GLuint vao = 0;
 	GLuint vbo = 0;
+	GLuint whitePixelTexture = 0;
 	GLuint program = 0;
 	GLint loc_projection = -1;
-	GLint loc_useTexture = -1;
 	GLint loc_texture = -1;
 	GLint loc_stipple = -1;
 
@@ -72,10 +75,28 @@ private:
 		uint8_t a;
 	};
 
+	struct DrawState {
+		GLuint textureId = 0;
+		unsigned int blendSrc = 0;
+		unsigned int blendDst = 0;
+		bool operator==(const DrawState &o) const {
+			return textureId == o.textureId && blendSrc == o.blendSrc && blendDst == o.blendDst;
+		}
+	};
+
+	struct DrawCommand {
+		DrawState state;
+		std::vector<Vertex> vertices;
+	};
+
 	std::vector<Vertex> batch;
 	GLuint current_texture = 0;
+	std::vector<DrawCommand> commandList;
+	unsigned int activeBlendSrc = 0;
+	unsigned int activeBlendDst = 0;
 
 	void flushBatch();
+	void flushCommands();
 	void drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color);
 
 	struct GlyphInfo {

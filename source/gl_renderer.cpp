@@ -63,24 +63,20 @@ void main(){
 }
 )";
 
-static const char* const fragSrc = R"(
-#version 330
-in vec2 vUV;
-in vec4 vColor;
-uniform sampler2D uTexture;
-uniform int uUseTexture;
-uniform int uStipple;
-out vec4 FragColor;
-void main() {
-    if (uStipple != 0) {
-        float p = gl_FragCoord.x + gl_FragCoord.y;
-        if (mod(p, 4.0) < 2.0) discard;
-    }
-    if (uUseTexture != 0)
-        FragColor = texture(uTexture, vUV) * vColor;
-    else
-        FragColor = vColor;
-}
+static const char* const fragSrc = R"(  
+#version 330  
+in vec2 vUV;  
+in vec4 vColor;  
+uniform sampler2D uTexture;  
+uniform int uStipple;  
+out vec4 FragColor;  
+void main() {  
+    if (uStipple != 0) {  
+        float p = gl_FragCoord.x + gl_FragCoord.y;  
+        if (mod(p, 4.0) < 2.0) discard;  
+    }  
+    FragColor = texture(uTexture, vUV) * vColor;  
+}  
 )";
 
 void GLRenderer::initFontAtlas() {
@@ -337,7 +333,6 @@ void GLRenderer::init() {
 	glDeleteShader(fs);
 
 	loc_projection = glGetUniformLocation(program, "uProjection");
-	loc_useTexture = glGetUniformLocation(program, "uUseTexture");
 	loc_texture = glGetUniformLocation(program, "uTexture");
 	loc_stipple = glGetUniformLocation(program, "uStipple");
 
@@ -361,6 +356,14 @@ void GLRenderer::init() {
 
 	initFontAtlas();
 
+	uint8_t white[4] = { 255, 255, 255, 255 };
+	glGenTextures(1, &whitePixelTexture);
+	glBindTexture(GL_TEXTURE_2D, whitePixelTexture);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, white);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
 	initialized = true;
 }
 
@@ -381,6 +384,10 @@ void GLRenderer::shutdown() {
 	if (vao) {
 		glDeleteVertexArrays(1, &vao);
 		vao = 0;
+	}
+	if (whitePixelTexture) {
+		glDeleteTextures(1, &whitePixelTexture);
+		whitePixelTexture = 0;
 	}
 	if (font.texture) {
 		glDeleteTextures(1, &font.texture);
@@ -413,14 +420,9 @@ void GLRenderer::flushBatch() {
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, batch.size() * sizeof(Vertex), batch.data(), GL_DYNAMIC_DRAW);
 
-	if (current_texture != 0) {
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, current_texture);
-		glUniform1i(loc_useTexture, 1);
-		glUniform1i(loc_texture, 0);
-	} else {
-		glUniform1i(loc_useTexture, 0);
-	}
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, current_texture);
+	glUniform1i(loc_texture, 0);
 
 	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)batch.size());
 
@@ -430,41 +432,35 @@ void GLRenderer::flushBatch() {
 }
 
 void GLRenderer::drawTexturedQuad(float x, float y, float w, float h, GLuint textureId, const GLColor &color, float u0, float v0_, float u1, float v1_) {
-	if (current_texture != textureId && !batch.empty()) {
-		flushBatch();
-	}
-	current_texture = textureId;
-
-	Vertex v0 = { x, y, u0, v0_, color.r, color.g, color.b, color.a };
-	Vertex v1 = { x + w, y, u1, v0_, color.r, color.g, color.b, color.a };
-	Vertex v2 = { x + w, y + h, u1, v1_, color.r, color.g, color.b, color.a };
-	Vertex v3 = { x, y + h, u0, v1_, color.r, color.g, color.b, color.a };
-
-	batch.push_back(v0);
-	batch.push_back(v1);
-	batch.push_back(v2);
-	batch.push_back(v0);
-	batch.push_back(v2);
-	batch.push_back(v3);
+	DrawCommand cmd;
+	cmd.state.textureId = textureId;
+	cmd.state.blendSrc = activeBlendSrc;
+	cmd.state.blendDst = activeBlendDst;
+	cmd.vertices = {
+		{ x, y, u0, v0_, color.r, color.g, color.b, color.a },
+		{ x + w, y, u1, v0_, color.r, color.g, color.b, color.a },
+		{ x + w, y + h, u1, v1_, color.r, color.g, color.b, color.a },
+		{ x, y, u0, v0_, color.r, color.g, color.b, color.a },
+		{ x + w, y + h, u1, v1_, color.r, color.g, color.b, color.a },
+		{ x, y + h, u0, v1_, color.r, color.g, color.b, color.a },
+	};
+	commandList.push_back(std::move(cmd));
 }
 
 void GLRenderer::drawColoredQuad(float x, float y, float w, float h, const GLColor &color) {
-	if (current_texture != 0 && !batch.empty()) {
-		flushBatch();
-	}
-	current_texture = 0;
-
-	Vertex v0 = { x, y, 0, 0, color.r, color.g, color.b, color.a };
-	Vertex v1 = { x + w, y, 0, 0, color.r, color.g, color.b, color.a };
-	Vertex v2 = { x + w, y + h, 0, 0, color.r, color.g, color.b, color.a };
-	Vertex v3 = { x, y + h, 0, 0, color.r, color.g, color.b, color.a };
-
-	batch.push_back(v0);
-	batch.push_back(v1);
-	batch.push_back(v2);
-	batch.push_back(v0);
-	batch.push_back(v2);
-	batch.push_back(v3);
+	DrawCommand cmd;
+	cmd.state.textureId = whitePixelTexture;
+	cmd.state.blendSrc = activeBlendSrc;
+	cmd.state.blendDst = activeBlendDst;
+	cmd.vertices = {
+		{ x, y, 0, 0, color.r, color.g, color.b, color.a },
+		{ x + w, y, 0, 0, color.r, color.g, color.b, color.a },
+		{ x + w, y + h, 0, 0, color.r, color.g, color.b, color.a },
+		{ x, y, 0, 0, color.r, color.g, color.b, color.a },
+		{ x + w, y + h, 0, 0, color.r, color.g, color.b, color.a },
+		{ x, y + h, 0, 0, color.r, color.g, color.b, color.a },
+	};
+	commandList.push_back(std::move(cmd));
 }
 
 void GLRenderer::drawThickLineSegment(float x1, float y1, float x2, float y2, float width, const GLColor &color) {
@@ -477,22 +473,19 @@ void GLRenderer::drawThickLineSegment(float x1, float y1, float x2, float y2, fl
 	float nx = (-dy / len) * (width * 0.5f);
 	float ny = (dx / len) * (width * 0.5f);
 
-	if (current_texture != 0 && !batch.empty()) {
-		flushBatch();
-	}
-	current_texture = 0;
-
-	Vertex v0 = { x1 + nx, y1 + ny, 0, 0, color.r, color.g, color.b, color.a };
-	Vertex v1 = { x1 - nx, y1 - ny, 0, 0, color.r, color.g, color.b, color.a };
-	Vertex v2 = { x2 - nx, y2 - ny, 0, 0, color.r, color.g, color.b, color.a };
-	Vertex v3 = { x2 + nx, y2 + ny, 0, 0, color.r, color.g, color.b, color.a };
-
-	batch.push_back(v0);
-	batch.push_back(v1);
-	batch.push_back(v2);
-	batch.push_back(v0);
-	batch.push_back(v2);
-	batch.push_back(v3);
+	DrawCommand cmd;
+	cmd.state.textureId = whitePixelTexture;
+	cmd.state.blendSrc = activeBlendSrc;
+	cmd.state.blendDst = activeBlendDst;
+	cmd.vertices = {
+		{ x1 + nx, y1 + ny, 0, 0, color.r, color.g, color.b, color.a },
+		{ x1 - nx, y1 - ny, 0, 0, color.r, color.g, color.b, color.a },
+		{ x2 - nx, y2 - ny, 0, 0, color.r, color.g, color.b, color.a },
+		{ x1 + nx, y1 + ny, 0, 0, color.r, color.g, color.b, color.a },
+		{ x2 - nx, y2 - ny, 0, 0, color.r, color.g, color.b, color.a },
+		{ x2 + nx, y2 + ny, 0, 0, color.r, color.g, color.b, color.a },
+	};
+	commandList.push_back(std::move(cmd));
 }
 
 void GLRenderer::drawRect(float x, float y, float w, float h, const GLColor &color, float lineWidth) {
@@ -504,15 +497,11 @@ void GLRenderer::drawRect(float x, float y, float w, float h, const GLColor &col
 
 void GLRenderer::drawRoundedRect(float x, float y, float w, float h, float radius, const GLColor &fill) {
 	const int segments = 8;
-	flushBatch();
 
-	std::vector<Vertex> verts;
-	// center vertex for fan
 	float cx = x + w * 0.5f;
 	float cy = y + h * 0.5f;
 	Vertex center = { cx, cy, 0, 0, fill.r, fill.g, fill.b, fill.a };
 
-	// corners: top-left, top-right, bottom-right, bottom-left
 	std::array<std::array<float, 2>, 4> corners = { {
 		{ x + radius, y + radius },
 		{ x + w - radius, y + radius },
@@ -523,7 +512,6 @@ void GLRenderer::drawRoundedRect(float x, float y, float w, float h, float radiu
 	constexpr float pi = std::numbers::pi_v<float>;
 	std::array<float, 4> startAngle = { pi, 1.5f * pi, 0.0f, 0.5f * pi };
 
-	// build perimeter vertices
 	std::vector<Vertex> perimeter;
 	for (int c = 0; c < 4; ++c) {
 		for (int s = 0; s <= segments; ++s) {
@@ -534,23 +522,17 @@ void GLRenderer::drawRoundedRect(float x, float y, float w, float h, float radiu
 		}
 	}
 
-	// triangle fan from center
-	std::vector<Vertex> tris;
+	DrawCommand cmd;
+	cmd.state.textureId = whitePixelTexture;
+	cmd.state.blendSrc = activeBlendSrc;
+	cmd.state.blendDst = activeBlendDst;
 	for (size_t i = 0; i < perimeter.size(); ++i) {
 		size_t next = (i + 1) % perimeter.size();
-		tris.push_back(center);
-		tris.push_back(perimeter[i]);
-		tris.push_back(perimeter[next]);
+		cmd.vertices.push_back(center);
+		cmd.vertices.push_back(perimeter[i]);
+		cmd.vertices.push_back(perimeter[next]);
 	}
-
-	glUseProgram(program);
-	glBindVertexArray(vao);
-	glUniform1i(loc_useTexture, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(Vertex), tris.data(), GL_DYNAMIC_DRAW);
-	glDrawArrays(GL_TRIANGLES, 0, (GLsizei)tris.size());
-	glBindVertexArray(0);
-	glUseProgram(0);
+	commandList.push_back(std::move(cmd));
 }
 
 void GLRenderer::drawRoundedRectOutline(float x, float y, float w, float h, float radius, const GLColor &color, float lineWidth) {
@@ -641,46 +623,36 @@ void GLRenderer::drawPolygon(const float* vertices, int vertexCount, uint8_t r, 
 	if (vertexCount < 3) {
 		return;
 	}
-	flushBatch();
-	std::vector<Vertex> verts;
-	for (int i = 0; i < vertexCount; ++i) {
-		verts.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
+	DrawCommand cmd;
+	cmd.state.textureId = whitePixelTexture;
+	cmd.state.blendSrc = activeBlendSrc;
+	cmd.state.blendDst = activeBlendDst;
+	for (int i = 1; i < vertexCount - 1; ++i) {
+		cmd.vertices.push_back({ vertices[0], vertices[1], 0, 0, r, g, b, a });
+		cmd.vertices.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
+		cmd.vertices.push_back({ vertices[(i + 1) * 2], vertices[(i + 1) * 2 + 1], 0, 0, r, g, b, a });
 	}
-	glUseProgram(program);
-	glBindVertexArray(vao);
-	glUniform1i(loc_useTexture, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(Vertex), verts.data(), GL_DYNAMIC_DRAW);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei)verts.size());
-	glBindVertexArray(0);
-	glUseProgram(0);
+	commandList.push_back(std::move(cmd));
 }
 
 void GLRenderer::drawTriangleFan(const float* vertices, int vertexCount, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
 	if (vertexCount < 3) {
 		return;
 	}
-	flushBatch();
-	std::vector<Vertex> verts;
-	for (int i = 0; i < vertexCount; ++i) {
-		verts.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
+	DrawCommand cmd;
+	cmd.state.textureId = whitePixelTexture;
+	cmd.state.blendSrc = activeBlendSrc;
+	cmd.state.blendDst = activeBlendDst;
+	for (int i = 1; i < vertexCount - 1; ++i) {
+		cmd.vertices.push_back({ vertices[0], vertices[1], 0, 0, r, g, b, a });
+		cmd.vertices.push_back({ vertices[i * 2], vertices[i * 2 + 1], 0, 0, r, g, b, a });
+		cmd.vertices.push_back({ vertices[(i + 1) * 2], vertices[(i + 1) * 2 + 1], 0, 0, r, g, b, a });
 	}
-	glUseProgram(program);
-	glBindVertexArray(vao);
-	glUniform1i(loc_useTexture, 0);
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, verts.size() * sizeof(Vertex), verts.data(), GL_DYNAMIC_DRAW);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, (GLsizei)verts.size());
-	glBindVertexArray(0);
-	glUseProgram(0);
+	commandList.push_back(std::move(cmd));
 }
 
 void GLRenderer::drawText(float x, float y, const std::string &text, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-	if (current_texture != font.texture && !batch.empty()) {
-		flushBatch();
-	}
-	current_texture = font.texture;
-	setColor(r, g, b, a);
+	textColor = { r, g, b, a };
 	setRasterPos(x, y);
 	for (char c : text) {
 		drawBitmapChar(c);
@@ -711,32 +683,96 @@ void GLRenderer::drawBitmapChar(char c) {
 	if (c < 32 || c > 127) {
 		return;
 	}
-	if (current_texture != font.texture) {
-		flushBatch();
-		current_texture = font.texture;
-	}
 	int idx = c - 32;
 	const auto &g = font.glyphs[idx];
 	float qx = cursorX + g.xoff;
 	float qy = cursorY + g.yoff;
 	float qw = g.w;
 	float qh = g.h;
-	batch.push_back({ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx + qw, qy, g.u1, g.v0, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a });
-	batch.push_back({ qx, qy + qh, g.u0, g.v1, textColor.r, textColor.g, textColor.b, textColor.a });
+	DrawCommand cmd;
+	cmd.state.textureId = font.texture;
+	cmd.state.blendSrc = activeBlendSrc;
+	cmd.state.blendDst = activeBlendDst;
+	cmd.vertices = {
+		{ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a },
+		{ qx + qw, qy, g.u1, g.v0, textColor.r, textColor.g, textColor.b, textColor.a },
+		{ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a },
+		{ qx, qy, g.u0, g.v0, textColor.r, textColor.g, textColor.b, textColor.a },
+		{ qx + qw, qy + qh, g.u1, g.v1, textColor.r, textColor.g, textColor.b, textColor.a },
+		{ qx, qy + qh, g.u0, g.v1, textColor.r, textColor.g, textColor.b, textColor.a },
+	};
+	commandList.push_back(std::move(cmd));
 	cursorX += g.advance;
 }
 
 void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-	flushBatch();
+	flushCommands();
 	textColor = { r, g, b, a };
 }
 
-void GLRenderer::flush() {
+void GLRenderer::flushCommands() {
+	// Merge consecutive commands with same state
+	if (commandList.size() > 1) {
+		size_t write = 0;
+		for (size_t read = 1; read < commandList.size(); ++read) {
+			if (commandList[write].state == commandList[read].state) {
+				auto &src = commandList[read].vertices;
+				auto &dst = commandList[write].vertices;
+				dst.insert(dst.end(), src.begin(), src.end());
+			} else {
+				++write;
+				if (write != read) {
+					commandList[write] = std::move(commandList[read]);
+				}
+			}
+		}
+		commandList.resize(write + 1);
+	}
+
+	unsigned int currentBlendSrc = 0;
+	unsigned int currentBlendDst = 0;
+
+	for (auto &cmd : commandList) {
+		bool textureChanged = current_texture != cmd.state.textureId;
+		bool blendChanged = cmd.state.blendSrc != currentBlendSrc || cmd.state.blendDst != currentBlendDst;
+
+		if ((textureChanged || blendChanged) && !batch.empty()) {
+			flushBatch();
+		}
+
+		if (blendChanged) {
+			currentBlendSrc = cmd.state.blendSrc;
+			currentBlendDst = cmd.state.blendDst;
+			if (currentBlendSrc != 0) {
+				glBlendFunc(currentBlendSrc, currentBlendDst);
+			} else {
+				glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			}
+		}
+
+		current_texture = cmd.state.textureId;
+		batch.insert(batch.end(), cmd.vertices.begin(), cmd.vertices.end());
+	}
+	commandList.clear();
 	flushBatch();
+
+	if (currentBlendSrc != 0) {
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	}
+}
+
+void GLRenderer::setBlendMode(unsigned int src, unsigned int dst) {
+	activeBlendSrc = src;
+	activeBlendDst = dst;
+}
+
+void GLRenderer::resetBlendMode() {
+	activeBlendSrc = 0;
+	activeBlendDst = 0;
+}
+
+void GLRenderer::flush() {
+	flushCommands();
 }
 
 void GLRenderer::invalidateTexture(GLuint id) {
