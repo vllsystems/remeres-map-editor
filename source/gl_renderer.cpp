@@ -12,6 +12,7 @@
 #include "main.h"
 #include "gl_renderer.h"
 #include <array>
+#include <cstring>
 #include <cmath>
 #include <numbers>
 #include <fstream>
@@ -342,7 +343,9 @@ void GLRenderer::init() {
 
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, STREAM_VBO_CAPACITY * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, STREAM_EBO_CAPACITY * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, x));
@@ -421,19 +424,43 @@ void GLRenderer::flushBatch() {
 		return;
 	}
 
+	size_t vertexCount = batch.size();
+	size_t indexCount = indexBatch.size();
+	size_t vertexBytes = vertexCount * sizeof(Vertex);
+	size_t indexBytes = indexCount * sizeof(GLuint);
+
 	glUseProgram(program);
 	glBindVertexArray(vao);
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, batch.size() * sizeof(Vertex), batch.data(), GL_DYNAMIC_DRAW);
-
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBatch.size() * sizeof(GLuint), indexBatch.data(), GL_DYNAMIC_DRAW);
+
+	if (vboOffset + vertexCount > STREAM_VBO_CAPACITY || eboOffset + indexCount > STREAM_EBO_CAPACITY) {
+		glBufferData(GL_ARRAY_BUFFER, STREAM_VBO_CAPACITY * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, STREAM_EBO_CAPACITY * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+		vboOffset = 0;
+		eboOffset = 0;
+	}
+
+	void* vboPtr = glMapBufferRange(GL_ARRAY_BUFFER, vboOffset * sizeof(Vertex), vertexBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	if (vboPtr) {
+		std::memcpy(vboPtr, batch.data(), vertexBytes);
+		glUnmapBuffer(GL_ARRAY_BUFFER);
+	}
+
+	void* eboPtr = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, eboOffset * sizeof(GLuint), indexBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
+	if (eboPtr) {
+		std::memcpy(eboPtr, indexBatch.data(), indexBytes);
+		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+	}
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, current_texture);
 	glUniform1i(loc_texture, 0);
 
-	glDrawElements(GL_TRIANGLES, (GLsizei)indexBatch.size(), GL_UNSIGNED_INT, nullptr);
+	glDrawElementsBaseVertex(GL_TRIANGLES, (GLsizei)indexCount, GL_UNSIGNED_INT, (void*)(eboOffset * sizeof(GLuint)), (GLint)vboOffset);
+
+	vboOffset += vertexCount;
+	eboOffset += indexCount;
 
 	glBindVertexArray(0);
 	glUseProgram(0);

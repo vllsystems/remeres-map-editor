@@ -56,9 +56,14 @@ public:
 private:
 	static std::vector<GLRenderer*> s_instances;
 	bool initialized = false;
+	static constexpr size_t STREAM_VBO_CAPACITY = 64 * 1024;
+	static constexpr size_t STREAM_EBO_CAPACITY = 96 * 1024;
+
 	GLuint vao = 0;
 	GLuint vbo = 0;
 	GLuint ebo = 0;
+	size_t vboOffset = 0;
+	size_t eboOffset = 0;
 	GLuint whitePixelTexture = 0;
 	GLuint program = 0;
 	GLint loc_projection = -1;
