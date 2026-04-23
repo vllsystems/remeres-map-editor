@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
-
+#include <thread>
 #ifdef __linux__
 	#include <malloc.h>
 #endif
@@ -57,11 +57,20 @@ MapTab::MapTab(const MapTab* other) :
 MapTab::~MapTab() {
 	iref->owner_count--;
 	if (iref->owner_count <= 0) {
-		delete iref->editor;
+		Editor* ed = iref->editor;
+		iref->editor = nullptr;
 		delete iref;
+
+		if (ed->IsLive()) {
+			ed->CloseLiveServer();
+		}
+
+		std::thread([ed]() {
+			delete ed;
 #ifdef __linux__
-		malloc_trim(0);
+			malloc_trim(0);
 #endif
+		}).detach();
 	}
 }
 
