@@ -435,6 +435,14 @@ void GLRenderer::flushBatch() {
 	glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
+	if (vertexCount > STREAM_VBO_CAPACITY || indexCount > STREAM_EBO_CAPACITY) {
+		batch.clear();
+		indexBatch.clear();
+		glBindVertexArray(0);
+		glUseProgram(0);
+		return;
+	}
+
 	if (vboOffset + vertexCount > STREAM_VBO_CAPACITY || eboOffset + indexCount > STREAM_EBO_CAPACITY) {
 		glBufferData(GL_ARRAY_BUFFER, STREAM_VBO_CAPACITY * sizeof(Vertex), nullptr, GL_DYNAMIC_DRAW);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, STREAM_EBO_CAPACITY * sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
@@ -443,16 +451,26 @@ void GLRenderer::flushBatch() {
 	}
 
 	void* vboPtr = glMapBufferRange(GL_ARRAY_BUFFER, vboOffset * sizeof(Vertex), vertexBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-	if (vboPtr) {
-		std::memcpy(vboPtr, batch.data(), vertexBytes);
-		glUnmapBuffer(GL_ARRAY_BUFFER);
+	if (!vboPtr) {
+		batch.clear();
+		indexBatch.clear();
+		glBindVertexArray(0);
+		glUseProgram(0);
+		return;
 	}
+	std::memcpy(vboPtr, batch.data(), vertexBytes);
+	glUnmapBuffer(GL_ARRAY_BUFFER);
 
 	void* eboPtr = glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, eboOffset * sizeof(GLuint), indexBytes, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_RANGE_BIT | GL_MAP_UNSYNCHRONIZED_BIT);
-	if (eboPtr) {
-		std::memcpy(eboPtr, indexBatch.data(), indexBytes);
-		glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+	if (!eboPtr) {
+		batch.clear();
+		indexBatch.clear();
+		glBindVertexArray(0);
+		glUseProgram(0);
+		return;
 	}
+	std::memcpy(eboPtr, indexBatch.data(), indexBytes);
+	glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, current_texture);
@@ -743,7 +761,6 @@ void GLRenderer::drawBitmapChar(char c) {
 }
 
 void GLRenderer::setColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-	flushCommands();
 	font.textColor = { r, g, b, a };
 }
 
@@ -793,7 +810,7 @@ void GLRenderer::flushCommands() {
 
 		current_texture = cmd.state.textureId;
 		if (cmd.isQuadBatch) {
-			GLuint base = (GLuint)batch.size();
+			auto base = (GLuint)batch.size();
 			batch.insert(batch.end(), cmd.vertices.begin(), cmd.vertices.end());
 			for (size_t q = 0; q < cmd.vertices.size(); q += 4) {
 				GLuint b = base + (GLuint)q;
@@ -805,7 +822,7 @@ void GLRenderer::flushCommands() {
 				indexBatch.push_back(b + 3);
 			}
 		} else {
-			GLuint base = (GLuint)batch.size();
+			auto base = (GLuint)batch.size();
 			batch.insert(batch.end(), cmd.vertices.begin(), cmd.vertices.end());
 			for (GLuint i = 0; i < (GLuint)cmd.vertices.size(); ++i) {
 				indexBatch.push_back(base + i);

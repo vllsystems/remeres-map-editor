@@ -94,9 +94,7 @@ private:
 		GLuint textureId = 0;
 		unsigned int blendSrc = 0;
 		unsigned int blendDst = 0;
-		bool operator==(const DrawState &o) const {
-			return textureId == o.textureId && blendSrc == o.blendSrc && blendDst == o.blendDst;
-		}
+		bool operator==(const DrawState &o) const = default;
 	};
 
 	struct DrawCommand {

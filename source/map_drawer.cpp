@@ -260,9 +260,7 @@ bool MapDrawer::isSceneDirty() const {
 void MapDrawer::Draw() {
 	renderer->ensureFBO(screensize_x, screensize_y);
 
-	bool dirty = isSceneDirty();
-
-	if (dirty) {
+	if (isSceneDirty()) {
 		renderer->beginFBO();
 
 		DrawBackground();
