@@ -65,10 +65,9 @@ MapTab::~MapTab() {
 			ed->CloseLiveServer();
 		}
 
-		std::jthread([ed = std::unique_ptr<Editor>(ed)]() {
+		std::thread([ed]() {
+			delete ed;
 #ifdef __linux__
-			// ed destroyed automatically when leaving the lambda
-			(void)ed;
 			malloc_trim(0);
 #endif
 		}).detach();
