@@ -1097,6 +1097,7 @@ void GUI::RefreshView() {
 
 	for (EditorTab* editorTab : editorTabs) {
 		editorTab->GetWindow()->Refresh();
+		editorTab->GetWindow()->Update();
 	}
 }
 
