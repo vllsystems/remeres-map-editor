@@ -145,7 +145,7 @@ void Materials::createOtherTileset() {
 
 	// Clear TILESET_MONSTER categories from previous folder tilesets
 	for (auto &[name, ts] : tilesets) {
-		if (name != "Others") {
+		if (name != "Others" && name != "Monsters") {
 			TilesetCategory* cat = ts->getCategory(TILESET_MONSTER);
 			if (cat) {
 				cat->brushlist.clear();
