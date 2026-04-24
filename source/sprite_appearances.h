@@ -43,10 +43,10 @@ enum class SpriteLayout {
 
 struct SpritesSize {
 public:
-	SpritesSize(int height, int width) :
+	SpritesSize(int width, int height) :
 		height(height), width(width) { }
 
-	void resize(int height, int width) {
+	void resize(int width, int height) {
 		this->height = height;
 		this->width = width;
 	}
