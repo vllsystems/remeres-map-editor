@@ -335,9 +335,10 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 		if (existing) {
 			if (existing->folder.empty()) {
 				wxFileName fn(filePath);
-				wxString relPath = fn.GetPath();
-				if (relPath.StartsWith(directory)) {
-					relPath = relPath.Mid(directory.Length());
+				wxString relPath = fn.GetPath().Lower();
+				wxString dirLower = directory.Lower();
+				if (relPath.StartsWith(dirLower)) {
+					relPath = relPath.Mid(dirLower.Length());
 					if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
 						relPath = relPath.Mid(1);
 					}
@@ -367,9 +368,10 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 
 		{
 			wxFileName fn(filePath);
-			wxString relPath = fn.GetPath();
-			if (relPath.StartsWith(directory)) {
-				relPath = relPath.Mid(directory.Length());
+			wxString relPath = fn.GetPath().Lower();
+			wxString dirLower = directory.Lower();
+			if (relPath.StartsWith(dirLower)) {
+				relPath = relPath.Mid(dirLower.Length());
 				if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
 					relPath = relPath.Mid(1);
 				}

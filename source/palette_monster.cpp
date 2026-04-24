@@ -226,7 +226,6 @@ void MonsterPalettePanel::OnUpdate() {
 	}
 
 	SelectTileset(0);
-	SelectTileset(0);
 }
 
 void MonsterPalettePanel::OnUpdateBrushSize(BrushShape shape, int size) {

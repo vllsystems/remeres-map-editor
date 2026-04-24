@@ -169,6 +169,10 @@ void Materials::createOtherTileset() {
 			std::replace(tsName.begin(), tsName.end(), '_', ' ');
 			tsName[0] = std::toupper(static_cast<unsigned char>(tsName[0]));
 
+			if (tsName == "Others") {
+				continue;
+			}
+
 			Tileset* folderTs;
 			auto it = tilesets.find(tsName);
 			if (it != tilesets.end()) {
