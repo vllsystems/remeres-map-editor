@@ -1096,7 +1096,8 @@ void GUI::RefreshView() {
 	}
 
 	for (EditorTab* editorTab : editorTabs) {
-		editorTab->GetWindow()->Refresh();
+		auto* mapTab = static_cast<MapTab*>(editorTab);
+		mapTab->GetCanvas()->Refresh(); // MapCanvas::Refresh() → markDirty() + wxGLCanvas::Refresh()
 		editorTab->GetWindow()->Update();
 	}
 }

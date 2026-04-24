@@ -215,7 +215,6 @@ void MapDrawer::SetupGL() {
 }
 
 void MapDrawer::Release() {
-	tooltips.clear();
 	if (light_drawer) {
 		light_drawer->clear();
 	}
