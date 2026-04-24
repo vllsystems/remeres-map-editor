@@ -20,6 +20,7 @@
 #include "editor.h"
 #include "items.h"
 #include "monsters.h"
+#include <algorithm>
 
 #include "gui.h"
 #include "materials.h"
@@ -139,17 +140,44 @@ void Materials::createOtherTileset() {
 		}
 	}
 
+	// Clear TILESET_MONSTER categories from previous folder tilesets
+	for (auto &pair : tilesets) {
+		if (pair.first != "Others") {
+			TilesetCategory* cat = pair.second->getCategory(TILESET_MONSTER);
+			if (cat) {
+				cat->brushlist.clear();
+			}
+		}
+	}
+
 	for (MonsterMap::iterator iter = g_monsters.begin(); iter != g_monsters.end(); ++iter) {
 		MonsterType* type = iter->second;
-		if (type->in_other_tileset) {
-			others->getCategory(TILESET_MONSTER)->brushlist.push_back(type->brush);
-		} else if (type->brush == nullptr) {
+
+		if (type->brush == nullptr) {
 			type->brush = newd MonsterBrush(type);
 			g_brushes.addBrush(type->brush);
 			type->brush->flagAsVisible();
 			type->in_other_tileset = true;
+		}
 
-			others->getCategory(TILESET_MONSTER)->brushlist.push_back(type->brush);
+		// Always adds in Others
+		others->getCategory(TILESET_MONSTER)->brushlist.push_back(type->brush);
+
+		// Adds to the folder tileset if it exists
+		if (!type->folder.empty()) {
+			std::string tsName = type->folder;
+			std::replace(tsName.begin(), tsName.end(), '_', ' ');
+			tsName[0] = std::toupper(static_cast<unsigned char>(tsName[0]));
+
+			Tileset* folderTs;
+			auto it = tilesets.find(tsName);
+			if (it != tilesets.end()) {
+				folderTs = it->second;
+			} else {
+				folderTs = newd Tileset(g_brushes, tsName);
+				tilesets[tsName] = folderTs;
+			}
+			folderTs->getCategory(TILESET_MONSTER)->brushlist.push_back(type->brush);
 		}
 	}
 }

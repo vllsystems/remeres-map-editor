@@ -34,6 +34,7 @@ MonsterType::MonsterType() :
 	in_other_tileset(false),
 	standard(false),
 	name(""),
+	folder(""),
 	brush(nullptr) {
 	////
 }
@@ -43,6 +44,7 @@ MonsterType::MonsterType(const MonsterType &ct) :
 	in_other_tileset(ct.in_other_tileset),
 	standard(ct.standard),
 	name(ct.name),
+	folder(ct.folder),
 	outfit(ct.outfit),
 	brush(ct.brush) {
 	////
@@ -53,6 +55,7 @@ MonsterType &MonsterType::operator=(const MonsterType &ct) {
 	in_other_tileset = ct.in_other_tileset;
 	standard = ct.standard;
 	name = ct.name;
+	folder = ct.folder;
 	outfit = ct.outfit;
 	brush = ct.brush;
 	return *this;
@@ -307,7 +310,7 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 	}
 
 	wxArrayString luaFiles;
-	wxDir::GetAllFiles(directory, &luaFiles, "*.lua", wxDIR_FILES | wxDIR_DIRS);
+	wxDir::GetAllFiles(directory, &luaFiles, "*.lua", wxDIR_FILES | wxDIR_DIRS | wxDIR_HIDDEN);
 
 	int fileCount = 0;
 	for (const auto &filePath : luaFiles) {
@@ -330,6 +333,21 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 
 		MonsterType* existing = (*this)[name];
 		if (existing) {
+			if (existing->folder.empty()) {
+				wxFileName fn(filePath);
+				wxString relPath = fn.GetPath();
+				if (relPath.StartsWith(directory)) {
+					relPath = relPath.Mid(directory.Length());
+					if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
+						relPath = relPath.Mid(1);
+					}
+					wxString fld = relPath.BeforeFirst('/');
+					if (fld.IsEmpty()) {
+						fld = relPath.BeforeFirst('\\');
+					}
+					existing->folder = fld.ToStdString();
+				}
+			}
 			if (!existing->missing) {
 				continue;
 			}
@@ -346,6 +364,22 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 		ct->name = name;
 		ct->outfit.name = name;
 		ct->standard = false;
+
+		{
+			wxFileName fn(filePath);
+			wxString relPath = fn.GetPath();
+			if (relPath.StartsWith(directory)) {
+				relPath = relPath.Mid(directory.Length());
+				if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
+					relPath = relPath.Mid(1);
+				}
+				wxString fld = relPath.BeforeFirst('/');
+				if (fld.IsEmpty()) {
+					fld = relPath.BeforeFirst('\\');
+				}
+				ct->folder = fld.ToStdString();
+			}
+		}
 
 		if (!LuaParser::parseOutfit(content, ct->outfit)) {
 			delete ct;

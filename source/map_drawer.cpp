@@ -1266,6 +1266,9 @@ void MapDrawer::BlitCreature(int screenx, int screeny, const Outfit &outfit, con
 	}
 
 	if (outfit.lookType == 0) {
+		Outfit fallback;
+		fallback.lookType = 197; // This looktype is a tribute to our beloved Carl-bot from OpenTibiaBR Discord.
+		BlitCreature(screenx, screeny, fallback, dir, red, green, blue, alpha);
 		return;
 	}
 

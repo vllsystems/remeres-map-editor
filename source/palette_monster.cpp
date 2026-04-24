@@ -193,16 +193,39 @@ void MonsterPalettePanel::OnUpdate() {
 	tileset_choice->Clear();
 	g_materials.createOtherTileset();
 
-	for (TilesetContainer::const_iterator iter = g_materials.tilesets.begin(); iter != g_materials.tilesets.end(); ++iter) {
-		const TilesetCategory* tsc = iter->second->getCategory(TILESET_MONSTER);
-		if (tsc && tsc->size() > 0) {
-			tileset_choice->Append(wxstr(iter->second->name), const_cast<TilesetCategory*>(tsc));
-		} else if (iter->second->name == "Others") {
-			Tileset* ts = const_cast<Tileset*>(iter->second);
-			TilesetCategory* rtsc = ts->getCategory(TILESET_MONSTER);
-			tileset_choice->Append(wxstr(ts->name), rtsc);
+	// Collect entries with TILESET_MONSTER
+	std::vector<std::pair<wxString, TilesetCategory*>> entries;
+	TilesetCategory* allCategory = nullptr;
+
+	for (auto iter = g_materials.tilesets.begin(); iter != g_materials.tilesets.end(); ++iter) {
+		TilesetCategory* tsc = const_cast<TilesetCategory*>(iter->second->getCategory(TILESET_MONSTER));
+		if (iter->second->name == "Others") {
+			if (!tsc) {
+				Tileset* ts = const_cast<Tileset*>(iter->second);
+				tsc = ts->getCategory(TILESET_MONSTER);
+			}
+			allCategory = tsc;
+		} else if (tsc && tsc->size() > 0) {
+			entries.push_back({ wxstr(iter->second->name), tsc });
 		}
 	}
+
+	// Sort alphabetically
+	std::sort(entries.begin(), entries.end(), [](const auto &a, const auto &b) {
+		return a.first.CmpNoCase(b.first) < 0;
+	});
+
+	// "All" first
+	if (allCategory) {
+		tileset_choice->Append("All", allCategory);
+	}
+
+	// Then the rest alphabetically
+	for (auto &entry : entries) {
+		tileset_choice->Append(entry.first, entry.second);
+	}
+
+	SelectTileset(0);
 	SelectTileset(0);
 }
 
