@@ -300,6 +300,31 @@ wxArrayString MonsterDatabase::getMissingMonsterNames() const {
 	return missingMonsters;
 }
 
+static std::string extractTopFolder(const wxString &filePath, const wxString &directory) {
+	wxFileName fn(filePath);
+	wxString relPath = fn.GetPath().Lower();
+	wxString dirLower = directory.Lower();
+	if (!relPath.StartsWith(dirLower)) {
+		return "";
+	}
+	relPath = relPath.Mid(dirLower.Length());
+	if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
+		relPath = relPath.Mid(1);
+	}
+	const int slash = relPath.Find('/');
+	const int backslash = relPath.Find('\\');
+	int sep = wxNOT_FOUND;
+	if (slash != wxNOT_FOUND && backslash != wxNOT_FOUND) {
+		sep = std::min(slash, backslash);
+	} else if (slash != wxNOT_FOUND) {
+		sep = slash;
+	} else if (backslash != wxNOT_FOUND) {
+		sep = backslash;
+	}
+	wxString fld = (sep == wxNOT_FOUND) ? relPath : relPath.Left(sep);
+	return fld.ToStdString();
+}
+
 bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error, wxArrayString &warnings) {
 	if (directory.IsEmpty()) {
 		return true;
@@ -334,27 +359,7 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 		MonsterType* existing = (*this)[name];
 		if (existing) {
 			if (existing->folder.empty()) {
-				wxFileName fn(filePath);
-				wxString relPath = fn.GetPath().Lower();
-				wxString dirLower = directory.Lower();
-				if (relPath.StartsWith(dirLower)) {
-					relPath = relPath.Mid(dirLower.Length());
-					if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
-						relPath = relPath.Mid(1);
-					}
-					const int slash = relPath.Find('/');
-					const int backslash = relPath.Find('\\');
-					int sep = wxNOT_FOUND;
-					if (slash != wxNOT_FOUND && backslash != wxNOT_FOUND) {
-						sep = std::min(slash, backslash);
-					} else if (slash != wxNOT_FOUND) {
-						sep = slash;
-					} else if (backslash != wxNOT_FOUND) {
-						sep = backslash;
-					}
-					wxString fld = (sep == wxNOT_FOUND) ? relPath : relPath.Left(sep);
-					existing->folder = fld.ToStdString();
-				}
+				existing->folder = extractTopFolder(filePath, directory);
 			}
 			if (!existing->missing) {
 				continue;
@@ -373,29 +378,7 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 		ct->outfit.name = name;
 		ct->standard = false;
 
-		{
-			wxFileName fn(filePath);
-			wxString relPath = fn.GetPath().Lower();
-			wxString dirLower = directory.Lower();
-			if (relPath.StartsWith(dirLower)) {
-				relPath = relPath.Mid(dirLower.Length());
-				if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
-					relPath = relPath.Mid(1);
-				}
-				const int slash = relPath.Find('/');
-				const int backslash = relPath.Find('\\');
-				int sep = wxNOT_FOUND;
-				if (slash != wxNOT_FOUND && backslash != wxNOT_FOUND) {
-					sep = std::min(slash, backslash);
-				} else if (slash != wxNOT_FOUND) {
-					sep = slash;
-				} else if (backslash != wxNOT_FOUND) {
-					sep = backslash;
-				}
-				wxString fld = (sep == wxNOT_FOUND) ? relPath : relPath.Left(sep);
-				ct->folder = fld.ToStdString();
-			}
-		}
+		ct->folder = extractTopFolder(filePath, directory);
 
 		if (!LuaParser::parseOutfit(content, ct->outfit)) {
 			delete ct;
