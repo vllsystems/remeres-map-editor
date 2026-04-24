@@ -25,6 +25,8 @@
 #include "spawn_monster_brush.h"
 #include "materials.h"
 
+#include <algorithm>
+
 // ============================================================================
 // Monster palette
 
@@ -198,10 +200,10 @@ void MonsterPalettePanel::OnUpdate() {
 	TilesetCategory* allCategory = nullptr;
 
 	for (auto iter = g_materials.tilesets.begin(); iter != g_materials.tilesets.end(); ++iter) {
-		TilesetCategory* tsc = const_cast<TilesetCategory*>(iter->second->getCategory(TILESET_MONSTER));
+		auto tsc = iter->second->getCategory(TILESET_MONSTER);
 		if (iter->second->name == "Others") {
 			if (!tsc) {
-				Tileset* ts = const_cast<Tileset*>(iter->second);
+				auto ts = iter->second;
 				tsc = ts->getCategory(TILESET_MONSTER);
 			}
 			allCategory = tsc;
@@ -211,7 +213,7 @@ void MonsterPalettePanel::OnUpdate() {
 	}
 
 	// Sort alphabetically
-	std::sort(entries.begin(), entries.end(), [](const auto &a, const auto &b) {
+	std::ranges::sort(entries, [](const auto &a, const auto &b) {
 		return a.first.CmpNoCase(b.first) < 0;
 	});
 

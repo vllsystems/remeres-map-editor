@@ -342,10 +342,17 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 					if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
 						relPath = relPath.Mid(1);
 					}
-					wxString fld = relPath.BeforeFirst('/');
-					if (fld.IsEmpty()) {
-						fld = relPath.BeforeFirst('\\');
+					const int slash = relPath.Find('/');
+					const int backslash = relPath.Find('\\');
+					int sep = wxNOT_FOUND;
+					if (slash != wxNOT_FOUND && backslash != wxNOT_FOUND) {
+						sep = std::min(slash, backslash);
+					} else if (slash != wxNOT_FOUND) {
+						sep = slash;
+					} else if (backslash != wxNOT_FOUND) {
+						sep = backslash;
 					}
+					wxString fld = (sep == wxNOT_FOUND) ? relPath : relPath.Left(sep);
 					existing->folder = fld.ToStdString();
 				}
 			}
@@ -375,10 +382,17 @@ bool MonsterDatabase::loadFromLuaDir(const wxString &directory, wxString &error,
 				if (!relPath.IsEmpty() && (relPath[0] == '/' || relPath[0] == '\\')) {
 					relPath = relPath.Mid(1);
 				}
-				wxString fld = relPath.BeforeFirst('/');
-				if (fld.IsEmpty()) {
-					fld = relPath.BeforeFirst('\\');
+				const int slash = relPath.Find('/');
+				const int backslash = relPath.Find('\\');
+				int sep = wxNOT_FOUND;
+				if (slash != wxNOT_FOUND && backslash != wxNOT_FOUND) {
+					sep = std::min(slash, backslash);
+				} else if (slash != wxNOT_FOUND) {
+					sep = slash;
+				} else if (backslash != wxNOT_FOUND) {
+					sep = backslash;
 				}
+				wxString fld = (sep == wxNOT_FOUND) ? relPath : relPath.Left(sep);
 				ct->folder = fld.ToStdString();
 			}
 		}

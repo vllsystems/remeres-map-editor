@@ -102,17 +102,7 @@ bool Materials::unserializeMaterials(const FileName &filename, pugi::xml_node no
 	return true;
 }
 
-void Materials::createOtherTileset() {
-	Tileset* others;
-	if (tilesets["Others"] != nullptr) {
-		others = tilesets["Others"];
-		others->clear();
-	} else {
-		others = newd Tileset(g_brushes, "Others");
-		tilesets["Others"] = others;
-	}
-
-	// There should really be an iterator to do this
+void Materials::populateRawBrushes(Tileset* others) {
 	for (int32_t id = 0; id <= g_items.getMaxID(); ++id) {
 		auto type = g_items.getRawItemType(id);
 		if (!type) {
@@ -139,11 +129,24 @@ void Materials::createOtherTileset() {
 			type->in_other_tileset = true;
 		}
 	}
+}
+
+void Materials::createOtherTileset() {
+	Tileset* others;
+	if (tilesets["Others"] != nullptr) {
+		others = tilesets["Others"];
+		others->clear();
+	} else {
+		others = newd Tileset(g_brushes, "Others");
+		tilesets["Others"] = others;
+	}
+
+	populateRawBrushes(others);
 
 	// Clear TILESET_MONSTER categories from previous folder tilesets
-	for (auto &pair : tilesets) {
-		if (pair.first != "Others") {
-			TilesetCategory* cat = pair.second->getCategory(TILESET_MONSTER);
+	for (auto &[name, ts] : tilesets) {
+		if (name != "Others") {
+			TilesetCategory* cat = ts->getCategory(TILESET_MONSTER);
 			if (cat) {
 				cat->brushlist.clear();
 			}
