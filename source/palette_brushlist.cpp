@@ -819,6 +819,9 @@ void BrushListBox::OnDrawItem(wxDC &dc, const wxRect &rect, size_t index) const 
 		} else if (npcType) {
 			lookType = npcType->outfit.lookType;
 		}
+		if (lookType == 0) {
+			lookType = 197; // This looktype is a tribute to our beloved Carl-bot from OpenTibiaBR Discord.
+		}
 		auto creatureSprite = g_gui.gfx.getCreatureSprite(lookType);
 		if (creatureSprite) {
 			creatureSprite->DrawTo(&dc, SPRITE_SIZE_32x32, rect.GetX(), rect.GetY(), rect.GetWidth(), rect.GetHeight());
