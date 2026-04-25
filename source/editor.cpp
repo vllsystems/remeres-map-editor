@@ -142,12 +142,6 @@ Editor::Editor(CopyBuffer &copybuffer, LiveClient* client) :
 	replace_brush(nullptr) { }
 
 Editor::~Editor() {
-	if (IsLive()) {
-		CloseLiveServer();
-	}
-
-	UnnamedRenderingLock();
-	selection.clear();
 	delete actionQueue;
 }
 

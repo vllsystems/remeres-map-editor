@@ -215,7 +215,6 @@ void MapDrawer::SetupGL() {
 }
 
 void MapDrawer::Release() {
-	tooltips.clear();
 	if (light_drawer) {
 		light_drawer->clear();
 	}
@@ -223,12 +222,71 @@ void MapDrawer::Release() {
 	renderer->flush();
 }
 
-void MapDrawer::Draw() {
-	DrawBackground();
-	DrawMap();
-	if (options.show_lights) {
-		light_drawer->draw(start_x, start_y, end_x, end_y, view_scroll_x, view_scroll_y, renderer.get());
+bool MapDrawer::isSceneDirty() const {
+	if (fboDirty) {
+		return true;
 	}
+	if (view_scroll_x != prevScrollX) {
+		return true;
+	}
+	if (view_scroll_y != prevScrollY) {
+		return true;
+	}
+	if (zoom != prevZoom) {
+		return true;
+	}
+	if (floor != prevFloor) {
+		return true;
+	}
+	if (start_z != prevStartZ) {
+		return true;
+	}
+	if (screensize_x != prevScreenW) {
+		return true;
+	}
+	if (screensize_y != prevScreenH) {
+		return true;
+	}
+	if (dragging || dragging_draw) {
+		return true;
+	}
+	if (options.show_preview && zoom <= 2.0f) {
+		return true;
+	}
+	return false;
+}
+
+void MapDrawer::Draw() {
+	renderer->ensureFBO(screensize_x, screensize_y);
+
+	if (isSceneDirty()) {
+		renderer->beginFBO();
+
+		DrawBackground();
+		DrawMap();
+		if (options.show_lights) {
+			light_drawer->draw(start_x, start_y, end_x, end_y, view_scroll_x, view_scroll_y, renderer.get());
+		}
+		renderer->flush();
+
+		renderer->endFBO();
+
+		prevScrollX = view_scroll_x;
+		prevScrollY = view_scroll_y;
+		prevZoom = zoom;
+		prevFloor = floor;
+		prevStartZ = start_z;
+		prevScreenW = screensize_x;
+		prevScreenH = screensize_y;
+		fboDirty = false;
+	}
+
+	if (renderer->hasFBO()) {
+		float w = screensize_x * zoom;
+		float h = screensize_y * zoom;
+		renderer->blitFBO(w, h);
+	}
+
 	DrawDraggingShadow();
 	DrawHigherFloors();
 	if (options.dragging) {

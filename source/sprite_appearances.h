@@ -43,10 +43,10 @@ enum class SpriteLayout {
 
 struct SpritesSize {
 public:
-	SpritesSize(int height, int width) :
+	SpritesSize(int width, int height) :
 		height(height), width(width) { }
 
-	void resize(int height, int width) {
+	void resize(int width, int height) {
 		this->height = height;
 		this->width = width;
 	}
@@ -137,6 +137,9 @@ public:
 	}
 
 	bool exportSheetImage(const std::string &file, bool fixMagenta = false) {
+		if (!data) {
+			return false;
+		}
 		wxImage image(384, 384, data.get(), true);
 		return image.SaveFile(wxString(file), wxBITMAP_TYPE_PNG);
 	};

@@ -155,6 +155,7 @@ MapCanvas::~MapCanvas() {
 }
 
 void MapCanvas::Refresh() {
+	drawer->markDirty();
 	if (refresh_watch.Time() > g_settings.getInteger(Config::HARD_REFRESH_RATE)) {
 		refresh_watch.Start();
 		wxGLCanvas::Update();

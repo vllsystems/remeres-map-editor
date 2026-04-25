@@ -87,7 +87,7 @@ bool SpriteAppearances::loadCatalogContent(const std::string &dir, bool loadData
 }
 
 bool SpriteAppearances::loadSpriteSheet(const SpriteSheetPtr &sheet) {
-	if (sheet->loaded) {
+	if (sheet->loaded && sheet->data) {
 		return false;
 	}
 
@@ -193,14 +193,23 @@ void SpriteAppearances::unload() {
 	}
 	spritesCount = 0;
 	sheets.clear();
+	sprites.clear();
 }
 
 GLuint SpriteSheet::getOrUploadGLTexture() {
 	if (glTextureId != 0) {
 		return glTextureId;
 	}
-	if (!loaded || !data) {
+	if (!loaded) {
 		return 0;
+	}
+	if (!data) {
+		g_spriteAppearances.loadSpriteSheet(
+			g_spriteAppearances.getSheetBySpriteId(firstId, false)
+		);
+		if (!data) {
+			return 0;
+		}
 	}
 
 	glGenTextures(1, &glTextureId);
@@ -219,6 +228,7 @@ GLuint SpriteSheet::getOrUploadGLTexture() {
 	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+	data.reset();
 	return glTextureId;
 }
 
@@ -228,6 +238,7 @@ void SpriteSheet::releaseGLTexture() {
 		glDeleteTextures(1, &glTextureId);
 		glTextureId = 0;
 	}
+	loaded = false;
 }
 
 SpriteUV SpriteSheet::getSpriteUVs(int spriteId) const {
@@ -289,7 +300,7 @@ wxImage SpriteAppearances::getWxImageBySpriteId(int id, bool toSavePng /* = fals
 	constexpr uint32_t magenta = 0xFF00FF;
 	constexpr uint32_t lightMagenta = 0xD000CF;
 
-	const int width = sprite->size.height <= rme::SpritePixels && sprite->size.width <= rme::SpritePixels ? sprite->size.width : rme::SpritePixels + 32;
+	const int width = sprite->size.width;
 	const int height = sprite->size.height;
 	auto pixels = sprite->pixels.data();
 	wxImage image(width, height);
@@ -327,9 +338,13 @@ wxImage SpriteAppearances::getWxImageBySpriteId(int id, bool toSavePng /* = fals
 
 	// Cut duplicated image and sets to the selected bgshade the empty background
 	if (sprite->size.width > rme::SpritePixels && sprite->size.height <= rme::SpritePixels) {
-		const auto imageSize = image.GetSize();
-		image.Resize(wxSize(imageSize.x, imageSize.y), wxPoint(-imageSize.x + rme::SpritePixels, 0), bgshade, bgshade, bgshade);
+		// TWO_BY_ONE (64x32): keep right 32 pixels
+		image.Resize(wxSize(rme::SpritePixels, rme::SpritePixels), wxPoint(-(sprite->size.width - rme::SpritePixels), 0), bgshade, bgshade, bgshade);
+	} else if (sprite->size.height > rme::SpritePixels && sprite->size.width <= rme::SpritePixels) {
+		// ONE_BY_TWO (32x64): keep bottom 32 pixels
+		image.Resize(wxSize(rme::SpritePixels, rme::SpritePixels), wxPoint(0, -(sprite->size.height - rme::SpritePixels)), bgshade, bgshade, bgshade);
 	}
+	// TWO_BY_TWO (64x64): no crop — getDC() will Rescale(32, 32)
 
 	return image;
 }
@@ -384,10 +399,14 @@ SpritePtr SpriteAppearances::getSprite(int spriteId) {
 		return nullptr;
 	}
 
-	// Validate memory for sheet->data
+	// Reload sheet data if it was freed after GL upload
 	if (!sheet->data) {
-		spdlog::error("Sheet data is null for sprite {}.", spriteId);
-		return nullptr;
+		sheet->loaded = false;
+		loadSpriteSheet(sheet);
+		if (!sheet->data) {
+			spdlog::error("Sheet data is null for sprite {}.", spriteId);
+			return nullptr;
+		}
 	}
 
 	// Update bufferSize based on actual sheet height
