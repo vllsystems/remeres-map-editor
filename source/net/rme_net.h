@@ -20,7 +20,7 @@
 	#ifndef _RME_NET_H_
 		#define _RME_NET_H_
 
-		#include "net_connection.h"
+		#include "net/net_connection.h"
 
 class RMENet : public wxEvtHandler, public NetSocket
 {

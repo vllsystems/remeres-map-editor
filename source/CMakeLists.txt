@@ -212,7 +212,7 @@ target_sources(${PROJECT_NAME}
 	minimap_window.cpp
 	util/mkpch.cpp
 	util/mt_rand.cpp
-	net_connection.cpp
+	net/net_connection.cpp
 	game/npc.cpp
 	brushes/npc_brush.cpp
 	game/npcs.cpp
@@ -233,7 +233,7 @@ target_sources(${PROJECT_NAME}
 	brushes/raw_brush.cpp
 	replace_items_window.cpp
 	result_window.cpp
-	rme_net.cpp
+	net/rme_net.cpp
 	selection.cpp
 	settings.cpp
 	brushes/spawn_monster_brush.cpp

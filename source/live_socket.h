@@ -19,7 +19,7 @@
 #define _RME_LIVE_SOCKET_H_
 
 #include "util/position.h"
-#include "net_connection.h"
+#include "net/net_connection.h"
 #include "live_packets.h"
 #include "filehandle.h"
 #include "iomap.h"

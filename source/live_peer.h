@@ -19,7 +19,7 @@
 #define _RME_LIVE_PEER_H_
 
 #include "live_socket.h"
-#include "net_connection.h"
+#include "net/net_connection.h"
 
 class LiveServer;
 class LivePeer : public LiveSocket {

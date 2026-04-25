@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
-#include "net_connection.h"
+#include "net/net_connection.h"
 
 NetworkMessage::NetworkMessage() {
 	clear();
