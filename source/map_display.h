@@ -20,8 +20,8 @@
 
 #include "action.h"
 #include "tile.h"
-#include "monster.h"
-#include "npc.h"
+#include "game/monster.h"
+#include "game/npc.h"
 
 class Item;
 class Monster;

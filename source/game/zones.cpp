@@ -17,45 +17,49 @@
 
 #include "main.h"
 
-#include "tile.h"
-#include "spawn_monster.h"
+#include "game/zones.h"
+#include "map.h"
 
-SpawnMonster::SpawnMonster(int size) :
-	size(0),
-	selected(false) {
-	setSize(size);
+Zones::~Zones() {
+	zones.clear();
 }
 
-SpawnMonster* SpawnMonster::deepCopy() const {
-	SpawnMonster* copy = new SpawnMonster(size);
-	copy->selected = selected;
-	return copy;
-}
-
-void SpawnsMonster::addSpawnMonster(Tile* tile) {
-	ASSERT(tile->spawnMonster);
-
-	auto it = spawnsMonster.insert(tile->getPosition());
-	ASSERT(it.second);
-}
-
-void SpawnsMonster::removeSpawnMonster(Tile* tile) {
-	ASSERT(tile->spawnMonster);
-	spawnsMonster.erase(tile->getPosition());
-#if 0
-	SpawnMonsterPositionList::iterator iter = begin();
-	while(iter != end()) {
-		if(*iter == tile->getPosition()) {
-			spawnsMonster.erase(iter);
-			return;
-		}
-		++iter;
+bool Zones::addZone(const std::string &name, unsigned int id) {
+	if (hasZone(name)) {
+		return false;
 	}
-	ASSERT(false);
-#endif
+	if (used_ids.find(id) != used_ids.end()) {
+		return false;
+	}
+	zones.emplace(name, id);
+	used_ids.insert(id);
+	return true;
 }
 
-std::ostream &operator<<(std::ostream &os, const SpawnMonster &spawnMonster) {
-	os << &spawnMonster << ":: -> " << spawnMonster.getSize() << std::endl;
-	return os;
+bool Zones::addZone(const std::string &name) {
+	return addZone(name, generateID());
+}
+
+bool Zones::hasZone(const std::string &name) {
+	return zones.find(name) != zones.end();
+}
+
+bool Zones::hasZone(unsigned int id) {
+	return used_ids.find(id) != used_ids.end();
+}
+
+void Zones::removeZone(const std::string &name) {
+	if (!hasZone(name)) {
+		return;
+	}
+	used_ids.erase(zones[name]);
+	zones.erase(name);
+}
+
+unsigned int Zones::generateID() {
+	unsigned int id = 1;
+	while (used_ids.find(id) != used_ids.end()) {
+		id++;
+	}
+	return id;
 }

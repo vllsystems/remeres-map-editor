@@ -19,7 +19,7 @@
 
 #include "spawn_npc_brush.h"
 #include "basemap.h"
-#include "spawn_npc.h"
+#include "game/spawn_npc.h"
 
 //=============================================================================
 // Spawn npc brush

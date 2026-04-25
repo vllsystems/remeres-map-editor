@@ -25,8 +25,8 @@
 #include "../action.h"
 #include "../tile.h"
 #include "../selection.h"
-#include "../house.h"
-#include "../items.h"
+#include "game/house.h"
+#include "game/items.h"
 #include "../raw_brush.h"
 
 #include <wx/msgdlg.h>

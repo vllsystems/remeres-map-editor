@@ -17,49 +17,64 @@
 
 #include "main.h"
 
-#include "zones.h"
-#include "map.h"
+#include "game/town.h"
 
-Zones::~Zones() {
-	zones.clear();
+#include "map.h"
+#include "tile.h"
+
+Towns::Towns() {
+	////
 }
 
-bool Zones::addZone(const std::string &name, unsigned int id) {
-	if (hasZone(name)) {
+Towns::~Towns() {
+	clear();
+}
+
+void Towns::clear() {
+	TownMap::const_iterator it = begin();
+	while (it != end()) {
+		delete it->second;
+		++it;
+	}
+	towns.clear();
+}
+
+bool Towns::addTown(Town* town) {
+	TownMap::iterator it = find(town->getID());
+	if (it != end()) {
 		return false;
 	}
-	if (used_ids.find(id) != used_ids.end()) {
-		return false;
-	}
-	zones.emplace(name, id);
-	used_ids.insert(id);
+	towns[town->getID()] = town;
 	return true;
 }
 
-bool Zones::addZone(const std::string &name) {
-	return addZone(name, generateID());
-}
-
-bool Zones::hasZone(const std::string &name) {
-	return zones.find(name) != zones.end();
-}
-
-bool Zones::hasZone(unsigned int id) {
-	return used_ids.find(id) != used_ids.end();
-}
-
-void Zones::removeZone(const std::string &name) {
-	if (!hasZone(name)) {
-		return;
+uint32_t Towns::getEmptyID() {
+	uint32_t empty = 0;
+	for (TownMap::iterator it = begin(); it != end(); ++it) {
+		if (it->second->getID() > empty) {
+			empty = it->second->getID();
+		}
 	}
-	used_ids.erase(zones[name]);
-	zones.erase(name);
+	return empty + 1;
 }
 
-unsigned int Zones::generateID() {
-	unsigned int id = 1;
-	while (used_ids.find(id) != used_ids.end()) {
-		id++;
+Town* Towns::getTown(std::string &name) {
+	for (TownMap::iterator it = begin(); it != end(); ++it) {
+		if (it->second->getName() == name) {
+			return it->second;
+		}
 	}
-	return id;
+	return nullptr;
+}
+
+Town* Towns::getTown(uint32_t id) {
+	TownMap::iterator it = find(id);
+	if (it != end()) {
+		return it->second;
+	}
+	return nullptr;
+}
+
+void Town::setTemplePosition(const Position &position) {
+	templepos = position;
 }

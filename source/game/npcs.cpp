@@ -18,9 +18,9 @@
 #include "main.h"
 
 #include "gui.h"
-#include "materials.h"
+#include "game/materials.h"
 #include "brush.h"
-#include "npcs.h"
+#include "game/npcs.h"
 #include "npc_brush.h"
 
 #include <wx/dir.h>

@@ -19,10 +19,10 @@
 #define RME_TILE_H
 
 #include "util/position.h"
-#include "item.h"
+#include "game/item.h"
 #include "map_region.h"
-#include "spawn_npc.h"
-#include "npc.h"
+#include "game/spawn_npc.h"
+#include "game/npc.h"
 #include <unordered_set>
 
 enum {

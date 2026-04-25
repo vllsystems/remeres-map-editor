@@ -20,8 +20,8 @@
 #include "copybuffer.h"
 #include "editor.h"
 #include "gui.h"
-#include "monster.h"
-#include "npc.h"
+#include "game/monster.h"
+#include "game/npc.h"
 
 CopyBuffer::CopyBuffer() :
 	tiles(newd BaseMap()) {

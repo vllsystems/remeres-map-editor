@@ -17,8 +17,8 @@
 
 #include "main.h"
 
-#include "complexitem.h" // Door
-#include "house.h"
+#include "game/complexitem.h" // Door
+#include "game/house.h"
 #include "tile.h"
 #include "map.h"
 

@@ -30,11 +30,11 @@
 #include "updater.h"
 #include "artprovider.h"
 
-#include "materials.h"
+#include "game/materials.h"
 #include "map.h"
-#include "complexitem.h"
-#include "monster.h"
-#include "npc.h"
+#include "game/complexitem.h"
+#include "game/monster.h"
+#include "game/npc.h"
 #include "lua/lua_script_manager.h"
 
 #include "../brushes/icon/rme_icon.xpm"

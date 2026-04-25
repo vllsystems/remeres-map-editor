@@ -23,7 +23,7 @@
 #include "palette_monster.h"
 #include "monster_brush.h"
 #include "spawn_monster_brush.h"
-#include "materials.h"
+#include "game/materials.h"
 
 #include <algorithm>
 

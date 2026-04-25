@@ -27,7 +27,7 @@
 #include "brush.h"
 #include "map.h"
 #include "sprites.h"
-#include "materials.h"
+#include "game/materials.h"
 #include "doodad_brush.h"
 #include "spawn_monster_brush.h"
 

@@ -21,9 +21,9 @@
 #include "graphics.h"
 #include "gui.h"
 #include "tile.h"
-#include "complexitem.h"
+#include "game/complexitem.h"
 #include "iomap.h"
-#include "item.h"
+#include "game/item.h"
 
 #include "ground_brush.h"
 #include "carpet_brush.h"

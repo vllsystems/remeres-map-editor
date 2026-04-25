@@ -22,15 +22,15 @@
 #include "settings.h"
 #include "gui.h" // Loadbar
 #include "client_assets.h"
-#include "monsters.h"
-#include "monster.h"
-#include "npcs.h"
-#include "npc.h"
+#include "game/monsters.h"
+#include "game/monster.h"
+#include "game/npcs.h"
+#include "game/npc.h"
 #include "map.h"
 #include "tile.h"
-#include "item.h"
-#include "complexitem.h"
-#include "town.h"
+#include "game/item.h"
+#include "game/complexitem.h"
+#include "game/town.h"
 
 typedef uint8_t attribute_t;
 typedef uint32_t flags_t;

@@ -19,9 +19,9 @@
 
 #include "selection.h"
 #include "tile.h"
-#include "monster.h"
-#include "npc.h"
-#include "item.h"
+#include "game/monster.h"
+#include "game/npc.h"
+#include "game/item.h"
 #include "editor.h"
 #include "gui.h"
 

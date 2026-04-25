@@ -20,7 +20,7 @@
 #include "properties_window.h"
 
 #include "gui_ids.h"
-#include "complexitem.h"
+#include "game/complexitem.h"
 #include "container_properties_window.h"
 
 const wxArrayString PropertiesWindow::types = {

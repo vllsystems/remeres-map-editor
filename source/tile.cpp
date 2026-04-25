@@ -20,16 +20,16 @@
 #include "brush.h"
 
 #include "tile.h"
-#include "monster.h"
-#include "house.h"
+#include "game/monster.h"
+#include "game/house.h"
 #include "basemap.h"
-#include "spawn_monster.h"
+#include "game/spawn_monster.h"
 #include "ground_brush.h"
 #include "wall_brush.h"
 #include "carpet_brush.h"
 #include "table_brush.h"
-#include "npc.h"
-#include "spawn_npc.h"
+#include "game/npc.h"
+#include "game/spawn_npc.h"
 
 Tile::Tile(int x, int y, int z) :
 	location(nullptr),

@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "zone_brush.h"
-#include "zones.h"
+#include "game/zones.h"
 #include "basemap.h"
 
 //=============================================================================

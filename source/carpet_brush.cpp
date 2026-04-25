@@ -20,7 +20,7 @@
 #include "carpet_brush.h"
 
 #include "basemap.h"
-#include "items.h"
+#include "game/items.h"
 
 //=============================================================================
 // Carpet brush

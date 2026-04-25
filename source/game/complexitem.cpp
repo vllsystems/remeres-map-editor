@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "complexitem.h"
+#include "game/complexitem.h"
 
 #include "iomap.h"
 

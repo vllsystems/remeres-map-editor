@@ -18,7 +18,7 @@
 #ifndef RME_MONSTER_H_
 #define RME_MONSTER_H_
 
-#include "monsters.h"
+#include "game/monsters.h"
 #include "util/enums.h"
 
 class Monster {

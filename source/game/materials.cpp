@@ -18,12 +18,12 @@
 #include "main.h"
 
 #include "editor.h"
-#include "items.h"
-#include "monsters.h"
+#include "game/items.h"
+#include "game/monsters.h"
 #include <algorithm>
 
 #include "gui.h"
-#include "materials.h"
+#include "game/materials.h"
 #include "brush.h"
 #include "monster_brush.h"
 #include "npc_brush.h"

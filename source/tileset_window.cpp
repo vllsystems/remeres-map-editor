@@ -20,14 +20,14 @@
 #include <wx/grid.h>
 
 #include "tile.h"
-#include "item.h"
-#include "complexitem.h"
-#include "town.h"
-#include "house.h"
+#include "game/item.h"
+#include "game/complexitem.h"
+#include "game/town.h"
+#include "game/house.h"
 #include "map.h"
 #include "editor.h"
-#include "materials.h"
-#include "tileset.h"
+#include "game/materials.h"
+#include "game/tileset.h"
 
 #include "gui.h"
 #include "application.h"

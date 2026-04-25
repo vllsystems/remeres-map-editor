@@ -18,8 +18,8 @@
 #include "main.h"
 
 #include "iomap_otmm.h"
-#include "item.h"
-#include "complexitem.h"
+#include "game/item.h"
+#include "game/complexitem.h"
 #include "iomap_otmm.h"
 #include "filehandle.h"
 #include "map.h"

@@ -17,12 +17,12 @@
 
 #include "main.h"
 
-#include "tileset.h"
-#include "monsters.h"
+#include "game/tileset.h"
+#include "game/monsters.h"
 #include "monster_brush.h"
-#include "npcs.h"
+#include "game/npcs.h"
 #include "npc_brush.h"
-#include "items.h"
+#include "game/items.h"
 #include "raw_brush.h"
 
 Tileset::Tileset(Brushes &brushes, const std::string &name) :

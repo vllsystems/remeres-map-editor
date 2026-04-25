@@ -18,7 +18,7 @@
 #ifndef RME_NPC_H_
 #define RME_NPC_H_
 
-#include "npcs.h"
+#include "game/npcs.h"
 #include "util/enums.h"
 
 class Npc {

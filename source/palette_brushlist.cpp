@@ -22,9 +22,9 @@
 #include "brush.h"
 #include "add_tileset_window.h"
 #include "add_item_window.h"
-#include "materials.h"
-#include "monsters.h"
-#include "npcs.h"
+#include "game/materials.h"
+#include "game/monsters.h"
+#include "game/npcs.h"
 
 // ============================================================================
 // Brush Palette Panel

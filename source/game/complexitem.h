@@ -19,7 +19,7 @@
 #define RME_CONTAINER_H_
 
 #include "util/position.h"
-#include "item.h"
+#include "game/item.h"
 
 #pragma pack(1)
 

@@ -17,11 +17,11 @@
 
 #include "main.h"
 
-#include "materials.h"
+#include "game/materials.h"
 #include "gui.h"
 
-#include "items.h"
-#include "item.h"
+#include "game/items.h"
+#include "game/item.h"
 #include "sprite_appearances.h"
 
 #include <appearances.pb.h>

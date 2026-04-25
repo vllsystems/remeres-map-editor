@@ -17,44 +17,45 @@
 
 #include "main.h"
 
-#include "waypoint_brush.h"
-#include "game/waypoints.h"
-#include "basemap.h"
+#include "tile.h"
+#include "game/spawn_monster.h"
 
-//=============================================================================
-// Waypoint Brush
-
-WaypointBrush::WaypointBrush() :
-	Brush() {
-	////
+SpawnMonster::SpawnMonster(int size) :
+	size(0),
+	selected(false) {
+	setSize(size);
 }
 
-WaypointBrush::~WaypointBrush() {
-	////
+SpawnMonster* SpawnMonster::deepCopy() const {
+	SpawnMonster* copy = new SpawnMonster(size);
+	copy->selected = selected;
+	return copy;
 }
 
-void WaypointBrush::setWaypoint(Waypoint* wp) {
-	if (wp) {
-		waypoint_name = wp->name;
-	} else {
-		waypoint_name = "";
+void SpawnsMonster::addSpawnMonster(Tile* tile) {
+	ASSERT(tile->spawnMonster);
+
+	auto it = spawnsMonster.insert(tile->getPosition());
+	ASSERT(it.second);
+}
+
+void SpawnsMonster::removeSpawnMonster(Tile* tile) {
+	ASSERT(tile->spawnMonster);
+	spawnsMonster.erase(tile->getPosition());
+#if 0
+	SpawnMonsterPositionList::iterator iter = begin();
+	while(iter != end()) {
+		if(*iter == tile->getPosition()) {
+			spawnsMonster.erase(iter);
+			return;
+		}
+		++iter;
 	}
-}
-
-std::string WaypointBrush::getWaypoint() const {
-	return waypoint_name;
-}
-
-bool WaypointBrush::canDraw(BaseMap* map, const Position &position) const {
-	return map->getTile(position) != nullptr;
-}
-
-void WaypointBrush::undraw(BaseMap* map, Tile* tile) {
-	// Never called
 	ASSERT(false);
+#endif
 }
 
-void WaypointBrush::draw(BaseMap* map, Tile* tile, void* parameter) {
-	// Never called
-	ASSERT(false);
+std::ostream &operator<<(std::ostream &os, const SpawnMonster &spawnMonster) {
+	os << &spawnMonster << ":: -> " << spawnMonster.getSize() << std::endl;
+	return os;
 }

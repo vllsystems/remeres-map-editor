@@ -21,7 +21,7 @@
 #include "main.h"
 
 #include "dcbutton.h"
-#include "tileset.h"
+#include "game/tileset.h"
 #include "gui_ids.h"
 #include "common_windows.h"
 

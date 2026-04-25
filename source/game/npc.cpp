@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "npc.h"
+#include "game/npc.h"
 
 Npc::Npc(NpcType* type) :
 	direction(NORTH), spawnNpcTime(0), saved(false), selected(false) {

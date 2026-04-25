@@ -18,7 +18,7 @@
 #ifndef RME_GRAPHICS_H_
 #define RME_GRAPHICS_H_
 
-#include "outfit.h"
+#include "game/outfit.h"
 #include "util/common.h"
 #include "util/enums.h"
 

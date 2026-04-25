@@ -21,7 +21,7 @@
 #include "graphics.h"
 #include "gui.h"
 #include "artprovider.h"
-#include "items.h"
+#include "game/items.h"
 
 // ============================================================================
 // ReplaceItemsButton

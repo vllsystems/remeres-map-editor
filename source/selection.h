@@ -19,7 +19,7 @@
 #define RME_SELECTION_H
 
 #include "util/position.h"
-#include "npc.h"
+#include "game/npc.h"
 #include "action.h"
 
 class Action;

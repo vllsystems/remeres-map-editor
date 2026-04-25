@@ -20,9 +20,9 @@
 #include "monster_brush.h"
 #include "settings.h"
 #include "tile.h"
-#include "monster.h"
+#include "game/monster.h"
 #include "basemap.h"
-#include "spawn_monster.h"
+#include "game/spawn_monster.h"
 
 //=============================================================================
 // Monster brush

@@ -20,7 +20,7 @@
 #include "editor.h"
 #include "map.h"
 #include "tile.h"
-#include "item.h"
+#include "game/item.h"
 #include "ground_brush.h"
 #include "brush.h"
 #include "action.h"

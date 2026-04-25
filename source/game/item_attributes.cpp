@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "item_attributes.h"
+#include "game/item_attributes.h"
 #include "filehandle.h"
 
 ItemAttributes::ItemAttributes() :

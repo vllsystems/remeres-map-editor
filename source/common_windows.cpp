@@ -17,14 +17,14 @@
 
 #include "main.h"
 
-#include "materials.h"
+#include "game/materials.h"
 #include "brush.h"
 #include "editor.h"
 
-#include "items.h"
+#include "game/items.h"
 #include "map.h"
-#include "item.h"
-#include "complexitem.h"
+#include "game/item.h"
+#include "game/complexitem.h"
 #include "raw_brush.h"
 
 #include "palette_window.h"

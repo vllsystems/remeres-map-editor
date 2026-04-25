@@ -23,7 +23,7 @@
 #include "palette_npc.h"
 #include "npc_brush.h"
 #include "spawn_npc_brush.h"
-#include "materials.h"
+#include "game/materials.h"
 
 // ============================================================================
 // Npc palette

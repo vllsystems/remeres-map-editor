@@ -33,9 +33,9 @@
 
 #include <wx/chartype.h>
 
-#include "items.h"
+#include "game/items.h"
 #include "editor.h"
-#include "materials.h"
+#include "game/materials.h"
 #include "live_client.h"
 #include "live_server.h"
 

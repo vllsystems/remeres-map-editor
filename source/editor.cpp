@@ -18,10 +18,10 @@
 #include "main.h"
 
 #include "editor.h"
-#include "materials.h"
+#include "game/materials.h"
 #include "map.h"
 #include "client_assets.h"
-#include "complexitem.h"
+#include "game/complexitem.h"
 #include "settings.h"
 #include "gui.h"
 #include "map_display.h"

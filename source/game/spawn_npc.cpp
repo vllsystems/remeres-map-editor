@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "tile.h"
-#include "spawn_npc.h"
+#include "game/spawn_npc.h"
 
 SpawnNpc::SpawnNpc(int size) :
 	size(0),

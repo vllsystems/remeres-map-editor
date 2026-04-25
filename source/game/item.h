@@ -18,10 +18,10 @@
 #ifndef RME_ITEM_H_
 #define RME_ITEM_H_
 
-#include "items.h"
+#include "game/items.h"
 #include "iomap_otbm.h"
 // #include "iomap_otmm.h"
-#include "item_attributes.h"
+#include "game/item_attributes.h"
 
 enum ITEMPROPERTY {
 	BLOCKSOLID,

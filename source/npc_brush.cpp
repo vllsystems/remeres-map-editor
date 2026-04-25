@@ -20,9 +20,9 @@
 #include "npc_brush.h"
 #include "settings.h"
 #include "tile.h"
-#include "npc.h"
+#include "game/npc.h"
 #include "basemap.h"
-#include "spawn_npc.h"
+#include "game/spawn_npc.h"
 
 //=============================================================================
 // Npc brush

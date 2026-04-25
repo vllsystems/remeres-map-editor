@@ -20,7 +20,7 @@
 
 #include <wx/listctrl.h>
 
-#include "waypoints.h"
+#include "game/waypoints.h"
 #include "palette_common.h"
 
 class WaypointPalettePanel : public PalettePanel {

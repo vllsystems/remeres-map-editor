@@ -145,12 +145,12 @@ target_sources(${PROJECT_NAME}
 	client_assets.cpp
 	util/common.cpp
 	common_windows.cpp
-	complexitem.cpp
+	game/complexitem.cpp
 	container_properties_window.cpp
 	copybuffer.cpp
 	monster_brush.cpp
-	monster.cpp
-	monsters.cpp
+	game/monster.cpp
+	game/monsters.cpp
 	dat_debug_view.cpp
 	dcbutton.cpp
 	doodad_brush.cpp
@@ -164,15 +164,15 @@ target_sources(${PROJECT_NAME}
 	ground_brush.cpp
 	gui.cpp
 	house_brush.cpp
-	house.cpp
+	game/house.cpp
 	house_exit_brush.cpp
 	light_drawer.cpp
 	iomap.cpp
 	iomap_otbm.cpp
 	iominimap.cpp
-	item_attributes.cpp
-	item.cpp
-	items.cpp
+	game/item_attributes.cpp
+	game/item.cpp
+	game/items.cpp
 	live_action.cpp
 	live_client.cpp
 	live_peer.cpp
@@ -208,14 +208,14 @@ target_sources(${PROJECT_NAME}
 	map_region.cpp
 	map_tab.cpp
 	map_window.cpp
-	materials.cpp
+	game/materials.cpp
 	minimap_window.cpp
 	util/mkpch.cpp
 	util/mt_rand.cpp
 	net_connection.cpp
-	npc.cpp
+	game/npc.cpp
 	npc_brush.cpp
-	npcs.cpp
+	game/npcs.cpp
 	numbertextctrl.cpp
 	old_properties_window.cpp
 	palette_brushlist.cpp
@@ -237,8 +237,8 @@ target_sources(${PROJECT_NAME}
 	selection.cpp
 	settings.cpp
 	spawn_monster_brush.cpp
-	spawn_monster.cpp
-	spawn_npc.cpp
+	game/spawn_monster.cpp
+	game/spawn_npc.cpp
 	spawn_npc_brush.cpp
 	sprite_appearances.cpp
 	util/stb_truetype_impl.cpp
@@ -248,16 +248,16 @@ target_sources(${PROJECT_NAME}
 	templatemap854.cpp
 	templatemapclassic.cpp
 	tile.cpp
-	tileset.cpp
+	game/tileset.cpp
 	tileset_window.cpp
-	town.cpp
+	game/town.cpp
 	updater.cpp
 	wall_brush.cpp
 	waypoint_brush.cpp
-	waypoints.cpp
+	game/waypoints.cpp
 	welcome_dialog.cpp
 	zone_brush.cpp
-	zones.cpp
+	game/zones.cpp
 )
 
 target_include_directories(${PROJECT_NAME}

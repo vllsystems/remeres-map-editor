@@ -19,7 +19,7 @@
 #include "lua_api_image.h"
 #include "../gui.h"
 #include "../graphics.h"
-#include "../items.h"
+#include "game/items.h"
 #include <filesystem>
 #include <print>
 #include "lua_script_manager.h"

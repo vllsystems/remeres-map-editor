@@ -20,7 +20,7 @@
 
 #include <wx/listctrl.h>
 
-#include "zones.h"
+#include "game/zones.h"
 #include "palette_common.h"
 
 class ZonesPalettePanel : public PalettePanel {

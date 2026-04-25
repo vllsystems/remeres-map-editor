@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "monster.h"
+#include "game/monster.h"
 
 Monster::Monster(MonsterType* type, uint8_t weight) :
 	direction(NORTH),

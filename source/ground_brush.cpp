@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "ground_brush.h"
-#include "items.h"
+#include "game/items.h"
 #include "basemap.h"
 
 uint32_t GroundBrush::border_types[256];

@@ -18,7 +18,7 @@
 #ifndef RME_MATERIALS_H_
 #define RME_MATERIALS_H_
 
-#include "tileset.h"
+#include "game/tileset.h"
 
 using TilesetContainer = std::map<std::string, Tileset*>;
 

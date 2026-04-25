@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "waypoints.h"
+#include "game/waypoints.h"
 #include "map.h"
 
 Waypoints::~Waypoints() {

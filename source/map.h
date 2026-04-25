@@ -20,14 +20,14 @@
 
 #include "basemap.h"
 #include "tile.h"
-#include "town.h"
-#include "house.h"
-#include "spawn_monster.h"
-#include "complexitem.h"
-#include "waypoints.h"
-#include "zones.h"
+#include "game/town.h"
+#include "game/house.h"
+#include "game/spawn_monster.h"
+#include "game/complexitem.h"
+#include "game/waypoints.h"
+#include "game/zones.h"
 #include "templates.h"
-#include "spawn_npc.h"
+#include "game/spawn_npc.h"
 
 class Map : public BaseMap {
 public:
