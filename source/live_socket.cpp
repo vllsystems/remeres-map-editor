@@ -19,7 +19,7 @@
 #include "live_socket.h"
 
 #include "client_assets.h"
-#include "map_region.h"
+#include "map/map_region.h"
 #include "iomap_otbm.h"
 #include "live_tab.h"
 #include "editor.h"

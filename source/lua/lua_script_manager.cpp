@@ -20,7 +20,7 @@
 #include "lua_api.h"
 #include "lua_api_image.h"
 #include "../gui.h"
-#include "../tile.h"
+#include "map/tile.h"
 
 #include <wx/dir.h>
 #include <wx/filename.h>

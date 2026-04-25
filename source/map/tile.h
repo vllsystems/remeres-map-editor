@@ -20,7 +20,7 @@
 
 #include "util/position.h"
 #include "game/item.h"
-#include "map_region.h"
+#include "map/map_region.h"
 #include "game/spawn_npc.h"
 #include "game/npc.h"
 #include <unordered_set>

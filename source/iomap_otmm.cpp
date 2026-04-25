@@ -22,7 +22,7 @@
 #include "game/complexitem.h"
 #include "iomap_otmm.h"
 #include "filehandle.h"
-#include "map.h"
+#include "map/map.h"
 #include "gui.h"
 
 // ============================================================================

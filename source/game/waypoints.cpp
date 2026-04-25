@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "game/waypoints.h"
-#include "map.h"
+#include "map/map.h"
 
 Waypoints::~Waypoints() {
 	for (auto it = waypoints.begin(); it != waypoints.end(); ++it) {

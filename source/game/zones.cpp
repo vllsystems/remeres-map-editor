@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "game/zones.h"
-#include "map.h"
+#include "map/map.h"
 
 Zones::~Zones() {
 	zones.clear();

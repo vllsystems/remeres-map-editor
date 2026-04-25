@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "selection.h"
-#include "tile.h"
+#include "map/tile.h"
 #include "game/monster.h"
 #include "game/npc.h"
 #include "game/item.h"

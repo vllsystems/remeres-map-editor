@@ -31,7 +31,7 @@
 #include "palette_zones.h"
 
 #include "house_brush.h"
-#include "map.h"
+#include "map/map.h"
 
 // ============================================================================
 // Palette window

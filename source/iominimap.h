@@ -18,7 +18,7 @@
 #ifndef RME_OTMM_H_
 #define RME_OTMM_H_
 
-#include "map.h"
+#include "map/map.h"
 
 enum class MinimapExportFormat {
 	Otmm,

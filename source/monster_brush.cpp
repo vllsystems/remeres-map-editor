@@ -19,9 +19,9 @@
 
 #include "monster_brush.h"
 #include "settings.h"
-#include "tile.h"
+#include "map/tile.h"
 #include "game/monster.h"
-#include "basemap.h"
+#include "map/basemap.h"
 #include "game/spawn_monster.h"
 
 //=============================================================================

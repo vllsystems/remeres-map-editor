@@ -134,7 +134,7 @@ target_sources(${PROJECT_NAME}
 	add_tileset_window.cpp
 	application.cpp
 	artprovider.cpp
-	basemap.cpp
+	map/basemap.cpp
 	bitmap_to_map_window.cpp
 	bitmap_to_map_converter.cpp
 	brush.cpp
@@ -202,10 +202,10 @@ target_sources(${PROJECT_NAME}
 	lua/lua_scripts_window.cpp
 	main_menubar.cpp
 	main_toolbar.cpp
-	map.cpp
+	map/map.cpp
 	map_display.cpp
 	map_drawer.cpp
-	map_region.cpp
+	map/map_region.cpp
 	map_tab.cpp
 	map_window.cpp
 	game/materials.cpp
@@ -247,7 +247,7 @@ target_sources(${PROJECT_NAME}
 	templatemap81.cpp
 	templatemap854.cpp
 	templatemapclassic.cpp
-	tile.cpp
+	map/tile.cpp
 	game/tileset.cpp
 	tileset_window.cpp
 	game/town.cpp

@@ -21,8 +21,8 @@
 #include "main.h"
 #include "util/position.h"
 #include "filehandle.h"
-#include "map_allocator.h"
-#include "tile.h"
+#include "map/map_allocator.h"
+#include "map/tile.h"
 
 // Class declarations
 class QTreeNode;

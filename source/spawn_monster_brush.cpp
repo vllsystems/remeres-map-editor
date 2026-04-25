@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "spawn_monster_brush.h"
-#include "basemap.h"
+#include "map/basemap.h"
 #include "game/spawn_monster.h"
 #include "monster_brush.h"
 

@@ -20,7 +20,7 @@
 #include "lua_api.h"
 #include <algorithm>
 #include <iterator>
-#include "../tile.h"
+#include "map/tile.h"
 #include "game/item.h"
 #include "game/monster.h"
 #include "game/monsters.h"
@@ -34,7 +34,7 @@
 #include "../wall_brush.h"
 #include "../gui.h"
 #include "../editor.h"
-#include "../map.h"
+#include "map/map.h"
 
 namespace LuaAPI {
 

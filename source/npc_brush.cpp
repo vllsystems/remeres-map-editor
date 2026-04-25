@@ -19,9 +19,9 @@
 
 #include "npc_brush.h"
 #include "settings.h"
-#include "tile.h"
+#include "map/tile.h"
 #include "game/npc.h"
-#include "basemap.h"
+#include "map/basemap.h"
 #include "game/spawn_npc.h"
 
 //=============================================================================

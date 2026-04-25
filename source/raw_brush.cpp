@@ -20,7 +20,7 @@
 #include "raw_brush.h"
 #include "settings.h"
 #include "game/items.h"
-#include "basemap.h"
+#include "map/basemap.h"
 
 //=============================================================================
 // RAW brush

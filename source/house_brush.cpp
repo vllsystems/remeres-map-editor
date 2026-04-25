@@ -19,7 +19,7 @@
 
 #include "house_brush.h"
 #include "game/house.h"
-#include "map.h"
+#include "map/map.h"
 #include "game/complexitem.h"
 
 //=============================================================================

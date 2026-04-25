@@ -23,7 +23,7 @@
 
 #include "gui.h"
 #include "editor.h"
-#include "map.h"
+#include "map/map.h"
 #include "sprites.h"
 #include "map_tab.h"
 #include "editor_tabs.h"

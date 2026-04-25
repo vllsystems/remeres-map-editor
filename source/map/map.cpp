@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "gui.h"
-#include "map.h"
+#include "map/map.h"
 
 #include "client_assets.h"
 

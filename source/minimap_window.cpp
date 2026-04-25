@@ -19,7 +19,7 @@
 
 #include "graphics.h"
 #include "editor.h"
-#include "map.h"
+#include "map/map.h"
 
 #include "gui.h"
 #include "map_display.h"

@@ -22,7 +22,7 @@
 #include "editor.h"
 
 #include "game/items.h"
-#include "map.h"
+#include "map/map.h"
 #include "game/item.h"
 #include "game/complexitem.h"
 #include "raw_brush.h"

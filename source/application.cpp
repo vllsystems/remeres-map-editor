@@ -31,7 +31,7 @@
 #include "artprovider.h"
 
 #include "game/materials.h"
-#include "map.h"
+#include "map/map.h"
 #include "game/complexitem.h"
 #include "game/monster.h"
 #include "game/npc.h"

@@ -18,8 +18,8 @@
 #ifndef RME_MAP_H_
 #define RME_MAP_H_
 
-#include "basemap.h"
-#include "tile.h"
+#include "map/basemap.h"
+#include "map/tile.h"
 #include "game/town.h"
 #include "game/house.h"
 #include "game/spawn_monster.h"

@@ -19,7 +19,7 @@
 
 #include "action.h"
 #include "settings.h"
-#include "map.h"
+#include "map/map.h"
 #include "editor.h"
 #include "gui.h"
 

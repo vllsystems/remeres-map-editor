@@ -23,7 +23,7 @@
 #include "gui.h"
 #include "palette_waypoints.h"
 #include "waypoint_brush.h"
-#include "map.h"
+#include "map/map.h"
 
 BEGIN_EVENT_TABLE(WaypointPalettePanel, PalettePanel)
 EVT_BUTTON(PALETTE_WAYPOINT_ADD_WAYPOINT, WaypointPalettePanel::OnClickAddWaypoint)

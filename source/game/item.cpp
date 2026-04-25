@@ -20,7 +20,7 @@
 #include "brush.h"
 #include "graphics.h"
 #include "gui.h"
-#include "tile.h"
+#include "map/tile.h"
 #include "game/complexitem.h"
 #include "iomap.h"
 #include "game/item.h"

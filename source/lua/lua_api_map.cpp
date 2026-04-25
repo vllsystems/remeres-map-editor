@@ -17,9 +17,9 @@
 
 #include "main.h"
 #include "lua_api_map.h"
-#include "../map.h"
-#include "../basemap.h"
-#include "../tile.h"
+#include "map/map.h"
+#include "map/basemap.h"
+#include "map/tile.h"
 #include "util/position.h"
 #include "../gui.h"
 #include "../editor.h"

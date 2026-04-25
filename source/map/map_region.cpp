@@ -17,10 +17,10 @@
 
 #include "main.h"
 
-#include "map_region.h"
-#include "basemap.h"
+#include "map/map_region.h"
+#include "map/basemap.h"
 #include "util/position.h"
-#include "tile.h"
+#include "map/tile.h"
 
 //**************** Tile Location **********************
 

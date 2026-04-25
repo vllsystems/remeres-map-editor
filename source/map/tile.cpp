@@ -19,10 +19,10 @@
 
 #include "brush.h"
 
-#include "tile.h"
+#include "map/tile.h"
 #include "game/monster.h"
 #include "game/house.h"
-#include "basemap.h"
+#include "map/basemap.h"
 #include "game/spawn_monster.h"
 #include "ground_brush.h"
 #include "wall_brush.h"

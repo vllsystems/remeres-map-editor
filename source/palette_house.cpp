@@ -23,7 +23,7 @@
 
 #include "brush.h"
 #include "editor.h"
-#include "map.h"
+#include "map/map.h"
 
 #include "application.h"
 #include "map_display.h"

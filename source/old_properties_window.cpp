@@ -17,12 +17,12 @@
 
 #include "main.h"
 
-#include "tile.h"
+#include "map/tile.h"
 #include "game/item.h"
 #include "game/complexitem.h"
 #include "game/town.h"
 #include "game/house.h"
-#include "map.h"
+#include "map/map.h"
 #include "editor.h"
 #include "game/monster.h"
 #include "game/npc.h"

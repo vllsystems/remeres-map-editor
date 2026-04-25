@@ -19,7 +19,7 @@
 
 #include "zone_brush.h"
 #include "game/zones.h"
-#include "basemap.h"
+#include "map/basemap.h"
 
 //=============================================================================
 // Zone Brush

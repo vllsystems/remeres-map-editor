@@ -19,7 +19,7 @@
 
 #include "editor.h"
 #include "game/materials.h"
-#include "map.h"
+#include "map/map.h"
 #include "client_assets.h"
 #include "game/complexitem.h"
 #include "settings.h"

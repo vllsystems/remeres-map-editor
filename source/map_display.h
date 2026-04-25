@@ -19,7 +19,7 @@
 #define RME_DISPLAY_WINDOW_H_
 
 #include "action.h"
-#include "tile.h"
+#include "map/tile.h"
 #include "game/monster.h"
 #include "game/npc.h"
 

@@ -21,7 +21,7 @@
 #include "main.h"
 
 #include "common_windows.h"
-#include "map.h"
+#include "map/map.h"
 #include "numbertextctrl.h"
 
 class ContainerItemButton;

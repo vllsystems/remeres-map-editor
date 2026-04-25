@@ -19,7 +19,7 @@
 
 #include "house_exit_brush.h"
 #include "game/house.h"
-#include "basemap.h"
+#include "map/basemap.h"
 
 //=============================================================================
 // House Exit Brush

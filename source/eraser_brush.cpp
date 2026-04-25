@@ -19,7 +19,7 @@
 
 #include "brush.h"
 #include "sprites.h"
-#include "basemap.h"
+#include "map/basemap.h"
 #include "settings.h"
 
 //=============================================================================

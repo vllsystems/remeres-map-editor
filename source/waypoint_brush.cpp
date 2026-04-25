@@ -19,7 +19,7 @@
 
 #include "waypoint_brush.h"
 #include "game/waypoints.h"
-#include "basemap.h"
+#include "map/basemap.h"
 
 //=============================================================================
 // Waypoint Brush

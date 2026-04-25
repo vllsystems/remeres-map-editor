@@ -23,7 +23,7 @@
 #include "gui.h"
 #include "palette_zones.h"
 #include "zone_brush.h"
-#include "map.h"
+#include "map/map.h"
 #include <wx/wfstream.h>
 #include <fstream>
 #include "pugixml.hpp"

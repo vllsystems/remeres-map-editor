@@ -21,8 +21,8 @@
 #include "game/monster.h"
 #include "game/monsters.h"
 #include "game/spawn_monster.h"
-#include "../tile.h"
-#include "../map.h"
+#include "map/tile.h"
+#include "map/map.h"
 #include "../editor.h"
 #include "../gui.h"
 

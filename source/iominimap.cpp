@@ -19,7 +19,7 @@
 
 #include "iominimap.h"
 
-#include "tile.h"
+#include "map/tile.h"
 #include "filehandle.h"
 #include "editor.h"
 #include "gui.h"

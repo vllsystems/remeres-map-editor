@@ -19,8 +19,8 @@
 #define RME_BROWSE_TILE_WINDOW_H_
 
 #include "main.h"
-#include "map.h"
-#include "tile.h"
+#include "map/map.h"
+#include "map/tile.h"
 
 using ItemsMap = std::map<int, Item*>;
 

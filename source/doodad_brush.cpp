@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "doodad_brush.h"
-#include "basemap.h"
+#include "map/basemap.h"
 
 //=============================================================================
 // Doodad brush

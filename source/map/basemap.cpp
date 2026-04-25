@@ -17,8 +17,8 @@
 
 #include "main.h"
 
-#include "tile.h"
-#include "basemap.h"
+#include "map/tile.h"
+#include "map/basemap.h"
 
 BaseMap::BaseMap() :
 	allocator(),

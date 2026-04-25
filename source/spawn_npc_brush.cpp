@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "spawn_npc_brush.h"
-#include "basemap.h"
+#include "map/basemap.h"
 #include "game/spawn_npc.h"
 
 //=============================================================================

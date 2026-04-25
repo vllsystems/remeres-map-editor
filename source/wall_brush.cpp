@@ -19,7 +19,7 @@
 
 #include "wall_brush.h"
 #include "game/items.h"
-#include "basemap.h"
+#include "map/basemap.h"
 
 uint32_t WallBrush::full_border_types[16];
 uint32_t WallBrush::half_border_types[16];

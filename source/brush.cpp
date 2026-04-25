@@ -43,7 +43,7 @@
 #include "game/monster.h"
 #include "game/npcs.h"
 #include "game/npc.h"
-#include "map.h"
+#include "map/map.h"
 
 #include "gui.h"
 
