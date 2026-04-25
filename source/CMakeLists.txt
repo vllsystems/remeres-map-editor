@@ -142,7 +142,7 @@ target_sources(${PROJECT_NAME}
 	browse_tile_window.cpp
 	positionctrl.cpp
 	brushes/carpet_brush.cpp
-	client_assets.cpp
+	io/client_assets.cpp
 	util/common.cpp
 	common_windows.cpp
 	game/complexitem.cpp
@@ -158,7 +158,7 @@ target_sources(${PROJECT_NAME}
 	editor_tabs.cpp
 	brushes/eraser_brush.cpp
 	find_item_window.cpp
-	filehandle.cpp
+	io/filehandle.cpp
 	graphics.cpp
 	gl_renderer.cpp
 	brushes/ground_brush.cpp
@@ -167,9 +167,9 @@ target_sources(${PROJECT_NAME}
 	game/house.cpp
 	brushes/house_exit_brush.cpp
 	light_drawer.cpp
-	iomap.cpp
-	iomap_otbm.cpp
-	iominimap.cpp
+	io/iomap.cpp
+	io/iomap_otbm.cpp
+	io/iominimap.cpp
 	game/item_attributes.cpp
 	game/item.cpp
 	game/items.cpp
@@ -240,7 +240,7 @@ target_sources(${PROJECT_NAME}
 	game/spawn_monster.cpp
 	game/spawn_npc.cpp
 	brushes/spawn_npc_brush.cpp
-	sprite_appearances.cpp
+	io/sprite_appearances.cpp
 	util/stb_truetype_impl.cpp
 	brushes/table_brush.cpp
 	templatemap76-74.cpp

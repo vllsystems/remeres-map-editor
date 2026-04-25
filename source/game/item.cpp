@@ -22,7 +22,7 @@
 #include "gui.h"
 #include "map/tile.h"
 #include "game/complexitem.h"
-#include "iomap.h"
+#include "io/iomap.h"
 #include "game/item.h"
 
 #include "brushes/ground_brush.h"

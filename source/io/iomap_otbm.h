@@ -18,7 +18,7 @@
 #ifndef RME_OTBM_MAP_IO_H_
 #define RME_OTBM_MAP_IO_H_
 
-#include "iomap.h"
+#include "io/iomap.h"
 
 enum OTBM_ItemAttribute {
 	OTBM_ATTR_DESCRIPTION = 1,

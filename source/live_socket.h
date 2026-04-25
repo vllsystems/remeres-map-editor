@@ -21,8 +21,8 @@
 #include "util/position.h"
 #include "net/net_connection.h"
 #include "live_packets.h"
-#include "filehandle.h"
-#include "iomap.h"
+#include "io/filehandle.h"
+#include "io/iomap.h"
 
 #include <memory>
 #include <unordered_map>

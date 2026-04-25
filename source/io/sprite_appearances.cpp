@@ -17,9 +17,9 @@
 
 #include "main.h"
 
-#include "sprite_appearances.h"
+#include "io/sprite_appearances.h"
 #include "settings.h"
-#include "filehandle.h"
+#include "io/filehandle.h"
 #include "gui.h"
 #include "gl_renderer.h"
 

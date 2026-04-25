@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "filehandle.h"
+#include "io/filehandle.h"
 
 uint8_t NodeFileWriteHandle::NODE_START = ::NODE_START;
 uint8_t NodeFileWriteHandle::NODE_END = ::NODE_END;

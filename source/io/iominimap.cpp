@@ -17,10 +17,10 @@
 
 #include "main.h"
 
-#include "iominimap.h"
+#include "io/iominimap.h"
 
 #include "map/tile.h"
-#include "filehandle.h"
+#include "io/filehandle.h"
 #include "editor.h"
 #include "gui.h"
 

@@ -18,7 +18,7 @@
 #ifndef RME_MAP_IO_H_
 #define RME_MAP_IO_H_
 
-#include "client_assets.h"
+#include "io/client_assets.h"
 
 enum ImportType {
 	IMPORT_DONT,

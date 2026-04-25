@@ -19,7 +19,7 @@
 
 #include "settings.h"
 #include "editor.h"
-#include "client_assets.h"
+#include "io/client_assets.h"
 #include "gui.h"
 
 #include "preferences.h"

@@ -20,7 +20,7 @@
 #include "editor.h"
 #include "game/materials.h"
 #include "map/map.h"
-#include "client_assets.h"
+#include "io/client_assets.h"
 #include "game/complexitem.h"
 #include "settings.h"
 #include "gui.h"

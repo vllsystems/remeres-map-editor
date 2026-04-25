@@ -22,7 +22,7 @@
 
 #include "game/items.h"
 #include "game/item.h"
-#include "sprite_appearances.h"
+#include "io/sprite_appearances.h"
 
 #include <appearances.pb.h>
 

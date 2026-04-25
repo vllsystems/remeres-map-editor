@@ -20,7 +20,7 @@
 
 #include "main.h"
 #include "util/position.h"
-#include "filehandle.h"
+#include "io/filehandle.h"
 #include "map/map_allocator.h"
 #include "map/tile.h"
 

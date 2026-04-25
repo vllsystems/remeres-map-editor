@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "game/item_attributes.h"
-#include "filehandle.h"
+#include "io/filehandle.h"
 
 ItemAttributes::ItemAttributes() :
 	attributes(nullptr) {

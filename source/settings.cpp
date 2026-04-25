@@ -20,7 +20,7 @@
 #include "settings.h"
 
 #include "gui_ids.h"
-#include "client_assets.h"
+#include "io/client_assets.h"
 
 Settings g_settings;
 

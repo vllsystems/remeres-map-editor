@@ -19,13 +19,13 @@
 
 #include "graphics.h"
 
-#include "client_assets.h"
+#include "io/client_assets.h"
 #include "artprovider.h"
-#include "filehandle.h"
+#include "io/filehandle.h"
 #include "settings.h"
 #include "gui.h"
 #include "util/otml.h"
-#include "sprite_appearances.h"
+#include "io/sprite_appearances.h"
 #include "sprites.h"
 #include "pngfiles.h"
 

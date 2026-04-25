@@ -17,11 +17,11 @@
 
 #include "main.h"
 
-#include "iomap_otmm.h"
+#include "io/iomap_otmm.h"
 #include "game/item.h"
 #include "game/complexitem.h"
-#include "iomap_otmm.h"
-#include "filehandle.h"
+#include "io/iomap_otmm.h"
+#include "io/filehandle.h"
 #include "map/map.h"
 #include "gui.h"
 

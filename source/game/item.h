@@ -19,8 +19,8 @@
 #define RME_ITEM_H_
 
 #include "game/items.h"
-#include "iomap_otbm.h"
-// #include "iomap_otmm.h"
+#include "io/iomap_otbm.h"
+// #include "io/iomap_otmm.h"
 #include "game/item_attributes.h"
 
 enum ITEMPROPERTY {

@@ -17,12 +17,12 @@
 
 #include "main.h"
 
-#include "client_assets.h"
+#include "io/client_assets.h"
 
 #include "settings.h"
-#include "filehandle.h"
+#include "io/filehandle.h"
 #include "preferences.h"
-#include "sprite_appearances.h"
+#include "io/sprite_appearances.h"
 #include "gui.h"
 #include "util/otml.h"
 

@@ -17,11 +17,11 @@
 
 #include "main.h"
 
-#include "iomap_otbm.h"
+#include "io/iomap_otbm.h"
 
 #include "settings.h"
 #include "gui.h" // Loadbar
-#include "client_assets.h"
+#include "io/client_assets.h"
 #include "game/monsters.h"
 #include "game/monster.h"
 #include "game/npcs.h"

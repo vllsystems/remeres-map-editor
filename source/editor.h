@@ -20,7 +20,7 @@
 
 #include "game/item.h"
 #include "map/tile.h"
-#include "iomap.h"
+#include "io/iomap.h"
 #include "map/map.h"
 
 #include "action.h"

@@ -34,7 +34,7 @@
 #include "positionctrl.h"
 #include "preferences.h"
 
-#include "iominimap.h"
+#include "io/iominimap.h"
 
 #ifdef _MSC_VER
 	#pragma warning(disable : 4018) // signed/unsigned mismatch

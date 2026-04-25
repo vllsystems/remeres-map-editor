@@ -18,7 +18,7 @@
 #ifndef RME_ITEMS_H_
 #define RME_ITEMS_H_
 
-#include "filehandle.h"
+#include "io/filehandle.h"
 #include "brushes/brush_enums.h"
 
 namespace canary {

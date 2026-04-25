@@ -18,9 +18,9 @@
 #include "main.h"
 #include "live_socket.h"
 
-#include "client_assets.h"
+#include "io/client_assets.h"
 #include "map/map_region.h"
-#include "iomap_otbm.h"
+#include "io/iomap_otbm.h"
 #include "live_tab.h"
 #include "editor.h"
 

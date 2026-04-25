@@ -18,7 +18,7 @@
 #ifndef RME_OTMM_IOMAP_H_
 #define RME_OTMM_IOMAP_H_
 
-#include "iomap.h"
+#include "io/iomap.h"
 
 #pragma pack(1)
 

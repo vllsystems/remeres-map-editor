@@ -21,7 +21,7 @@
 #include <string>
 #include <map>
 
-#include "filehandle.h"
+#include "io/filehandle.h"
 
 class IOMap;
 class ItemAttribute;

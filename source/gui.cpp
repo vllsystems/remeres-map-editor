@@ -20,7 +20,7 @@
 #include "gui.h"
 
 #include "application.h"
-#include "client_assets.h"
+#include "io/client_assets.h"
 #include "main_menubar.h"
 
 #include "editor.h"
@@ -41,7 +41,7 @@
 #include "brushes/spawn_npc_brush.h"
 #include "actions_history_window.h"
 #include "lua/lua_scripts_window.h"
-#include "sprite_appearances.h"
+#include "io/sprite_appearances.h"
 #include "preferences.h"
 
 #include "live_client.h"

@@ -19,7 +19,7 @@
 
 #include "game/complexitem.h"
 
-#include "iomap.h"
+#include "io/iomap.h"
 
 // Container
 Container::Container(const uint16_t type) :
