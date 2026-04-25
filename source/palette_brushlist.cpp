@@ -19,7 +19,7 @@
 
 #include "palette_brushlist.h"
 #include "gui.h"
-#include "brush.h"
+#include "brushes/brush.h"
 #include "add_tileset_window.h"
 #include "add_item_window.h"
 #include "game/materials.h"

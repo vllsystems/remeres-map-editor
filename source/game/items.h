@@ -19,7 +19,7 @@
 #define RME_ITEMS_H_
 
 #include "filehandle.h"
-#include "brush_enums.h"
+#include "brushes/brush_enums.h"
 
 namespace canary {
 	namespace protobuf {

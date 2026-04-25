@@ -20,7 +20,7 @@
 
 #include "gui.h"
 #include "editor.h"
-#include "brush.h"
+#include "brushes/brush.h"
 #include "sprites.h"
 #include "map/map.h"
 #include "map/tile.h"
@@ -36,19 +36,19 @@
 
 #include "main_menubar.h"
 
-#include "doodad_brush.h"
-#include "house_exit_brush.h"
-#include "house_brush.h"
-#include "wall_brush.h"
-#include "spawn_monster_brush.h"
-#include "monster_brush.h"
-#include "ground_brush.h"
-#include "waypoint_brush.h"
-#include "raw_brush.h"
-#include "carpet_brush.h"
-#include "table_brush.h"
-#include "spawn_npc_brush.h"
-#include "npc_brush.h"
+#include "brushes/doodad_brush.h"
+#include "brushes/house_exit_brush.h"
+#include "brushes/house_brush.h"
+#include "brushes/wall_brush.h"
+#include "brushes/spawn_monster_brush.h"
+#include "brushes/monster_brush.h"
+#include "brushes/ground_brush.h"
+#include "brushes/waypoint_brush.h"
+#include "brushes/raw_brush.h"
+#include "brushes/carpet_brush.h"
+#include "brushes/table_brush.h"
+#include "brushes/spawn_npc_brush.h"
+#include "brushes/npc_brush.h"
 
 BEGIN_EVENT_TABLE(MapCanvas, wxGLCanvas)
 EVT_KEY_DOWN(MapCanvas::OnKeyDown)

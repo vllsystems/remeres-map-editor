@@ -20,8 +20,8 @@
 #include "common_windows.h"
 #include "gui.h"
 #include "game/items.h"
-#include "brush.h"
-#include "raw_brush.h"
+#include "brushes/brush.h"
+#include "brushes/raw_brush.h"
 
 BEGIN_EVENT_TABLE(FindItemDialog, wxDialog)
 EVT_TIMER(wxID_ANY, FindItemDialog::OnInputTimer)

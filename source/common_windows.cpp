@@ -18,14 +18,14 @@
 #include "main.h"
 
 #include "game/materials.h"
-#include "brush.h"
+#include "brushes/brush.h"
 #include "editor.h"
 
 #include "game/items.h"
 #include "map/map.h"
 #include "game/item.h"
 #include "game/complexitem.h"
-#include "raw_brush.h"
+#include "brushes/raw_brush.h"
 
 #include "palette_window.h"
 #include "gui.h"

@@ -19,9 +19,9 @@
 
 #include "gui.h"
 #include "game/materials.h"
-#include "brush.h"
+#include "brushes/brush.h"
 #include "game/monsters.h"
-#include "monster_brush.h"
+#include "brushes/monster_brush.h"
 
 #include <wx/dir.h>
 

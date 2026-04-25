@@ -17,17 +17,17 @@
 
 #include "main.h"
 
-#include "brush.h"
+#include "brushes/brush.h"
 
 #include "map/tile.h"
 #include "game/monster.h"
 #include "game/house.h"
 #include "map/basemap.h"
 #include "game/spawn_monster.h"
-#include "ground_brush.h"
-#include "wall_brush.h"
-#include "carpet_brush.h"
-#include "table_brush.h"
+#include "brushes/ground_brush.h"
+#include "brushes/wall_brush.h"
+#include "brushes/carpet_brush.h"
+#include "brushes/table_brush.h"
 #include "game/npc.h"
 #include "game/spawn_npc.h"
 

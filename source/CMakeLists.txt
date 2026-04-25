@@ -137,35 +137,35 @@ target_sources(${PROJECT_NAME}
 	map/basemap.cpp
 	bitmap_to_map_window.cpp
 	bitmap_to_map_converter.cpp
-	brush.cpp
-	brush_tables.cpp
+	brushes/brush.cpp
+	brushes/brush_tables.cpp
 	browse_tile_window.cpp
 	positionctrl.cpp
-	carpet_brush.cpp
+	brushes/carpet_brush.cpp
 	client_assets.cpp
 	util/common.cpp
 	common_windows.cpp
 	game/complexitem.cpp
 	container_properties_window.cpp
 	copybuffer.cpp
-	monster_brush.cpp
+	brushes/monster_brush.cpp
 	game/monster.cpp
 	game/monsters.cpp
 	dat_debug_view.cpp
 	dcbutton.cpp
-	doodad_brush.cpp
+	brushes/doodad_brush.cpp
 	editor.cpp
 	editor_tabs.cpp
-	eraser_brush.cpp
+	brushes/eraser_brush.cpp
 	find_item_window.cpp
 	filehandle.cpp
 	graphics.cpp
 	gl_renderer.cpp
-	ground_brush.cpp
+	brushes/ground_brush.cpp
 	gui.cpp
-	house_brush.cpp
+	brushes/house_brush.cpp
 	game/house.cpp
-	house_exit_brush.cpp
+	brushes/house_exit_brush.cpp
 	light_drawer.cpp
 	iomap.cpp
 	iomap_otbm.cpp
@@ -214,7 +214,7 @@ target_sources(${PROJECT_NAME}
 	util/mt_rand.cpp
 	net_connection.cpp
 	game/npc.cpp
-	npc_brush.cpp
+	brushes/npc_brush.cpp
 	game/npcs.cpp
 	numbertextctrl.cpp
 	old_properties_window.cpp
@@ -230,19 +230,19 @@ target_sources(${PROJECT_NAME}
 	preferences.cpp
 	process_com.cpp
 	properties_window.cpp
-	raw_brush.cpp
+	brushes/raw_brush.cpp
 	replace_items_window.cpp
 	result_window.cpp
 	rme_net.cpp
 	selection.cpp
 	settings.cpp
-	spawn_monster_brush.cpp
+	brushes/spawn_monster_brush.cpp
 	game/spawn_monster.cpp
 	game/spawn_npc.cpp
-	spawn_npc_brush.cpp
+	brushes/spawn_npc_brush.cpp
 	sprite_appearances.cpp
 	util/stb_truetype_impl.cpp
-	table_brush.cpp
+	brushes/table_brush.cpp
 	templatemap76-74.cpp
 	templatemap81.cpp
 	templatemap854.cpp
@@ -252,11 +252,11 @@ target_sources(${PROJECT_NAME}
 	tileset_window.cpp
 	game/town.cpp
 	updater.cpp
-	wall_brush.cpp
-	waypoint_brush.cpp
+	brushes/wall_brush.cpp
+	brushes/waypoint_brush.cpp
 	game/waypoints.cpp
 	welcome_dialog.cpp
-	zone_brush.cpp
+	brushes/zone_brush.cpp
 	game/zones.cpp
 )
 

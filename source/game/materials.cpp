@@ -24,10 +24,10 @@
 
 #include "gui.h"
 #include "game/materials.h"
-#include "brush.h"
-#include "monster_brush.h"
-#include "npc_brush.h"
-#include "raw_brush.h"
+#include "brushes/brush.h"
+#include "brushes/monster_brush.h"
+#include "brushes/npc_brush.h"
+#include "brushes/raw_brush.h"
 
 Materials g_materials;
 

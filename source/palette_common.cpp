@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "palette_common.h"
-#include "brush.h"
+#include "brushes/brush.h"
 #include "sprites.h"
 #include "gui.h"
 #include "common_windows.h"

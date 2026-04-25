@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "brush.h"
+#include "brushes/brush.h"
 #include "graphics.h"
 #include "gui.h"
 #include "map/tile.h"
@@ -25,10 +25,10 @@
 #include "iomap.h"
 #include "game/item.h"
 
-#include "ground_brush.h"
-#include "carpet_brush.h"
-#include "table_brush.h"
-#include "wall_brush.h"
+#include "brushes/ground_brush.h"
+#include "brushes/carpet_brush.h"
+#include "brushes/table_brush.h"
+#include "brushes/wall_brush.h"
 
 Item* Item::Create(uint16_t id, uint16_t subtype /*= 0xFFFF*/) {
 	if (id == 0) {

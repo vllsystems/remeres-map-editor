@@ -20,7 +20,7 @@
 #include "gui.h"
 #include "editor.h"
 #include "settings.h"
-#include "brush.h"
+#include "brushes/brush.h"
 #include "pngfiles.h"
 #include "artprovider.h"
 

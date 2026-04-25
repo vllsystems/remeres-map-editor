@@ -23,12 +23,12 @@
 
 #include "copybuffer.h"
 #include "dcbutton.h"
-#include "brush_enums.h"
+#include "brushes/brush_enums.h"
 #include "gui_ids.h"
 #include "editor_tabs.h"
 #include "map_tab.h"
 #include "palette_window.h"
-#include "zone_brush.h"
+#include "brushes/zone_brush.h"
 
 namespace canary {
 	namespace protobuf {

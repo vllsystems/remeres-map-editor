@@ -21,17 +21,17 @@
 
 #include "settings.h"
 
-#include "brush.h"
+#include "brushes/brush.h"
 #include "editor.h"
 #include "map/map.h"
 
 #include "application.h"
 #include "map_display.h"
 
-#include "house_brush.h"
-#include "house_exit_brush.h"
-#include "spawn_monster_brush.h"
-#include "spawn_npc_brush.h"
+#include "brushes/house_brush.h"
+#include "brushes/house_exit_brush.h"
+#include "brushes/spawn_monster_brush.h"
+#include "brushes/spawn_npc_brush.h"
 
 // ============================================================================
 // House palette

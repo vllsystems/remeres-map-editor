@@ -18,11 +18,11 @@
 #include "main.h"
 
 #include "settings.h"
-#include "brush.h"
+#include "brushes/brush.h"
 #include "gui.h"
 #include "palette_monster.h"
-#include "monster_brush.h"
-#include "spawn_monster_brush.h"
+#include "brushes/monster_brush.h"
+#include "brushes/spawn_monster_brush.h"
 #include "game/materials.h"
 
 #include <algorithm>

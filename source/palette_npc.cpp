@@ -18,11 +18,11 @@
 #include "main.h"
 
 #include "settings.h"
-#include "brush.h"
+#include "brushes/brush.h"
 #include "gui.h"
 #include "palette_npc.h"
-#include "npc_brush.h"
-#include "spawn_npc_brush.h"
+#include "brushes/npc_brush.h"
+#include "brushes/spawn_npc_brush.h"
 #include "game/materials.h"
 
 // ============================================================================

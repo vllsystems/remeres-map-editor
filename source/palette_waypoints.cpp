@@ -22,7 +22,7 @@
 
 #include "gui.h"
 #include "palette_waypoints.h"
-#include "waypoint_brush.h"
+#include "brushes/waypoint_brush.h"
 #include "map/map.h"
 
 BEGIN_EVENT_TABLE(WaypointPalettePanel, PalettePanel)

@@ -17,7 +17,7 @@
 
 #include "main.h"
 #include "lua_api_brush.h"
-#include "../brush.h"
+#include "brushes/brush.h"
 #include "../gui.h"
 
 namespace LuaAPI {

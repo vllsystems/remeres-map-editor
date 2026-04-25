@@ -21,13 +21,13 @@
 #include "../gui.h"
 #include "../editor.h"
 #include "map/map.h"
-#include "../brush.h"
+#include "brushes/brush.h"
 #include "../action.h"
 #include "map/tile.h"
 #include "../selection.h"
 #include "game/house.h"
 #include "game/items.h"
-#include "../raw_brush.h"
+#include "brushes/raw_brush.h"
 
 #include <wx/msgdlg.h>
 #include <wx/app.h>

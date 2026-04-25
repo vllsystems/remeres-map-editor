@@ -19,11 +19,11 @@
 
 #include "game/tileset.h"
 #include "game/monsters.h"
-#include "monster_brush.h"
+#include "brushes/monster_brush.h"
 #include "game/npcs.h"
-#include "npc_brush.h"
+#include "brushes/npc_brush.h"
 #include "game/items.h"
-#include "raw_brush.h"
+#include "brushes/raw_brush.h"
 
 Tileset::Tileset(Brushes &brushes, const std::string &name) :
 	name(name),
