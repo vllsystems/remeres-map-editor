@@ -18,7 +18,7 @@
 #ifndef RME_ACTION_H_
 #define RME_ACTION_H_
 
-#include "position.h"
+#include "util/position.h"
 
 class Editor;
 class Tile;

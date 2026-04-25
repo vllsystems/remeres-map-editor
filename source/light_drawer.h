@@ -19,7 +19,7 @@
 #define RME_LIGHDRAWER_H
 
 #include "graphics.h"
-#include "position.h"
+#include "util/position.h"
 
 class GLRenderer;
 

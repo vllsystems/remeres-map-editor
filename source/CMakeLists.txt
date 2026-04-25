@@ -143,7 +143,7 @@ target_sources(${PROJECT_NAME}
 	positionctrl.cpp
 	carpet_brush.cpp
 	client_assets.cpp
-	common.cpp
+	util/common.cpp
 	common_windows.cpp
 	complexitem.cpp
 	container_properties_window.cpp
@@ -210,8 +210,8 @@ target_sources(${PROJECT_NAME}
 	map_window.cpp
 	materials.cpp
 	minimap_window.cpp
-	mkpch.cpp
-	mt_rand.cpp
+	util/mkpch.cpp
+	util/mt_rand.cpp
 	net_connection.cpp
 	npc.cpp
 	npc_brush.cpp
@@ -241,7 +241,7 @@ target_sources(${PROJECT_NAME}
 	spawn_npc.cpp
 	spawn_npc_brush.cpp
 	sprite_appearances.cpp
-	stb_truetype_impl.cpp
+	util/stb_truetype_impl.cpp
 	table_brush.cpp
 	templatemap76-74.cpp
 	templatemap81.cpp

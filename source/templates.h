@@ -18,7 +18,7 @@
 #ifndef RME_MAP_TEMPLATES_H_
 #define RME_MAP_TEMPLATES_H_
 
-#include "common.h"
+#include "util/common.h"
 
 struct ConversionMap {
 	// Many to Many

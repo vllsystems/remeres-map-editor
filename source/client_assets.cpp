@@ -24,7 +24,7 @@
 #include "preferences.h"
 #include "sprite_appearances.h"
 #include "gui.h"
-#include "otml.h"
+#include "util/otml.h"
 
 #include <appearances.pb.h>
 

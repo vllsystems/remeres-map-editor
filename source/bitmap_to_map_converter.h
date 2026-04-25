@@ -24,7 +24,7 @@
 #include <vector>
 #include <set>
 
-#include "position.h"
+#include "util/position.h"
 
 static constexpr float kAchromaticDelta = 0.05f;
 

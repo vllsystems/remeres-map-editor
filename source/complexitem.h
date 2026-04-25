@@ -18,7 +18,7 @@
 #ifndef RME_CONTAINER_H_
 #define RME_CONTAINER_H_
 
-#include "position.h"
+#include "util/position.h"
 #include "item.h"
 
 #pragma pack(1)

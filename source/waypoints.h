@@ -18,7 +18,7 @@
 #ifndef RME_WAYPOINTS_H_
 #define RME_WAYPOINTS_H_
 
-#include "position.h"
+#include "util/position.h"
 
 class Waypoint {
 public:

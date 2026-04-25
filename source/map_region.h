@@ -18,8 +18,8 @@
 #ifndef RME_MAP_REGION_H
 #define RME_MAP_REGION_H
 
-#include "const.h"
-#include "position.h"
+#include "util/const.h"
+#include "util/position.h"
 
 class Tile;
 class Floor;

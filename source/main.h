@@ -155,12 +155,12 @@ _Ret_bytecap_(_Size) inline void* __CRTDECL operator new[](size_t _Size, const c
 typedef std::vector<std::string> StringVector;
 typedef wxFileName FileName;
 
-#include "con_vector.h"
-#include "common.h"
-#include "threads.h"
+#include "util/con_vector.h"
+#include "util/common.h"
+#include "util/threads.h"
 
-#include "const.h"
-#include "rme_forward_declarations.h"
+#include "util/const.h"
+#include "util/rme_forward_declarations.h"
 
 #if wxCHECK_VERSION(3, 1, 0)
 	#define FROM_DIP(widget, size) widget->FromDIP(size)

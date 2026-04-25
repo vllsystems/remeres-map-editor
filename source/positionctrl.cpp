@@ -18,7 +18,7 @@
 #include "main.h"
 #include "positionctrl.h"
 #include "numbertextctrl.h"
-#include "position.h"
+#include "util/position.h"
 
 PositionCtrl::PositionCtrl(wxWindow* parent, const wxString &label, int x, int y, int z, int maxx /*= rme::MapMaxWidth*/, int maxy /*= rme::MapMaxHeight*/, int maxz /*= rme::MapMaxLayer*/) :
 	wxStaticBoxSizer(wxHORIZONTAL, parent, label) {

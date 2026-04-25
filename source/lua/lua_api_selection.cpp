@@ -19,7 +19,7 @@
 #include "lua_api_selection.h"
 #include "../selection.h"
 #include "../tile.h"
-#include "../position.h"
+#include "util/position.h"
 #include "../gui.h"
 #include "../editor.h"
 

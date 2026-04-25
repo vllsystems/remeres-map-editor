@@ -18,7 +18,7 @@
 #ifndef RME_TILE_H
 #define RME_TILE_H
 
-#include "position.h"
+#include "util/position.h"
 #include "item.h"
 #include "map_region.h"
 #include "spawn_npc.h"

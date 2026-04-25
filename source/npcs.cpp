@@ -25,7 +25,7 @@
 
 #include <wx/dir.h>
 
-#include "lua_parser.h"
+#include "util/lua_parser.h"
 
 NpcDatabase g_npcs;
 

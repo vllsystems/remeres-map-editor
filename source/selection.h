@@ -18,7 +18,7 @@
 #ifndef RME_SELECTION_H
 #define RME_SELECTION_H
 
-#include "position.h"
+#include "util/position.h"
 #include "npc.h"
 #include "action.h"
 

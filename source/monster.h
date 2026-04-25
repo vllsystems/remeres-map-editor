@@ -19,7 +19,7 @@
 #define RME_MONSTER_H_
 
 #include "monsters.h"
-#include "enums.h"
+#include "util/enums.h"
 
 class Monster {
 public:

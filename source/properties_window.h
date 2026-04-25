@@ -22,6 +22,7 @@
 
 #include "common_windows.h"
 #include "map.h"
+#include "numbertextctrl.h"
 
 class ContainerItemButton;
 class ContainerItemPopupMenu;

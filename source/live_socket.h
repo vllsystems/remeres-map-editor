@@ -18,7 +18,7 @@
 #ifndef _RME_LIVE_SOCKET_H_
 #define _RME_LIVE_SOCKET_H_
 
-#include "position.h"
+#include "util/position.h"
 #include "net_connection.h"
 #include "live_packets.h"
 #include "filehandle.h"

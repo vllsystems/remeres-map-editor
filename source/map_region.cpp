@@ -19,7 +19,7 @@
 
 #include "map_region.h"
 #include "basemap.h"
-#include "position.h"
+#include "util/position.h"
 #include "tile.h"
 
 //**************** Tile Location **********************

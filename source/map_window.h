@@ -18,7 +18,7 @@
 #ifndef RME_MAP_WINDOW_H_
 #define RME_MAP_WINDOW_H_
 
-#include "position.h"
+#include "util/position.h"
 #include "replace_items_window.h"
 
 class MapCanvas;

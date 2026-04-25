@@ -19,7 +19,7 @@
 
 #include "result_window.h"
 #include "gui.h"
-#include "position.h"
+#include "util/position.h"
 
 BEGIN_EVENT_TABLE(SearchResultWindow, wxPanel)
 EVT_LISTBOX(wxID_ANY, SearchResultWindow::OnClickResult)

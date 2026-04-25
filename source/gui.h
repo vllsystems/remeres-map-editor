@@ -19,7 +19,7 @@
 #define RME_GUI_H_
 
 #include "graphics.h"
-#include "position.h"
+#include "util/position.h"
 
 #include "copybuffer.h"
 #include "dcbutton.h"

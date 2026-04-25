@@ -20,7 +20,7 @@
 #include "../map.h"
 #include "../basemap.h"
 #include "../tile.h"
-#include "../position.h"
+#include "util/position.h"
 #include "../gui.h"
 #include "../editor.h"
 

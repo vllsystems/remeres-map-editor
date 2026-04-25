@@ -17,9 +17,10 @@
 
 #include "main.h"
 
-#include "common.h"
+#include "util/common.h"
 #include "math.h"
-#include "position.h"
+#include "util/position.h"
+#include "numbertextctrl.h"
 
 // random generator
 std::mt19937 &getRandomGenerator() {

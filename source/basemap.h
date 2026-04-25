@@ -19,7 +19,7 @@
 #define RME_BASE_MAP_H_
 
 #include "main.h"
-#include "position.h"
+#include "util/position.h"
 #include "filehandle.h"
 #include "map_allocator.h"
 #include "tile.h"

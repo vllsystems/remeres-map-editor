@@ -19,7 +19,7 @@
 #define RME_NPC_H_
 
 #include "npcs.h"
-#include "enums.h"
+#include "util/enums.h"
 
 class Npc {
 public:

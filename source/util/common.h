@@ -20,8 +20,9 @@
 
 #include "main.h"
 
-#include "mt_rand.h"
-#include "numbertextctrl.h"
+#include "util/mt_rand.h"
+
+class NumberTextCtrl;
 
 //
 inline bool testFlags(size_t flags, size_t test) noexcept {

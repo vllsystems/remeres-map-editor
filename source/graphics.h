@@ -19,8 +19,8 @@
 #define RME_GRAPHICS_H_
 
 #include "outfit.h"
-#include "common.h"
-#include "enums.h"
+#include "util/common.h"
+#include "util/enums.h"
 
 #include <wx/artprov.h>
 #include <chrono>

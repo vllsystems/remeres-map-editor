@@ -18,7 +18,7 @@
 #ifndef RME_COPYBUFFER_H_
 #define RME_COPYBUFFER_H_
 
-#include "position.h"
+#include "util/position.h"
 #include "basemap.h"
 
 class Editor;

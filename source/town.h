@@ -18,7 +18,7 @@
 #ifndef RME_TOWN_H_
 #define RME_TOWN_H_
 
-#include "position.h"
+#include "util/position.h"
 
 class Town {
 public:

@@ -20,7 +20,7 @@
 	#ifndef RME_UPDATER_H_
 		#define RME_UPDATER_H_
 
-		#include "threads.h"
+		#include "util/threads.h"
 
 extern const wxEventType EVT_UPDATE_CHECK_FINISHED;
 

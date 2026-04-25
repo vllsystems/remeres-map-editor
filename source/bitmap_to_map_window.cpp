@@ -26,7 +26,7 @@
 #include "ground_brush.h"
 #include "items.h"
 #include "gui.h"
-#include "common.h"
+#include "util/common.h"
 #include <wx/dcgraph.h>
 #include <cmath>
 #include <algorithm>

@@ -24,7 +24,7 @@
 #include "filehandle.h"
 #include "settings.h"
 #include "gui.h"
-#include "otml.h"
+#include "util/otml.h"
 #include "sprite_appearances.h"
 #include "sprites.h"
 #include "pngfiles.h"
