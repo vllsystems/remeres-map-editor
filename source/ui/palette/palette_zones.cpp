@@ -19,7 +19,7 @@
 // Zone palette
 
 #include "app/main.h"
-#include "editor/hotkey_manager.h"  
+#include "editor/hotkey_manager.h"
 
 #include "ui/gui.h"
 #include "ui/palette/palette_zones.h"

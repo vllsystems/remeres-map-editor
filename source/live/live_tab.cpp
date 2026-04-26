@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "app/main.h"
-#include "editor/hotkey_manager.h"  
+#include "editor/hotkey_manager.h"
 
 #include "live/live_tab.h"
 #include "live/live_socket.h"

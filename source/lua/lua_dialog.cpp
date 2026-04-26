@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "app/main.h"
-#include "editor/hotkey_manager.h"  
+#include "editor/hotkey_manager.h"
 #include "lua_dialog.h"
 #include "lua_api_image.h"
 #include "ui/gui.h"

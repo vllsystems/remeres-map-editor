@@ -271,9 +271,6 @@ bool GUI::loadMapWindow(wxString &error, wxArrayString &warnings, bool force /* 
 	return ret;
 }
 
-
-
-
 void GUI::CycleTab(bool forward) {
 	tabbook->CycleTab(forward);
 }
@@ -1937,10 +1934,6 @@ void GUI::ShowTextBox(wxWindow* parent, wxString title, wxString content) {
 
 	dlg->ShowModal();
 }
-
-
-
-
 
 void SetWindowToolTip(wxWindow* a, const wxString &tip) {
 	a->SetToolTip(tip);

@@ -157,7 +157,6 @@ public:
 		return disabled_counter == 0;
 	}
 
-
 	// This sends the event to the main window (redirecting from other controls)
 	void AddPendingCanvasEvent(wxEvent &event);
 
@@ -229,7 +228,6 @@ public:
 	bool IsDrawingMode() const {
 		return mode == DRAWING_MODE;
 	}
-
 
 	// Brushes
 	void FillDoodadPreviewBuffer();
@@ -429,7 +427,6 @@ protected:
 	MapVersion m_loadedMapVersion;
 	EditorMode mode;
 	bool pasting;
-
 
 	//=========================================================================
 	// Internal brush data

@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "app/main.h"
-#include "editor/hotkey_manager.h"  
+#include "editor/hotkey_manager.h"
 #include <ranges>
 #include <wx/clipbrd.h>
 #include <wx/wfstream.h>
@@ -1931,7 +1931,7 @@ void MapCanvas::OnKeyDown(wxKeyEvent &event) {
 					break;
 				}
 				g_hotkeys.SetHotkey(index, hk);
-				g_gui.SetStatusText("Set hotkey " + i2ws(index) + ".");  
+				g_gui.SetStatusText("Set hotkey " + i2ws(index) + ".");
 			} else {
 				// Click hotkey
 				Hotkey hk = g_hotkeys.GetHotkey(index);
