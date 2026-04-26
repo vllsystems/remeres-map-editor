@@ -164,6 +164,10 @@ target_sources(${PROJECT_NAME}
 	rendering/gl_renderer.cpp
 	brushes/ground_brush.cpp
 	ui/gui.cpp
+	ui/gui_loading.cpp
+	ui/gui_brush_state.cpp
+	ui/gui_file_ops.cpp
+	ui/gui_palette.cpp
 	editor/hotkey.cpp
 	editor/hotkey_manager.cpp
 	brushes/house_brush.cpp
