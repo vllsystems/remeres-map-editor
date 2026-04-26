@@ -181,9 +181,9 @@ target_sources(${PROJECT_NAME}
 	io/iomap.cpp
 	io/otbm/iomap_otbm.cpp
 	io/otbm/otbm_item_serialization.cpp
-	io/otbm/otbm_spawns.cpp
-	io/otbm/otbm_houses.cpp
-	io/otbm/otbm_zones.cpp
+	io/xml/otbm_spawns.cpp
+	io/xml/otbm_houses.cpp
+	io/xml/otbm_zones.cpp
 	io/iominimap.cpp
 	game/item_attributes.cpp
 	game/item.cpp
@@ -225,6 +225,9 @@ target_sources(${PROJECT_NAME}
 	ui/toolbar/main_toolbar.cpp
 	map/map.cpp
 	rendering/map_display.cpp
+	rendering/canvas_mouse_handlers.cpp
+	rendering/canvas_keyboard_handlers.cpp
+	rendering/canvas_context_menu.cpp
 	rendering/map_drawer.cpp
 	rendering/draw_brush.cpp
 	rendering/draw_tile_detail.cpp
