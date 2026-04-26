@@ -233,8 +233,6 @@ void Editor::clearChanges() {
 	map.clearChanges();
 }
 
-
-
 void Editor::borderizeSelection() {
 	if (selection.empty()) {
 		g_gui.SetStatusText("No items selected. Can't borderize.");
@@ -406,8 +404,6 @@ void Editor::clearModifiedTileState(bool showdialog) {
 	}
 }
 
-
-
 ///////////////////////////////////////////////////////////////////////////////
 // Live!
 
@@ -493,4 +489,3 @@ void Editor::SendNodeRequests() {
 		live_client->sendNodeRequests();
 	}
 }
-
