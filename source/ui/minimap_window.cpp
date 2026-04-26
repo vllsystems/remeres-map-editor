@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/dcbuffer.h>
 
 #include "rendering/graphics.h"
 #include "editor/editor.h"

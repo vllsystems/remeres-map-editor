@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/tglbtn.h>
 
 #include "editor/settings.h"
 #include "brushes/brush.h"

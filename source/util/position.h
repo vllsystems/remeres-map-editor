@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <vector>
 #include <list>
+#include "util/const.h"
 
 class Position {
 public:

@@ -36,7 +36,7 @@ FetchContent_MakeAvailable(FastNoiseLite)
 option(TOGGLE_BIN_FOLDER "Use build/bin folder for generate compilation files" OFF)
 option(OPTIONS_ENABLE_OPENMP "Enable Open Multi-Processing support." ON)
 option(DEBUG_LOG "Enable Debug Log" OFF)
-option(SPEED_UP_BUILD_UNITY "Compile using build unity for speed up build" ON)
+option(SPEED_UP_BUILD_UNITY "Compile using build unity for speed up build" OFF)
 
 # LibArchive disabled in compilation level by default, see "#define OTGZ_SUPPORT" in the "definitions.h" file
 #if(APPLE)
