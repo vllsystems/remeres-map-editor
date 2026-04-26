@@ -47,6 +47,7 @@
 #include <filesystem>
 #include <chrono>
 #include <iostream>
+#include "map/tile_operations.h"
 
 namespace fs = std::filesystem;
 
@@ -242,7 +243,7 @@ void Editor::borderizeSelection() {
 	Action* action = actionQueue->createAction(ACTION_BORDERIZE);
 	for (const Tile* tile : selection) {
 		Tile* new_tile = tile->deepCopy(map);
-		new_tile->borderize(&map);
+		TileOperations::borderize(new_tile, &map);
 		new_tile->select();
 		action->addChange(new Change(new_tile));
 	}
@@ -264,7 +265,7 @@ void Editor::borderizeMap(bool showdialog) {
 		Tile* tile = tileLocation->get();
 		ASSERT(tile);
 
-		tile->borderize(&map);
+		TileOperations::borderize(tile, &map);
 		++tiles_done;
 	}
 

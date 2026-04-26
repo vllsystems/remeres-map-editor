@@ -20,6 +20,7 @@
 #include "brushes/ground_brush.h"
 #include "game/items.h"
 #include "map/basemap.h"
+#include "map/tile_operations.h"
 
 uint32_t GroundBrush::border_types[256];
 
@@ -870,7 +871,7 @@ void GroundBrush::doBorders(BaseMap* map, Tile* tile) {
 	}
 
 	std::sort(borderList.begin(), borderList.end());
-	tile->cleanBorders();
+	TileOperations::cleanBorders(tile);
 
 	while (!borderList.empty()) {
 		BorderCluster &borderCluster = borderList.back();
@@ -893,20 +894,20 @@ void GroundBrush::doBorders(BaseMap* map, Tile* tile) {
 			}
 
 			if (borderCluster.border->tiles[direction]) {
-				tile->addBorderItem(Item::Create(borderCluster.border->tiles[direction]));
+				TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[direction]));
 			} else {
 				if (direction == NORTHWEST_DIAGONAL) {
-					tile->addBorderItem(Item::Create(borderCluster.border->tiles[WEST_HORIZONTAL]));
-					tile->addBorderItem(Item::Create(borderCluster.border->tiles[NORTH_HORIZONTAL]));
+					TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[WEST_HORIZONTAL]));
+					TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[NORTH_HORIZONTAL]));
 				} else if (direction == NORTHEAST_DIAGONAL) {
-					tile->addBorderItem(Item::Create(borderCluster.border->tiles[EAST_HORIZONTAL]));
-					tile->addBorderItem(Item::Create(borderCluster.border->tiles[NORTH_HORIZONTAL]));
+					TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[EAST_HORIZONTAL]));
+					TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[NORTH_HORIZONTAL]));
 				} else if (direction == SOUTHWEST_DIAGONAL) {
-					tile->addBorderItem(Item::Create(borderCluster.border->tiles[SOUTH_HORIZONTAL]));
-					tile->addBorderItem(Item::Create(borderCluster.border->tiles[WEST_HORIZONTAL]));
+					TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[SOUTH_HORIZONTAL]));
+					TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[WEST_HORIZONTAL]));
 				} else if (direction == SOUTHEAST_DIAGONAL) {
-					tile->addBorderItem(Item::Create(borderCluster.border->tiles[SOUTH_HORIZONTAL]));
-					tile->addBorderItem(Item::Create(borderCluster.border->tiles[EAST_HORIZONTAL]));
+					TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[SOUTH_HORIZONTAL]));
+					TileOperations::addBorderItem(tile, Item::Create(borderCluster.border->tiles[EAST_HORIZONTAL]));
 				}
 			}
 		}

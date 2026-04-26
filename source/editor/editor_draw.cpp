@@ -47,6 +47,7 @@
 #include <filesystem>
 #include <chrono>
 #include <iostream>
+#include "map/tile_operations.h"
 
 namespace fs = std::filesystem;
 
@@ -79,7 +80,7 @@ void removeDuplicateWalls(Tile* buffer, Tile* tile) {
 		if (item) {
 			WallBrush* brush = item->getWallBrush();
 			if (brush) {
-				tile->cleanWalls(brush);
+				TileOperations::cleanWalls(tile, brush);
 			}
 		}
 	}
@@ -173,8 +174,8 @@ void Editor::drawInternal(Position offset, bool alt, bool dodraw) {
 				Tile* tile = map.getTile(*it);
 				if (tile) {
 					Tile* new_tile = tile->deepCopy(map);
-					new_tile->borderize(&map);
-					new_tile->wallize(&map);
+					TileOperations::borderize(new_tile, &map);
+					TileOperations::wallize(new_tile, &map);
 					action->addChange(newd Change(new_tile));
 				}
 			}
@@ -315,18 +316,18 @@ void Editor::drawInternal(const PositionVector &tilestodraw, bool alt, bool dodr
 				if (dodraw) {
 					Tile* new_tile = tile->deepCopy(map);
 					brush->draw(&map, new_tile);
-					new_tile->borderize(&map);
+					TileOperations::borderize(new_tile, &map);
 					action->addChange(newd Change(new_tile));
 				} else if (!dodraw && tile->hasOptionalBorder()) {
 					Tile* new_tile = tile->deepCopy(map);
 					brush->undraw(&map, new_tile);
-					new_tile->borderize(&map);
+					TileOperations::borderize(new_tile, &map);
 					action->addChange(newd Change(new_tile));
 				}
 			} else if (dodraw) {
 				Tile* new_tile = map.allocator(location);
 				brush->draw(&map, new_tile);
-				new_tile->borderize(&map);
+				TileOperations::borderize(new_tile, &map);
 				if (new_tile->size() == 0) {
 					delete new_tile;
 					continue;
@@ -378,7 +379,7 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 			if (tile) {
 				Tile* new_tile = tile->deepCopy(map);
 				if (g_settings.getInteger(Config::USE_AUTOMAGIC)) {
-					new_tile->cleanBorders();
+					TileOperations::cleanBorders(new_tile);
 				}
 				if (dodraw) {
 					if (brush->isGround() && alt) {
@@ -430,21 +431,21 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 				if (tile) {
 					Tile* new_tile = tile->deepCopy(map);
 					if (brush->isEraser()) {
-						new_tile->wallize(&map);
-						new_tile->tableize(&map);
-						new_tile->carpetize(&map);
+						TileOperations::wallize(new_tile, &map);
+						TileOperations::tableize(new_tile, &map);
+						TileOperations::carpetize(new_tile, &map);
 					}
-					new_tile->borderize(&map);
+					TileOperations::borderize(new_tile, &map);
 					action->addChange(newd Change(new_tile));
 				} else {
 					Tile* new_tile = map.allocator(location);
 					if (brush->isEraser()) {
 						// There are no carpets/tables/walls on empty tiles...
-						// new_tile->wallize(map);
-						// new_tile->tableize(map);
-						// new_tile->carpetize(map);
+						// TileOperations::wallize(new_tile, map);
+						// TileOperations::tableize(new_tile, map);
+						// TileOperations::carpetize(new_tile, map);
 					}
-					new_tile->borderize(&map);
+					TileOperations::borderize(new_tile, &map);
 					if (new_tile->size() > 0) {
 						action->addChange(newd Change(new_tile));
 					} else {
@@ -488,13 +489,13 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 			if (brush->isTable()) {
 				if (tile && tile->hasTable()) {
 					Tile* new_tile = tile->deepCopy(map);
-					new_tile->tableize(&map);
+					TileOperations::tableize(new_tile, &map);
 					action->addChange(newd Change(new_tile));
 				}
 			} else if (brush->isCarpet()) {
 				if (tile && tile->hasCarpet()) {
 					Tile* new_tile = tile->deepCopy(map);
-					new_tile->carpetize(&map);
+					TileOperations::carpetize(new_tile, &map);
 					action->addChange(newd Change(new_tile));
 				}
 			}
@@ -516,7 +517,7 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 				Tile* tile = location->get();
 				if (tile) {
 					Tile* new_tile = tile->deepCopy(map);
-					new_tile->cleanWalls(brush->isWall());
+					TileOperations::cleanWalls(new_tile, brush->isWall());
 					g_gui.GetCurrentBrush()->draw(draw_map, new_tile);
 					draw_map->setTile(*it, new_tile, true);
 				} else if (dodraw) {
@@ -529,7 +530,7 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 				// Get the correct tiles from the draw map instead of the editor map
 				Tile* tile = draw_map->getTile(*it);
 				if (tile) {
-					tile->wallize(draw_map);
+					TileOperations::wallize(tile, draw_map);
 					action->addChange(newd Change(tile));
 				}
 			}
@@ -543,7 +544,7 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 				if (tile) {
 					Tile* new_tile = tile->deepCopy(map);
 					// Wall cleaning is exempt from automagic
-					new_tile->cleanWalls(brush->isWall());
+					TileOperations::cleanWalls(new_tile, brush->isWall());
 					if (dodraw) {
 						g_gui.GetCurrentBrush()->draw(&map, new_tile);
 					} else {
@@ -567,7 +568,7 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 					Tile* tile = map.getTile(*it);
 					if (tile) {
 						Tile* new_tile = tile->deepCopy(map);
-						new_tile->wallize(&map);
+						TileOperations::wallize(new_tile, &map);
 						// if(*tile == *new_tile) delete new_tile;
 						action->addChange(newd Change(new_tile));
 					}
@@ -590,7 +591,7 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 				Tile* new_tile = tile->deepCopy(map);
 				// Wall cleaning is exempt from automagic
 				if (brush->isWall()) {
-					new_tile->cleanWalls(brush->asWall());
+					TileOperations::cleanWalls(new_tile, brush->asWall());
 				}
 				if (dodraw) {
 					door_brush->draw(&map, new_tile, &alt);
@@ -615,7 +616,7 @@ void Editor::drawInternal(const PositionVector &tilestodraw, PositionVector &til
 				Tile* tile = map.getTile(*it);
 				if (tile) {
 					Tile* new_tile = tile->deepCopy(map);
-					new_tile->wallize(&map);
+					TileOperations::wallize(new_tile, &map);
 					// if(*tile == *new_tile) delete new_tile;
 					action->addChange(newd Change(new_tile));
 				}

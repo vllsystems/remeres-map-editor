@@ -26,6 +26,7 @@
 #include "editor/action.h"
 #include "ui/gui.h"
 #include "app/settings.h"
+#include "map/tile_operations.h"
 
 BitmapToMapConverter::BitmapToMapConverter(Editor &editor) :
 	editor(editor) {
@@ -180,7 +181,7 @@ void BitmapToMapConverter::placeGroundTiles(
 
 			if (tile) {
 				new_tile = tile->deepCopy(map);
-				new_tile->cleanBorders();
+				TileOperations::cleanBorders(new_tile);
 			} else {
 				new_tile = map.allocator(location);
 			}
@@ -221,13 +222,13 @@ void BitmapToMapConverter::borderizeTiles(
 
 		if (tile) {
 			Tile* new_tile = tile->deepCopy(map);
-			new_tile->borderize(&map);
+			TileOperations::borderize(new_tile, &map);
 			action->addChange(newd Change(new_tile));
 			continue;
 		}
 
 		std::unique_ptr<Tile> new_tile(map.allocator(location));
-		new_tile->borderize(&map);
+		TileOperations::borderize(new_tile.get(), &map);
 		if (!new_tile->empty()) {
 			action->addChange(newd Change(new_tile.release()));
 		}

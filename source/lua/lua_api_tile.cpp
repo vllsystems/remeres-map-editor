@@ -35,6 +35,7 @@
 #include "ui/gui.h"
 #include "editor/editor.h"
 #include "map/map.h"
+#include "map/tile_operations.h"
 
 namespace LuaAPI {
 
@@ -323,7 +324,7 @@ namespace LuaAPI {
 		if (success) {
 			bool doBorder = autoBorder.value_or(brush->isGround());
 			if (doBorder) {
-				tile->borderize(&editor->getMap());
+				TileOperations::borderize(tile, &editor->getMap());
 			}
 			tile->modify();
 		}
@@ -413,14 +414,14 @@ namespace LuaAPI {
 				Editor* editor = g_gui.GetCurrentEditor();  
 				if (!editor){ return; }  
 				markTileForUndo(tile);  
-				tile->borderize(&editor->getMap());  
+				TileOperations::borderize(tile, &editor->getMap());  
 				tile->modify(); },
 			"wallize", [](Tile* tile) {  
 				if (!tile){ return; }  
 				Editor* editor = g_gui.GetCurrentEditor();  
 				if (!editor){ return; }  
 				markTileForUndo(tile);  
-				tile->wallize(&editor->getMap());  
+				TileOperations::wallize(tile, &editor->getMap());  
 				tile->modify(); },
 			"moveItem", sol::overload(
 							// Index-based move within same tile

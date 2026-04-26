@@ -21,7 +21,6 @@
 #include "brushes/brush.h"
 
 #include "map/tile.h"
-#include "map/tile_operations.h"
 #include "game/monster.h"
 #include "game/house.h"
 #include "map/basemap.h"
@@ -603,13 +602,7 @@ void Tile::update() {
 	}
 }
 
-void Tile::borderize(BaseMap* parent) {
-	TileOperations::borderize(this, parent);
-}
 
-void Tile::addBorderItem(Item* item) {
-	TileOperations::addBorderItem(this, item);
-}
 
 GroundBrush* Tile::getGroundBrush() const {
 	if (ground && ground->getGroundBrush()) {
@@ -618,13 +611,7 @@ GroundBrush* Tile::getGroundBrush() const {
 	return nullptr;
 }
 
-void Tile::cleanBorders() {
-	TileOperations::cleanBorders(this);
-}
 
-void Tile::wallize(BaseMap* parent) {
-	TileOperations::wallize(this, parent);
-}
 
 Item* Tile::getWall() const {
 	for (Item* item : items) {
@@ -653,29 +640,11 @@ Item* Tile::getTable() const {
 	return nullptr;
 }
 
-void Tile::addWallItem(Item* item) {
-	TileOperations::addWallItem(this, item);
-}
 
-void Tile::cleanWalls(bool dontdelete) {
-	TileOperations::cleanWalls(this, dontdelete);
-}
 
-void Tile::cleanWalls(WallBrush* brush) {
-	TileOperations::cleanWalls(this, brush);
-}
 
-void Tile::cleanTables(bool dontdelete) {
-	TileOperations::cleanTables(this, dontdelete);
-}
 
-void Tile::tableize(BaseMap* parent) {
-	TileOperations::tableize(this, parent);
-}
 
-void Tile::carpetize(BaseMap* parent) {
-	TileOperations::carpetize(this, parent);
-}
 
 void Tile::selectGround() {
 	bool selected = false;

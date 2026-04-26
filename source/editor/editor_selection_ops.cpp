@@ -47,6 +47,7 @@
 #include <filesystem>
 #include <chrono>
 #include <iostream>
+#include "map/tile_operations.h"
 
 namespace fs = std::filesystem;
 
@@ -163,11 +164,11 @@ void Editor::moveSelection(const Position &offset) {
 		for (const Tile* tile : borderize_tiles) {
 			Tile* new_tile = tile->deepCopy(map);
 			if (borderize) {
-				new_tile->borderize(&map);
+				TileOperations::borderize(new_tile, &map);
 			}
-			new_tile->wallize(&map);
-			new_tile->tableize(&map);
-			new_tile->carpetize(&map);
+			TileOperations::wallize(new_tile, &map);
+			TileOperations::tableize(new_tile, &map);
+			TileOperations::carpetize(new_tile, &map);
 			if (tile->ground && tile->ground->isSelected()) {
 				new_tile->selectGround();
 			}
@@ -279,11 +280,11 @@ void Editor::moveSelection(const Position &offset) {
 			if (tile->ground->getGroundBrush()) {
 				Tile* new_tile = tile->deepCopy(map);
 				if (borderize) {
-					new_tile->borderize(&map);
+					TileOperations::borderize(new_tile, &map);
 				}
-				new_tile->wallize(&map);
-				new_tile->tableize(&map);
-				new_tile->carpetize(&map);
+				TileOperations::wallize(new_tile, &map);
+				TileOperations::tableize(new_tile, &map);
+				TileOperations::carpetize(new_tile, &map);
 				if (tile->ground->isSelected()) {
 					new_tile->selectGround();
 				}
@@ -380,14 +381,14 @@ void Editor::destroySelection() {
 
 				if (tile) {
 					Tile* new_tile = tile->deepCopy(map);
-					new_tile->borderize(&map);
-					new_tile->wallize(&map);
-					new_tile->tableize(&map);
-					new_tile->carpetize(&map);
+					TileOperations::borderize(new_tile, &map);
+					TileOperations::wallize(new_tile, &map);
+					TileOperations::tableize(new_tile, &map);
+					TileOperations::carpetize(new_tile, &map);
 					action->addChange(newd Change(new_tile));
 				} else {
 					Tile* new_tile = map.allocator(location);
-					new_tile->borderize(&map);
+					TileOperations::borderize(new_tile, &map);
 					if (new_tile->size()) {
 						action->addChange(newd Change(new_tile));
 					} else {

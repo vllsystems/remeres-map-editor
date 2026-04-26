@@ -24,6 +24,7 @@
 #include "ui/gui.h"
 #include "game/monster.h"
 #include "game/npc.h"
+#include "map/tile_operations.h"
 
 CopyBuffer::CopyBuffer() :
 	tiles(newd BaseMap()) {
@@ -221,12 +222,12 @@ void CopyBuffer::cut(Editor &editor, int floor) {
 			TileLocation* location = map.createTileL(*it);
 			if (location->get()) {
 				Tile* new_tile = location->get()->deepCopy(map);
-				new_tile->borderize(&map);
-				new_tile->wallize(&map);
+				TileOperations::borderize(new_tile, &map);
+				TileOperations::wallize(new_tile, &map);
 				action->addChange(newd Change(new_tile));
 			} else {
 				Tile* new_tile = map.allocator(location);
-				new_tile->borderize(&map);
+				TileOperations::borderize(new_tile, &map);
 				if (new_tile->size()) {
 					action->addChange(newd Change(new_tile));
 				} else {
@@ -367,13 +368,13 @@ void CopyBuffer::paste(Editor &editor, const Position &toPosition) {
 		for (Tile* tile : borderize_tiles) {
 			if (tile) {
 				Tile* newTile = tile->deepCopy(map);
-				newTile->borderize(&map);
+				TileOperations::borderize(newTile, &map);
 
 				if (tile->ground && tile->ground->isSelected()) {
 					newTile->selectGround();
 				}
 
-				newTile->wallize(&map);
+				TileOperations::wallize(newTile, &map);
 				action->addChange(newd Change(newTile));
 			}
 		}

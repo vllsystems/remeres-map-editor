@@ -205,13 +205,10 @@ public: // Functions
 	GroundBrush* getGroundBrush() const;
 
 	// Remove all borders (for autoborder)
-	void cleanBorders();
 
 	// Add a border item (added at the bottom of all items)
-	void addBorderItem(Item* item);
 
 	// Borderize this tile
-	void borderize(BaseMap* parent);
 
 	bool hasTable() const noexcept {
 		return testFlags(statflags, TILESTATE_HAS_TABLE);
@@ -238,19 +235,12 @@ public: // Functions
 	Item* getWall() const;
 	bool hasWall() const;
 	// Remove all walls from the tile (for autowall) (only of those belonging to the specified brush
-	void cleanWalls(WallBrush* brush);
 	// Remove all walls from the tile
-	void cleanWalls(bool dontdelete = false);
 	// Add a wall item (same as just addItem, but an additional check to verify that it is a wall)
-	void addWallItem(Item* item);
 	// Wallize (name sucks, I know) this tile
-	void wallize(BaseMap* parent);
 	// Remove all tables from this tile
-	void cleanTables(bool dontdelete = false);
 	// Tableize (name sucks even worse, I know) this tile
-	void tableize(BaseMap* parent);
 	// Carpetize (name sucks even worse than last one, I know) this tile
-	void carpetize(BaseMap* parent);
 
 	// Has to do with houses
 	bool isHouseTile() const noexcept;
