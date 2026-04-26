@@ -602,16 +602,12 @@ void Tile::update() {
 	}
 }
 
-
-
 GroundBrush* Tile::getGroundBrush() const {
 	if (ground && ground->getGroundBrush()) {
 		return ground->getGroundBrush();
 	}
 	return nullptr;
 }
-
-
 
 Item* Tile::getWall() const {
 	for (Item* item : items) {
@@ -639,12 +635,6 @@ Item* Tile::getTable() const {
 	}
 	return nullptr;
 }
-
-
-
-
-
-
 
 void Tile::selectGround() {
 	bool selected = false;
