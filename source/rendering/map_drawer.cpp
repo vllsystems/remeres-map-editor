@@ -37,12 +37,12 @@
 #include "editor.h"
 #include "gui.h"
 #include "sprites.h"
-#include "map_drawer.h"
+#include "rendering/map_drawer.h"
 #include <unordered_set>
-#include "map_display.h"
+#include "rendering/map_display.h"
 #include "copybuffer.h"
 #include "live_socket.h"
-#include "graphics.h"
+#include "rendering/graphics.h"
 
 #include "brushes/doodad_brush.h"
 #include "brushes/monster_brush.h"
@@ -58,8 +58,8 @@
 #include "brushes/table_brush.h"
 #include "brushes/waypoint_brush.h"
 #include "brushes/zone_brush.h"
-#include "light_drawer.h"
-#include "gl_renderer.h"
+#include "rendering/light_drawer.h"
+#include "rendering/gl_renderer.h"
 
 DrawingOptions::DrawingOptions() {
 	SetDefault();

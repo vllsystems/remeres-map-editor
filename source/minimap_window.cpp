@@ -17,12 +17,12 @@
 
 #include "main.h"
 
-#include "graphics.h"
+#include "rendering/graphics.h"
 #include "editor.h"
 #include "map/map.h"
 
 #include "gui.h"
-#include "map_display.h"
+#include "rendering/map_display.h"
 #include "minimap_window.h"
 
 BEGIN_EVENT_TABLE(MinimapWindow, wxPanel)

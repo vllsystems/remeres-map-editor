@@ -21,8 +21,8 @@
 #include <cstdint>
 #include <unordered_map>
 #include <utility>
-#include "light_drawer.h"
-#include "gl_renderer.h"
+#include "rendering/light_drawer.h"
+#include "rendering/gl_renderer.h"
 
 class GameSprite;
 

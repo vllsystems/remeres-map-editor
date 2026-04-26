@@ -10,7 +10,7 @@
 #endif
 
 #include "main.h"
-#include "gl_renderer.h"
+#include "rendering/gl_renderer.h"
 #include <array>
 #include <cstring>
 #include <cmath>

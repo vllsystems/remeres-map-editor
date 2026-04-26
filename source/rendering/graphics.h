@@ -21,6 +21,7 @@
 #include "game/outfit.h"
 #include "util/common.h"
 #include "util/enums.h"
+#include "util/sprite_types.h"
 
 #include <wx/artprov.h>
 #include <chrono>
@@ -55,18 +56,6 @@ class MapCanvas;
 class GraphicManager;
 class FileReadHandle;
 class Animator;
-
-struct SpriteLight {
-	uint8_t intensity = 0;
-	uint8_t color = 0;
-};
-
-struct SpriteUV {
-	float u0;
-	float v0;
-	float u1;
-	float v1;
-};
 
 class Sprite {
 public:

@@ -20,7 +20,7 @@
 
 #include "definitions.h"
 #include "main.h"
-#include "graphics.h"
+#include "util/sprite_types.h"
 #include <chrono>
 
 class GameSprite;

@@ -20,7 +20,7 @@
 
 #include "editor_tabs.h"
 #include "application.h"
-#include "map_window.h"
+#include "rendering/map_window.h"
 
 class MapTab : public EditorTab, public MapWindow {
 public:

@@ -20,8 +20,8 @@
 #include "lua_api_image.h"
 #include "../gui.h"
 #include "game/items.h"
-#include "../map_display.h"
-#include "../map_drawer.h"
+#include "rendering/map_display.h"
+#include "rendering/map_drawer.h"
 #include "../editor.h"
 #include <wx/msgdlg.h>
 #include "../common_windows.h"

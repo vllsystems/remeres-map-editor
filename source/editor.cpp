@@ -24,7 +24,7 @@
 #include "game/complexitem.h"
 #include "settings.h"
 #include "gui.h"
-#include "map_display.h"
+#include "rendering/map_display.h"
 #include "brushes/brush.h"
 #include "brushes/ground_brush.h"
 #include "brushes/wall_brush.h"

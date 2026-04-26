@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "graphics.h"
+#include "rendering/graphics.h"
 
 #include "io/client_assets.h"
 #include "artprovider.h"
@@ -31,7 +31,7 @@
 
 #include "gl_compat.h"
 
-#include "gl_renderer.h"
+#include "rendering/gl_renderer.h"
 
 #include <wx/rawbmp.h>
 

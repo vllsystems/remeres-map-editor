@@ -117,7 +117,7 @@ endif()
 # === UNITY BUILD (compile time reducer) ===
 if(SPEED_UP_BUILD_UNITY)
 	set_target_properties(${PROJECT_NAME} PROPERTIES UNITY_BUILD ON)
-	set_source_files_properties(gl_renderer.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+	set_source_files_properties(rendering/gl_renderer.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 	log_option_enabled("Build unity for speed up compilation")
 else()
 	# === PRECOMPILED HEADER ===
@@ -159,14 +159,14 @@ target_sources(${PROJECT_NAME}
 	brushes/eraser_brush.cpp
 	find_item_window.cpp
 	io/filehandle.cpp
-	graphics.cpp
-	gl_renderer.cpp
+	rendering/graphics.cpp
+	rendering/gl_renderer.cpp
 	brushes/ground_brush.cpp
 	gui.cpp
 	brushes/house_brush.cpp
 	game/house.cpp
 	brushes/house_exit_brush.cpp
-	light_drawer.cpp
+	rendering/light_drawer.cpp
 	io/iomap.cpp
 	io/iomap_otbm.cpp
 	io/iominimap.cpp
@@ -203,11 +203,11 @@ target_sources(${PROJECT_NAME}
 	main_menubar.cpp
 	main_toolbar.cpp
 	map/map.cpp
-	map_display.cpp
-	map_drawer.cpp
+	rendering/map_display.cpp
+	rendering/map_drawer.cpp
 	map/map_region.cpp
 	map_tab.cpp
-	map_window.cpp
+	rendering/map_window.cpp
 	game/materials.cpp
 	minimap_window.cpp
 	util/mkpch.cpp

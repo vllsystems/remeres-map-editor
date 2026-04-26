@@ -35,7 +35,7 @@
 #include "result_window.h"
 #include "minimap_window.h"
 #include "palette_window.h"
-#include "map_display.h"
+#include "rendering/map_display.h"
 #include "application.h"
 #include "welcome_dialog.h"
 #include "brushes/spawn_npc_brush.h"
