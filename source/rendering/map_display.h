@@ -17,6 +17,7 @@
 
 #ifndef RME_DISPLAY_WINDOW_H_
 #define RME_DISPLAY_WINDOW_H_
+#include <wx/glcanvas.h>
 
 #include "editor/action.h"
 #include "map/tile.h"

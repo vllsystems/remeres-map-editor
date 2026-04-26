@@ -19,6 +19,7 @@
 #define RME_REPLACE_ITEMS_WINDOW_H_
 
 #include "main.h"
+#include <wx/vlbox.h>
 #include "ui/common_windows.h"
 #include "editor/editor.h"
 

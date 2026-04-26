@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/clipbrd.h>
 #include "ui/positionctrl.h"
 #include "ui/numbertextctrl.h"
 #include "util/position.h"

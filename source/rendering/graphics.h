@@ -17,6 +17,7 @@
 
 #ifndef RME_GRAPHICS_H_
 #define RME_GRAPHICS_H_
+#include <wx/glcanvas.h>
 
 #include "game/outfit.h"
 #include "util/common.h"

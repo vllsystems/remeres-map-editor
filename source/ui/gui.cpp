@@ -16,6 +16,11 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/mstream.h>
+#include <wx/display.h>
+#include <wx/stopwatch.h>
+#include <wx/clipbrd.h>
+#include <wx/progdlg.h>
 
 #include "ui/gui.h"
 

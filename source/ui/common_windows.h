@@ -19,6 +19,7 @@
 #define RME_MAP_WINDOWS_H_
 
 #include "main.h"
+#include <wx/vlbox.h>
 
 #include "ui/dcbutton.h"
 #include "ui/positionctrl.h"

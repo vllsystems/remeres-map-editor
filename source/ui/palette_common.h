@@ -19,6 +19,7 @@
 #define RME_PALETTE_COMMONS_H_
 
 #include "main.h"
+#include <wx/splitter.h>
 
 #include "ui/dcbutton.h"
 #include "game/tileset.h"

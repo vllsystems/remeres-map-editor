@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/clipbrd.h>
 
 #include "util/common.h"
 #include "math.h"

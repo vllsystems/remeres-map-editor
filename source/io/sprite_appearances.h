@@ -20,6 +20,7 @@
 
 #include "app/definitions.h"
 #include "main.h"
+#include <wx/glcanvas.h>
 #include "util/sprite_types.h"
 #include <chrono>
 

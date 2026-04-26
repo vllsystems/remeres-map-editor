@@ -19,6 +19,7 @@
 #define RME_ACTIONS_HISTORY_WINDOW_H_
 
 #include "main.h"
+#include <wx/splitter.h>
 #include "editor/action.h"
 
 class HistoryListBox : public wxVListBox {

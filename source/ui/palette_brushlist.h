@@ -19,6 +19,7 @@
 #define RME_PALETTE_BRUSHLIST_
 
 #include "main.h"
+#include <wx/vlbox.h>
 #include "ui/palette_common.h"
 
 enum BrushListType {

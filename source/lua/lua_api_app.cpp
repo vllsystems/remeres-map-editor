@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/clipbrd.h>
 #include "lua_api_app.h"
 #include "lua_script_manager.h"
 #include "ui/gui.h"

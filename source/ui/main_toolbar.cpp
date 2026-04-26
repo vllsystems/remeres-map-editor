@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/mstream.h>
 #include "ui/main_toolbar.h"
 #include "ui/gui.h"
 #include "editor/editor.h"

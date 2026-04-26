@@ -16,6 +16,9 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/dcbuffer.h>
+#include <wx/wxhtml.h>
+#include <wx/url.h>
 
 #include "ui/gui.h"
 

@@ -19,6 +19,8 @@
 #define RME_GUI_H_
 
 #include "rendering/graphics.h"
+#include <wx/glcanvas.h>
+#include <wx/progdlg.h>
 #include "util/position.h"
 
 #include "editor/copybuffer.h"
