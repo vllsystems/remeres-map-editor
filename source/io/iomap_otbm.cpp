@@ -961,7 +961,6 @@ bool IOMapOTBM::loadMap(Map &map, NodeFileReadHandle &f) {
 	return true;
 }
 
-
 bool IOMapOTBM::saveMap(Map &map, const FileName &identifier) {
 #if OTGZ_SUPPORT > 0
 	if (identifier.GetExt() == "otgz") {
@@ -1304,4 +1303,3 @@ bool IOMapOTBM::saveMap(Map &map, NodeFileWriteHandle &f) {
 	f.endNode();
 	return true;
 }
-
