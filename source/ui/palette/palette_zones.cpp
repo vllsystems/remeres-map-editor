@@ -19,6 +19,7 @@
 // Zone palette
 
 #include "app/main.h"
+#include "editor/hotkey_manager.h"  
 
 #include "ui/gui.h"
 #include "ui/palette/palette_zones.h"
@@ -166,7 +167,7 @@ void ZonesPalettePanel::OnRightClickZone(wxListEvent &event) {
 
 void ZonesPalettePanel::OnBeginEditZoneLabel(wxListEvent &event) {
 	// We need to disable all hotkeys, so we can type properly
-	g_gui.DisableHotkeys();
+	g_hotkeys.DisableHotkeys();
 }
 
 void ZonesPalettePanel::OnEditZoneLabel(wxListEvent &event) {
@@ -205,7 +206,7 @@ void ZonesPalettePanel::OnEditZoneLabel(wxListEvent &event) {
 	}
 
 	if (event.IsAllowed()) {
-		g_gui.EnableHotkeys();
+		g_hotkeys.EnableHotkeys();
 	}
 }
 

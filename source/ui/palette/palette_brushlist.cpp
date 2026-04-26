@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "app/main.h"
+#include "editor/hotkey_manager.h"  
 #include <ranges>
 #include <wx/tglbtn.h>
 
@@ -77,12 +78,12 @@ BrushPalettePanel::~BrushPalettePanel() {
 }
 
 void BrushPalettePanel::OnSetFocus(wxFocusEvent &event) {
-	g_gui.DisableHotkeys();
+	g_hotkeys.DisableHotkeys();
 	event.Skip();
 }
 
 void BrushPalettePanel::OnKillFocus(wxFocusEvent &event) {
-	g_gui.EnableHotkeys();
+	g_hotkeys.EnableHotkeys();
 	event.Skip();
 }
 

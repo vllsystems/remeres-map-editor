@@ -27,7 +27,6 @@
 #include "ui/dcbutton.h"
 #include "brushes/brush_enums.h"
 #include "ui/gui_ids.h"
-#include "ui/hotkey.h"
 #include "editor/editor_tabs.h"
 #include "ui/map_tab.h"
 #include "ui/palette/palette_window.h"
@@ -158,9 +157,6 @@ public:
 		return disabled_counter == 0;
 	}
 
-	void EnableHotkeys();
-	void DisableHotkeys();
-	bool AreHotkeysEnabled() const;
 
 	// This sends the event to the main window (redirecting from other controls)
 	void AddPendingCanvasEvent(wxEvent &event);
@@ -234,10 +230,6 @@ public:
 		return mode == DRAWING_MODE;
 	}
 
-	void SetHotkey(int index, Hotkey &hotkey);
-	const Hotkey &GetHotkey(int index) const;
-	void SaveHotkeys() const;
-	void LoadHotkeys();
 
 	// Brushes
 	void FillDoodadPreviewBuffer();
@@ -438,8 +430,6 @@ protected:
 	EditorMode mode;
 	bool pasting;
 
-	Hotkey hotkeys[10];
-	bool hotkeys_enabled;
 
 	//=========================================================================
 	// Internal brush data

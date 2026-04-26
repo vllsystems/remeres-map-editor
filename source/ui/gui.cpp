@@ -101,7 +101,6 @@ GUI::GUI() :
 	OGLContext(nullptr),
 	mode(SELECTION_MODE),
 	pasting(false),
-	hotkeys_enabled(true),
 
 	current_brush(nullptr),
 	previous_brush(nullptr),
@@ -272,17 +271,8 @@ bool GUI::loadMapWindow(wxString &error, wxArrayString &warnings, bool force /* 
 	return ret;
 }
 
-void GUI::EnableHotkeys() {
-	hotkeys_enabled = true;
-}
 
-void GUI::DisableHotkeys() {
-	hotkeys_enabled = false;
-}
 
-bool GUI::AreHotkeysEnabled() const {
-	return hotkeys_enabled;
-}
 
 void GUI::CycleTab(bool forward) {
 	tabbook->CycleTab(forward);
@@ -1948,39 +1938,9 @@ void GUI::ShowTextBox(wxWindow* parent, wxString title, wxString content) {
 	dlg->ShowModal();
 }
 
-void GUI::SetHotkey(int index, Hotkey &hotkey) {
-	ASSERT(index >= 0 && index <= 9);
-	hotkeys[index] = hotkey;
-	SetStatusText("Set hotkey " + i2ws(index) + ".");
-}
 
-const Hotkey &GUI::GetHotkey(int index) const {
-	ASSERT(index >= 0 && index <= 9);
-	return hotkeys[index];
-}
 
-void GUI::SaveHotkeys() const {
-	std::ostringstream os;
-	for (const auto &hotkey : hotkeys) {
-		os << hotkey << '\n';
-	}
-	g_settings.setString(Config::NUMERICAL_HOTKEYS, os.str());
-}
 
-void GUI::LoadHotkeys() {
-	std::istringstream is;
-	is.str(g_settings.getString(Config::NUMERICAL_HOTKEYS));
-
-	std::string line;
-	int index = 0;
-	while (getline(is, line)) {
-		std::istringstream line_is;
-		line_is.str(line);
-		line_is >> hotkeys[index];
-
-		++index;
-	}
-}
 
 void SetWindowToolTip(wxWindow* a, const wxString &tip) {
 	a->SetToolTip(tip);

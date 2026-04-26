@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "app/main.h"
+#include "editor/hotkey_manager.h"  
 #include <ranges>
 #include <regex>
 
@@ -339,12 +340,12 @@ void MonsterPalettePanel::OnChangeSpawnMonsterSize(wxSpinEvent &event) {
 }
 
 void MonsterPalettePanel::OnSetFocus(wxFocusEvent &event) {
-	g_gui.DisableHotkeys();
+	g_hotkeys.DisableHotkeys();
 	event.Skip();
 }
 
 void MonsterPalettePanel::OnKillFocus(wxFocusEvent &event) {
-	g_gui.EnableHotkeys();
+	g_hotkeys.EnableHotkeys();
 	event.Skip();
 }
 

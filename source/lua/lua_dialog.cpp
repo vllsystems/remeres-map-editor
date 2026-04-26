@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "app/main.h"
+#include "editor/hotkey_manager.h"  
 #include "lua_dialog.h"
 #include "lua_api_image.h"
 #include "ui/gui.h"
@@ -2936,8 +2937,8 @@ void LuaDialog::applyCommonOptions(wxWindow* widget, sol::table options) {
 
 void LuaDialog::suspendHotkeys() {
 	if (hotkeySuspendCount == 0) {
-		if (g_gui.AreHotkeysEnabled()) {
-			g_gui.DisableHotkeys();
+		if (g_hotkeys.AreHotkeysEnabled()) {
+			g_hotkeys.DisableHotkeys();
 			hotkeysDisabledByDialog = true;
 		}
 	}
@@ -2951,7 +2952,7 @@ void LuaDialog::resumeHotkeys() {
 	}
 	--hotkeySuspendCount;
 	if (hotkeySuspendCount == 0 && hotkeysDisabledByDialog) {
-		g_gui.EnableHotkeys();
+		g_hotkeys.EnableHotkeys();
 		hotkeysDisabledByDialog = false;
 	}
 }

@@ -19,6 +19,7 @@
 #include <wx/cmdline.h>
 
 #include "app/application.h"
+#include "editor/hotkey_manager.h"
 #include "rendering/sprites.h"
 #include "editor/editor.h"
 #include "ui/dialogs/common_windows.h"
@@ -113,7 +114,7 @@ bool Application::OnInit() {
 
 	// Load some internal stuff
 	g_settings.load();
-	g_gui.LoadHotkeys();
+	g_hotkeys.Deserialize(g_settings.getString(Config::NUMERICAL_HOTKEYS));
 	ClientAssets::load();
 
 #ifdef _USE_PROCESS_COM
@@ -296,7 +297,7 @@ void Application::MacOpenFiles(const wxArrayString &fileNames) {
 
 void Application::Unload() {
 	g_gui.CloseAllEditors();
-	g_gui.SaveHotkeys();
+	g_settings.setString(Config::NUMERICAL_HOTKEYS, g_hotkeys.Serialize());
 	g_gui.SavePerspective();
 	g_gui.root->SaveRecentFiles();
 	ClientAssets::save();
@@ -423,7 +424,7 @@ void MainFrame::OnUpdateActions(wxCommandEvent &) {
 
 #ifdef __WINDOWS__
 bool MainFrame::MSWTranslateMessage(WXMSG* msg) {
-	if (g_gui.AreHotkeysEnabled()) {
+	if (g_hotkeys.AreHotkeysEnabled()) {
 		if (wxFrame::MSWTranslateMessage(msg)) {
 			return true;
 		}
@@ -670,7 +671,7 @@ void MainFrame::OnExit(wxCloseEvent &event) {
 		}
 	}
 
-	g_gui.SaveHotkeys();
+	g_settings.setString(Config::NUMERICAL_HOTKEYS, g_hotkeys.Serialize());
 	g_gui.SavePerspective();
 	g_gui.root->SaveRecentFiles();
 	ClientAssets::save();

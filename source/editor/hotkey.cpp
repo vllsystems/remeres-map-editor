@@ -17,7 +17,7 @@
 
 #include "app/main.h"
 
-#include "ui/hotkey.h"
+#include "editor/hotkey.h"
 #include "brushes/brush.h"
 
 Hotkey::Hotkey() :
