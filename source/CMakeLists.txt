@@ -118,6 +118,7 @@ endif()
 if(SPEED_UP_BUILD_UNITY)
 	set_target_properties(${PROJECT_NAME} PROPERTIES UNITY_BUILD ON)
 	set_source_files_properties(rendering/gl_renderer.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
+	set_source_files_properties(util/mt_rand.cpp PROPERTIES SKIP_UNITY_BUILD_INCLUSION ON)
 	log_option_enabled("Build unity for speed up compilation")
 else()
 	# === PRECOMPILED HEADER ===

@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <nlohmann/json.hpp>
 #include "lua_api_http.h"
 
 #include <cpr/cpr.h>

@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <nlohmann/json.hpp>
 
 #include "io/sprite_appearances.h"
 #include "rendering/graphics.h"

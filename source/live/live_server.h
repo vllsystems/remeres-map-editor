@@ -17,6 +17,7 @@
 
 #ifndef _RME_LIVE_SERVER_H_
 #define _RME_LIVE_SERVER_H_
+#include <asio.hpp>
 
 #include "live/live_socket.h"
 #include "net/net_connection.h"

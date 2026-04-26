@@ -17,6 +17,7 @@
 
 #ifndef _RME_NET_CONNECTION_H_
 #define _RME_NET_CONNECTION_H_
+#include <asio.hpp>
 
 #include "util/position.h"
 

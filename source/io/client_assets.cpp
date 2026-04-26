@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <nlohmann/json.hpp>
 
 #include "io/client_assets.h"
 
