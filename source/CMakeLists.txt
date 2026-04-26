@@ -156,6 +156,10 @@ target_sources(${PROJECT_NAME}
 	ui/dcbutton.cpp
 	brushes/doodad_brush.cpp
 	editor/editor.cpp
+	editor/editor_save.cpp
+	editor/editor_import.cpp
+	editor/editor_selection_ops.cpp
+	editor/editor_draw.cpp
 	editor/editor_tabs.cpp
 	brushes/eraser_brush.cpp
 	ui/windows/find_item_window.cpp
