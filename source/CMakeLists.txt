@@ -208,6 +208,11 @@ target_sources(${PROJECT_NAME}
 	lua/lua_api_algo.cpp
 	lua/lua_scripts_window.cpp
 	ui/menubar/main_menubar.cpp
+	ui/menubar/file_menu_handlers.cpp
+	ui/menubar/edit_menu_handlers.cpp
+	ui/menubar/map_menu_handlers.cpp
+	ui/menubar/view_menu_handlers.cpp
+	ui/menubar/window_menu_handlers.cpp
 	ui/menubar/menu_search_handlers.cpp
 	ui/toolbar/main_toolbar.cpp
 	map/map.cpp
