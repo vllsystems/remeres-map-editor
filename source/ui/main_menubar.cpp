@@ -1054,7 +1054,6 @@ void MainMenuBar::OnReplaceItems(wxCommandEvent &WXUNUSED(event)) {
 	}
 }
 
-
 void MainMenuBar::OnSearchForStuffOnMap(wxCommandEvent &WXUNUSED(event)) {
 	SearchItems(true, true, true, true);
 }
@@ -2334,7 +2333,6 @@ void MainMenuBar::OnCloseLive(wxCommandEvent &event) {
 	Update();
 }
 
-
 void MainMenuBar::OnSearchForDuplicateItemsOnMap(wxCommandEvent &WXUNUSED(event)) {
 	SearchDuplicatedItems(false);
 }
@@ -2358,4 +2356,3 @@ void MainMenuBar::OnSearchForWallsUponWallsOnMap(wxCommandEvent &WXUNUSED(event)
 void MainMenuBar::OnSearchForWallsUponWallsOnSelection(wxCommandEvent &WXUNUSED(event)) {
 	SearchWallsUponWalls(true);
 }
-
