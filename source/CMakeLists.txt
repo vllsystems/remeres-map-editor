@@ -205,6 +205,7 @@ target_sources(${PROJECT_NAME}
 	lua/lua_api_algo.cpp
 	lua/lua_scripts_window.cpp
 	ui/main_menubar.cpp
+	ui/menu_search_handlers.cpp
 	ui/main_toolbar.cpp
 	map/map.cpp
 	rendering/map_display.cpp
