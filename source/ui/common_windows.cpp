@@ -29,7 +29,7 @@
 
 #include "ui/palette_window.h"
 #include "ui/gui.h"
-#include "application.h"
+#include "app/application.h"
 #include "ui/common_windows.h"
 #include "ui/positionctrl.h"
 #include "ui/preferences.h"

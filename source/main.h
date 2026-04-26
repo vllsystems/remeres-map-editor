@@ -52,7 +52,7 @@ _Ret_bytecap_(_Size) inline void* __CRTDECL operator new[](size_t _Size, const c
 #include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
-#include "definitions.h"
+#include "app/definitions.h"
 
 #include <wx/wxprec.h>
 #ifndef WX_PRECOMP

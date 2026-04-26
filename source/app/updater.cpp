@@ -19,7 +19,7 @@
 
 #ifdef _USE_UPDATER_
 
-	#include "updater.h"
+	#include "app/updater.h"
 
 const wxEventType EVT_UPDATE_CHECK_FINISHED = wxNewEventType();
 

@@ -21,7 +21,7 @@
 #include "main.h"
 
 #include "ui/editor_tabs.h"
-#include "application.h"
+#include "app/application.h"
 #include "live/live_server.h"
 
 class wxGrid;

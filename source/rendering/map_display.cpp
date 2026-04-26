@@ -30,7 +30,7 @@
 #include "ui/palette_window.h"
 #include "rendering/map_display.h"
 #include "rendering/map_drawer.h"
-#include "application.h"
+#include "app/application.h"
 #include "live/live_server.h"
 #include "ui/browse_tile_window.h"
 

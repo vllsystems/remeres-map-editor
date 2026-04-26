@@ -18,7 +18,7 @@
 #ifndef RME_FILEHANDLE_H_
 #define RME_FILEHANDLE_H_
 
-#include "definitions.h"
+#include "app/definitions.h"
 #include <stack>
 
 #ifndef FORCEINLINE

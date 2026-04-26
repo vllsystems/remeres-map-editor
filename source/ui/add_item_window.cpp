@@ -30,7 +30,7 @@
 #include "game/tileset.h"
 
 #include "ui/gui.h"
-#include "application.h"
+#include "app/application.h"
 #include "ui/add_item_window.h"
 #include "ui/container_properties_window.h"
 #include "ui/find_item_window.h"

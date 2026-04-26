@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "application.h"
+#include "app/application.h"
 #include "sprites.h"
 #include "editor/editor.h"
 #include "ui/common_windows.h"
@@ -27,7 +27,7 @@
 #include "ui/minimap_window.h"
 #include "ui/about_window.h"
 #include "ui/main_menubar.h"
-#include "updater.h"
+#include "app/updater.h"
 #include "ui/artprovider.h"
 
 #include "game/materials.h"

@@ -132,7 +132,7 @@ target_sources(${PROJECT_NAME}
 	ui/actions_history_window.cpp
 	ui/add_item_window.cpp
 	ui/add_tileset_window.cpp
-	application.cpp
+	app/application.cpp
 	ui/artprovider.cpp
 	map/basemap.cpp
 	ui/bitmap_to_map_window.cpp
@@ -228,7 +228,7 @@ target_sources(${PROJECT_NAME}
 	ui/palette_window.cpp
 	ui/pngfiles.cpp
 	ui/preferences.cpp
-	process_com.cpp
+	app/process_com.cpp
 	ui/properties_window.cpp
 	brushes/raw_brush.cpp
 	ui/replace_items_window.cpp
@@ -251,7 +251,7 @@ target_sources(${PROJECT_NAME}
 	game/tileset.cpp
 	ui/tileset_window.cpp
 	game/town.cpp
-	updater.cpp
+	app/updater.cpp
 	brushes/wall_brush.cpp
 	brushes/waypoint_brush.cpp
 	game/waypoints.cpp

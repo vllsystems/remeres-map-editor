@@ -25,7 +25,7 @@
 #include "editor/editor.h"
 #include "map/map.h"
 
-#include "application.h"
+#include "app/application.h"
 #include "rendering/map_display.h"
 
 #include "brushes/house_brush.h"

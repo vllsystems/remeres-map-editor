@@ -19,7 +19,7 @@
 
 #include "ui/gui.h"
 
-#include "application.h"
+#include "app/application.h"
 #include "io/client_assets.h"
 #include "ui/main_menubar.h"
 
@@ -36,7 +36,7 @@
 #include "ui/minimap_window.h"
 #include "ui/palette_window.h"
 #include "rendering/map_display.h"
-#include "application.h"
+#include "app/application.h"
 #include "ui/welcome_dialog.h"
 #include "brushes/spawn_npc_brush.h"
 #include "ui/actions_history_window.h"

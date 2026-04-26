@@ -20,7 +20,7 @@
 #ifdef _USE_PROCESS_COM
 
 	#include "ui/gui.h"
-	#include "process_com.h"
+	#include "app/process_com.h"
 
 // Server
 

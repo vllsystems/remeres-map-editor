@@ -19,7 +19,7 @@
 #define RME_MAP_TAB_H_
 
 #include "ui/editor_tabs.h"
-#include "application.h"
+#include "app/application.h"
 #include "rendering/map_window.h"
 
 class MapTab : public EditorTab, public MapWindow {

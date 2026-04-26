@@ -28,7 +28,7 @@
 #include "game/npc.h"
 
 #include "ui/gui.h"
-#include "application.h"
+#include "app/application.h"
 #include "ui/old_properties_window.h"
 #include "ui/container_properties_window.h"
 

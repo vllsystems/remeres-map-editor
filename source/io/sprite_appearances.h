@@ -18,7 +18,7 @@
 #ifndef SPRITEAPPEARANCES_H
 #define SPRITEAPPEARANCES_H
 
-#include "definitions.h"
+#include "app/definitions.h"
 #include "main.h"
 #include "util/sprite_types.h"
 #include <chrono>

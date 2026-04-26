@@ -23,7 +23,7 @@
 #include "editor/action.h"
 #include "editor/settings.h"
 
-#include "process_com.h"
+#include "app/process_com.h"
 #include "rendering/map_display.h"
 #include "ui/welcome_dialog.h"
 

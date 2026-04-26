@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "ui/main_menubar.h"
-#include "application.h"
+#include "app/application.h"
 #include "ui/preferences.h"
 #include "ui/about_window.h"
 #include "ui/minimap_window.h"

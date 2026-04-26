@@ -22,7 +22,7 @@
 #include "sprites.h"
 #include "ui/gui.h"
 #include "ui/common_windows.h"
-#include "application.h"
+#include "app/application.h"
 #include "ui/palette_waypoints.h"
 
 // ============================================================================
