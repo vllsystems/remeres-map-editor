@@ -1977,7 +1977,6 @@ void GUI::LoadHotkeys() {
 	}
 }
 
-
 void SetWindowToolTip(wxWindow* a, const wxString &tip) {
 	a->SetToolTip(tip);
 }

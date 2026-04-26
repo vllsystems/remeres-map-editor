@@ -88,7 +88,6 @@ extern const wxEventType EVT_UPDATE_ACTIONS;
 		(wxObject*)nullptr                                                                      \
 	),
 
-
 class GUI {
 public: // dtor and ctor
 	GUI();
