@@ -18,6 +18,7 @@
 #ifndef RME_EDITOR_TABS_H_
 #define RME_EDITOR_TABS_H_
 
+#include <wx/aui/auibook.h>
 #include "ui/gui_ids.h"
 
 class EditorTab;

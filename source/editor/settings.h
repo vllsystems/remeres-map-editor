@@ -195,7 +195,7 @@ namespace Config {
 	};
 }
 
-class wxConfigBase;
+#include <wx/config.h>
 
 class Settings {
 public:

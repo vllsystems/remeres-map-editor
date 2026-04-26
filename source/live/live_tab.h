@@ -24,7 +24,7 @@
 #include "app/application.h"
 #include "live/live_server.h"
 
-class wxGrid;
+#include <wx/grid.h>
 
 class MapTabbook;
 class LiveSocket;

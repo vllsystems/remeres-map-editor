@@ -48,8 +48,6 @@ _Ret_bytecap_(_Size) inline void* __CRTDECL operator new[](size_t _Size, const c
 #include <asio.hpp>
 #include <fmt/core.h>
 #include <fmt/format.h>
-#include <fmt/args.h>
-#include <fmt/ranges.h>
 #include <nlohmann/json.hpp>
 
 #include "app/definitions.h"
@@ -70,38 +68,26 @@ _Ret_bytecap_(_Size) inline void* __CRTDECL operator new[](size_t _Size, const c
 #include <wx/choicebk.h>
 #include <wx/tglbtn.h>
 #include <wx/dcbuffer.h>
-#include <wx/aui/aui.h>
 #include <wx/cmdline.h>
 #include <wx/filename.h>
 #include <wx/filepicker.h>
 #include <wx/arrstr.h>
 #include <wx/slider.h>
 #include <wx/spinctrl.h>
-#include <wx/wxhtml.h>
 #include <wx/vlbox.h>
 #include <wx/stdpaths.h>
 #include <wx/url.h>
 #include <wx/ipc.h>
-#include <wx/grid.h>
 #include <wx/clipbrd.h>
 #include <wx/mstream.h>
 #include <wx/stopwatch.h>
 #include <wx/display.h>
 #include <wx/wfstream.h>
-#include <wx/tarstrm.h>
-#include <wx/zstream.h>
-#include <wx/datstrm.h>
 #include <wx/event.h>
 #include <wx/splitter.h>
 #include <wx/chartype.h>
 #include <wx/artprov.h>
 #include <wx/collpane.h>
-#include <wx/listbook.h>
-#include <wx/clrpicker.h>
-#include <wx/confbase.h>
-#include <wx/config.h>
-#include <wx/fileconf.h>
-#include <wx/sstream.h>
 
 // PugiXML
 #include <pugixml.hpp>

@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <fmt/ranges.h>
 #include <array>
 
 #include "ui/gui.h"

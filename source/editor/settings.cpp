@@ -16,6 +16,8 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/config.h>
+#include <wx/sstream.h>
 
 #include "editor/settings.h"
 

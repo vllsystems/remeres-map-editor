@@ -19,6 +19,7 @@
 #define RME_PROPERTIES_WINDOW_H_
 
 #include "main.h"
+#include <wx/grid.h>
 
 #include "ui/common_windows.h"
 #include "map/map.h"
