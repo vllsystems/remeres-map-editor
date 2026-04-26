@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/tglbtn.h>
 
 #include "ui/palette_common.h"
 #include "brushes/brush.h"

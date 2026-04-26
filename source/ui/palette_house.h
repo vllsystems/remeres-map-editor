@@ -17,6 +17,7 @@
 
 #ifndef RME_PALETTE_HOUSE_H_
 #define RME_PALETTE_HOUSE_H_
+#include <wx/tglbtn.h>
 
 #include "ui/palette_common.h"
 

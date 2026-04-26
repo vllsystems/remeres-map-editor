@@ -17,6 +17,7 @@
 
 #ifndef RME_TILESET_MONSTER_H_
 #define RME_TILESET_MONSTER_H_
+#include <wx/tglbtn.h>
 
 #include "ui/palette_common.h"
 

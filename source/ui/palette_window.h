@@ -18,6 +18,7 @@
 #ifndef RME_PALETTE_H_
 #define RME_PALETTE_H_
 
+#include <wx/choicebk.h>
 #include "ui/palette_common.h"
 
 class BrushPalettePanel;

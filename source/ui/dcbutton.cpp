@@ -17,6 +17,7 @@
 
 #include "main.h"
 #include <wx/dcbuffer.h>
+#include <wx/tglbtn.h>
 
 #include "editor/settings.h"
 

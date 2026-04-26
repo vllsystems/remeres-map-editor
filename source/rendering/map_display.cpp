@@ -17,6 +17,7 @@
 
 #include "main.h"
 #include <wx/clipbrd.h>
+#include <wx/wfstream.h>
 #include <wx/dcbuffer.h>
 #include <fmt/ranges.h>
 #include <array>
