@@ -34,7 +34,6 @@
 #include "game/complexitem.h"
 #include "game/town.h"
 
-
 // H4X
 
 /*
