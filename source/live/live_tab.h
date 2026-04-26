@@ -22,7 +22,7 @@
 
 #include "editor_tabs.h"
 #include "application.h"
-#include "live_server.h"
+#include "live/live_server.h"
 
 class wxGrid;
 

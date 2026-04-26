@@ -173,12 +173,12 @@ target_sources(${PROJECT_NAME}
 	game/item_attributes.cpp
 	game/item.cpp
 	game/items.cpp
-	live_action.cpp
-	live_client.cpp
-	live_peer.cpp
-	live_server.cpp
-	live_socket.cpp
-	live_tab.cpp
+	live/live_action.cpp
+	live/live_client.cpp
+	live/live_peer.cpp
+	live/live_server.cpp
+	live/live_socket.cpp
+	live/live_tab.cpp
 	lua/lua_engine.cpp
 	lua/lua_script.cpp
 	lua/lua_script_manager.cpp

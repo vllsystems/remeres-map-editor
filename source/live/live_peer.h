@@ -18,7 +18,7 @@
 #ifndef _RME_LIVE_PEER_H_
 #define _RME_LIVE_PEER_H_
 
-#include "live_socket.h"
+#include "live/live_socket.h"
 #include "net/net_connection.h"
 
 class LiveServer;

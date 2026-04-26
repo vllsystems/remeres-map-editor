@@ -17,9 +17,9 @@
 
 #include "main.h"
 
-#include "live_tab.h"
-#include "live_socket.h"
-#include "live_peer.h"
+#include "live/live_tab.h"
+#include "live/live_socket.h"
+#include "live/live_peer.h"
 
 class myGrid : public wxGrid {
 public:

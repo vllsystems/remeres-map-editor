@@ -41,7 +41,7 @@
 #include <unordered_set>
 #include "rendering/map_display.h"
 #include "editor/copybuffer.h"
-#include "live_socket.h"
+#include "live/live_socket.h"
 #include "rendering/graphics.h"
 
 #include "brushes/doodad_brush.h"

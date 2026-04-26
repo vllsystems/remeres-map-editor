@@ -39,9 +39,9 @@
 #include "brushes/spawn_npc_brush.h"
 #include "preferences.h"
 
-#include "live_server.h"
-#include "live_client.h"
-#include "live_action.h"
+#include "live/live_server.h"
+#include "live/live_client.h"
+#include "live/live_action.h"
 
 #include <filesystem>
 #include <chrono>

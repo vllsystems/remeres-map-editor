@@ -31,7 +31,7 @@
 #include "rendering/map_display.h"
 #include "rendering/map_drawer.h"
 #include "application.h"
-#include "live_server.h"
+#include "live/live_server.h"
 #include "browse_tile_window.h"
 
 #include "main_menubar.h"

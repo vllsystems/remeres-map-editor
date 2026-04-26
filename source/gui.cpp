@@ -44,9 +44,9 @@
 #include "io/sprite_appearances.h"
 #include "preferences.h"
 
-#include "live_client.h"
-#include "live_tab.h"
-#include "live_server.h"
+#include "live/live_client.h"
+#include "live/live_tab.h"
+#include "live/live_server.h"
 
 #ifdef __WXOSX__
 	#include <AGL/agl.h>
