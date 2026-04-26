@@ -17,10 +17,10 @@
 
 #include "main.h"
 
-#include "action.h"
-#include "settings.h"
+#include "editor/action.h"
+#include "editor/settings.h"
 #include "map/map.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "gui.h"
 
 Change::Change() :

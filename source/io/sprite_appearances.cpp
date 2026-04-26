@@ -19,7 +19,7 @@
 
 #include "io/sprite_appearances.h"
 #include "rendering/graphics.h"
-#include "settings.h"
+#include "editor/settings.h"
 #include "io/filehandle.h"
 #include "gui.h"
 #include "rendering/gl_renderer.h"

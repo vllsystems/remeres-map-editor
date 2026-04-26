@@ -18,7 +18,7 @@
 #include "main.h"
 #include "actions_history_window.h"
 #include "artprovider.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "gui.h"
 
 HistoryListBox::HistoryListBox(wxWindow* parent) :

@@ -21,7 +21,7 @@
 #include "rendering/graphics.h"
 #include "util/position.h"
 
-#include "copybuffer.h"
+#include "editor/copybuffer.h"
 #include "dcbutton.h"
 #include "brushes/brush_enums.h"
 #include "gui_ids.h"

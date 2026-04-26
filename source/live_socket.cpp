@@ -22,7 +22,7 @@
 #include "map/map_region.h"
 #include "io/iomap_otbm.h"
 #include "live_tab.h"
-#include "editor.h"
+#include "editor/editor.h"
 
 LiveSocket::LiveSocket() :
 	cursors(), mapReader(nullptr, 0), mapWriter(),

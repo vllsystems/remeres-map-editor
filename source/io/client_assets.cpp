@@ -19,7 +19,7 @@
 
 #include "io/client_assets.h"
 
-#include "settings.h"
+#include "editor/settings.h"
 #include "io/filehandle.h"
 #include "preferences.h"
 #include "io/sprite_appearances.h"

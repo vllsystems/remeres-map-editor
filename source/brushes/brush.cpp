@@ -33,7 +33,7 @@
 #include "brushes/waypoint_brush.h"
 #include "brushes/zone_brush.h"
 
-#include "settings.h"
+#include "editor/settings.h"
 
 #include "sprites.h"
 

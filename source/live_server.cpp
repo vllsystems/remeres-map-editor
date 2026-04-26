@@ -22,7 +22,7 @@
 #include "live_tab.h"
 #include "live_action.h"
 
-#include "editor.h"
+#include "editor/editor.h"
 
 LiveServer::LiveServer(Editor &editor) :
 	LiveSocket(),

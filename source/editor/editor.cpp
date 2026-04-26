@@ -17,12 +17,12 @@
 
 #include "main.h"
 
-#include "editor.h"
+#include "editor/editor.h"
 #include "game/materials.h"
 #include "map/map.h"
 #include "io/client_assets.h"
 #include "game/complexitem.h"
-#include "settings.h"
+#include "editor/settings.h"
 #include "gui.h"
 #include "rendering/map_display.h"
 #include "brushes/brush.h"

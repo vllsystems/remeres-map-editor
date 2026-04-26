@@ -22,7 +22,7 @@
 #endif
 
 #include "gui.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "map/map.h"
 #include "sprites.h"
 #include "map_tab.h"

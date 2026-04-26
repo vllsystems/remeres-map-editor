@@ -20,7 +20,7 @@
 
 #include "main.h"
 #include "common_windows.h"
-#include "editor.h"
+#include "editor/editor.h"
 
 struct ReplacingItem {
 	ReplacingItem() :

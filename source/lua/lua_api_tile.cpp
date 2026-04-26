@@ -24,7 +24,7 @@
 #include "game/item.h"
 #include "game/monster.h"
 #include "game/monsters.h"
-#include "../settings.h"
+#include "editor/settings.h"
 #include "game/npc.h"
 #include "game/spawn_monster.h"
 #include "game/spawn_npc.h"
@@ -33,7 +33,7 @@
 #include "brushes/doodad_brush.h"
 #include "brushes/wall_brush.h"
 #include "../gui.h"
-#include "../editor.h"
+#include "editor/editor.h"
 #include "map/map.h"
 
 namespace LuaAPI {

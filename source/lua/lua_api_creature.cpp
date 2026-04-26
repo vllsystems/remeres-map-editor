@@ -23,7 +23,7 @@
 #include "game/spawn_monster.h"
 #include "map/tile.h"
 #include "map/map.h"
-#include "../editor.h"
+#include "editor/editor.h"
 #include "../gui.h"
 
 namespace LuaAPI {

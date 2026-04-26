@@ -20,7 +20,7 @@
 
 #include "util/position.h"
 #include "game/npc.h"
-#include "action.h"
+#include "editor/action.h"
 
 class Action;
 class Editor;

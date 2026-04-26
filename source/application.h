@@ -20,8 +20,8 @@
 
 #include "gui.h"
 #include "main_toolbar.h"
-#include "action.h"
-#include "settings.h"
+#include "editor/action.h"
+#include "editor/settings.h"
 
 #include "process_com.h"
 #include "rendering/map_display.h"

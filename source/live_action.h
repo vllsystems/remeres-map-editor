@@ -18,7 +18,7 @@
 #ifndef _RME_NETWORK_ACTION_H_
 #define _RME_NETWORK_ACTION_H_
 
-#include "action.h"
+#include "editor/action.h"
 
 class NetworkedActionQueue;
 

@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "live_action.h"
-#include "editor.h"
+#include "editor/editor.h"
 
 NetworkedAction::NetworkedAction(Editor &editor, ActionIdentifier ident) :
 	Action(editor, ident),

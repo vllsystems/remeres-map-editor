@@ -128,7 +128,7 @@ endif()
 target_sources(${PROJECT_NAME}
 	PRIVATE
 	about_window.cpp
-	action.cpp
+	editor/action.cpp
 	actions_history_window.cpp
 	add_item_window.cpp
 	add_tileset_window.cpp
@@ -147,14 +147,14 @@ target_sources(${PROJECT_NAME}
 	common_windows.cpp
 	game/complexitem.cpp
 	container_properties_window.cpp
-	copybuffer.cpp
+	editor/copybuffer.cpp
 	brushes/monster_brush.cpp
 	game/monster.cpp
 	game/monsters.cpp
 	dat_debug_view.cpp
 	dcbutton.cpp
 	brushes/doodad_brush.cpp
-	editor.cpp
+	editor/editor.cpp
 	editor_tabs.cpp
 	brushes/eraser_brush.cpp
 	find_item_window.cpp
@@ -234,8 +234,8 @@ target_sources(${PROJECT_NAME}
 	replace_items_window.cpp
 	result_window.cpp
 	net/rme_net.cpp
-	selection.cpp
-	settings.cpp
+	editor/selection.cpp
+	editor/settings.cpp
 	brushes/spawn_monster_brush.cpp
 	game/spawn_monster.cpp
 	game/spawn_npc.cpp

@@ -22,7 +22,7 @@
 #include "game/items.h"
 #include "rendering/map_display.h"
 #include "rendering/map_drawer.h"
-#include "../editor.h"
+#include "editor/editor.h"
 #include <wx/msgdlg.h>
 #include "../common_windows.h"
 #include "../find_item_window.h"

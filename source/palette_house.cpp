@@ -19,10 +19,10 @@
 
 #include "palette_house.h"
 
-#include "settings.h"
+#include "editor/settings.h"
 
 #include "brushes/brush.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "map/map.h"
 
 #include "application.h"

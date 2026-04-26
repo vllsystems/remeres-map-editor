@@ -17,15 +17,15 @@
 
 #include "main.h"
 #include "bitmap_to_map_converter.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "map/map.h"
 #include "map/tile.h"
 #include "game/item.h"
 #include "brushes/ground_brush.h"
 #include "brushes/brush.h"
-#include "action.h"
+#include "editor/action.h"
 #include "gui.h"
-#include "settings.h"
+#include "editor/settings.h"
 
 BitmapToMapConverter::BitmapToMapConverter(Editor &editor) :
 	editor(editor) {

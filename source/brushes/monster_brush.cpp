@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "brushes/monster_brush.h"
-#include "settings.h"
+#include "editor/settings.h"
 #include "map/tile.h"
 #include "game/monster.h"
 #include "map/basemap.h"

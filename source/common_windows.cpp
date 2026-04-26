@@ -19,7 +19,7 @@
 
 #include "game/materials.h"
 #include "brushes/brush.h"
-#include "editor.h"
+#include "editor/editor.h"
 
 #include "game/items.h"
 #include "map/map.h"

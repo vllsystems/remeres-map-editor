@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "settings.h"
+#include "editor/settings.h"
 #include "gui.h"
 #include "brushes/brush.h"
 #include "rendering/map_display.h"

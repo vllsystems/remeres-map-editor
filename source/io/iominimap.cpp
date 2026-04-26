@@ -21,7 +21,7 @@
 
 #include "map/tile.h"
 #include "io/filehandle.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "gui.h"
 
 #include <wx/image.h>

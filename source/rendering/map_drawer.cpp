@@ -34,13 +34,13 @@
 #include <format>
 #include <array>
 
-#include "editor.h"
+#include "editor/editor.h"
 #include "gui.h"
 #include "sprites.h"
 #include "rendering/map_drawer.h"
 #include <unordered_set>
 #include "rendering/map_display.h"
-#include "copybuffer.h"
+#include "editor/copybuffer.h"
 #include "live_socket.h"
 #include "rendering/graphics.h"
 

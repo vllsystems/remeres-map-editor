@@ -17,12 +17,12 @@
 
 #include "main.h"
 
-#include "selection.h"
+#include "editor/selection.h"
 #include "map/tile.h"
 #include "game/monster.h"
 #include "game/npc.h"
 #include "game/item.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "gui.h"
 
 Selection::Selection(Editor &editor) :

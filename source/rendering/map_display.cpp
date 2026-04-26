@@ -19,7 +19,7 @@
 #include <array>
 
 #include "gui.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "brushes/brush.h"
 #include "sprites.h"
 #include "map/map.h"

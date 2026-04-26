@@ -26,7 +26,7 @@
 #include "dat_debug_view.h"
 #include "result_window.h"
 #include "find_item_window.h"
-#include "settings.h"
+#include "editor/settings.h"
 #include "lua/lua_script_manager.h"
 #include "lua/lua_scripts_window.h"
 #include "gui.h"
@@ -34,7 +34,7 @@
 #include <wx/chartype.h>
 
 #include "game/items.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "game/materials.h"
 #include "live_client.h"
 #include "live_server.h"

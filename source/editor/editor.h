@@ -23,8 +23,8 @@
 #include "io/iomap.h"
 #include "map/map.h"
 
-#include "action.h"
-#include "selection.h"
+#include "editor/action.h"
+#include "editor/selection.h"
 
 class BaseMap;
 class CopyBuffer;

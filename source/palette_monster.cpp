@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "settings.h"
+#include "editor/settings.h"
 #include "brushes/brush.h"
 #include "gui.h"
 #include "palette_monster.h"

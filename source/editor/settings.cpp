@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "settings.h"
+#include "editor/settings.h"
 
 #include "gui_ids.h"
 #include "io/client_assets.h"

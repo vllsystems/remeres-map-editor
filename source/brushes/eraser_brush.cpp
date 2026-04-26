@@ -20,7 +20,7 @@
 #include "brushes/brush.h"
 #include "sprites.h"
 #include "map/basemap.h"
-#include "settings.h"
+#include "editor/settings.h"
 
 //=============================================================================
 // Eraser brush

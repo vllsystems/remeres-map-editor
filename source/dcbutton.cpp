@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "settings.h"
+#include "editor/settings.h"
 
 #include "dcbutton.h"
 #include "sprites.h"

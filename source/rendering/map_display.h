@@ -18,7 +18,7 @@
 #ifndef RME_DISPLAY_WINDOW_H_
 #define RME_DISPLAY_WINDOW_H_
 
-#include "action.h"
+#include "editor/action.h"
 #include "map/tile.h"
 #include "game/monster.h"
 #include "game/npc.h"

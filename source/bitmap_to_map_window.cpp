@@ -21,7 +21,7 @@
 #include <tuple>
 #include "bitmap_to_map_window.h"
 #include "bitmap_to_map_converter.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "brushes/brush.h"
 #include "brushes/ground_brush.h"
 #include "game/items.h"

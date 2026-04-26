@@ -19,7 +19,7 @@
 
 #include "application.h"
 #include "sprites.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "common_windows.h"
 #include "palette_window.h"
 #include "preferences.h"

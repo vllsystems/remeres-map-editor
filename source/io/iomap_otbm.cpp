@@ -19,7 +19,7 @@
 
 #include "io/iomap_otbm.h"
 
-#include "settings.h"
+#include "editor/settings.h"
 #include "gui.h" // Loadbar
 #include "io/client_assets.h"
 #include "game/monsters.h"

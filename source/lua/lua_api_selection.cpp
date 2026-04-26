@@ -17,11 +17,11 @@
 
 #include "main.h"
 #include "lua_api_selection.h"
-#include "../selection.h"
+#include "editor/selection.h"
 #include "map/tile.h"
 #include "util/position.h"
 #include "../gui.h"
-#include "../editor.h"
+#include "editor/editor.h"
 
 namespace LuaAPI {
 

@@ -23,7 +23,7 @@
 #include "game/town.h"
 #include "game/house.h"
 #include "map/map.h"
-#include "editor.h"
+#include "editor/editor.h"
 #include "game/monster.h"
 #include "game/npc.h"
 

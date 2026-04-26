@@ -17,7 +17,7 @@
 
 #include "main.h"
 #include "welcome_dialog.h"
-#include "settings.h"
+#include "editor/settings.h"
 #include "preferences.h"
 
 wxDEFINE_EVENT(WELCOME_DIALOG_ACTION, wxCommandEvent);

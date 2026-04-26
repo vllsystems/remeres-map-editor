@@ -23,7 +23,7 @@
 #include "io/client_assets.h"
 #include "main_menubar.h"
 
-#include "editor.h"
+#include "editor/editor.h"
 #include "brushes/brush.h"
 #include "map/map.h"
 #include "sprites.h"

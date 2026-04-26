@@ -22,7 +22,7 @@
 #include "map/tile.h"
 #include "util/position.h"
 #include "../gui.h"
-#include "../editor.h"
+#include "editor/editor.h"
 
 namespace LuaAPI {
 

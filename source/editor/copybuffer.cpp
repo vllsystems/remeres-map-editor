@@ -17,8 +17,8 @@
 
 #include "main.h"
 
-#include "copybuffer.h"
-#include "editor.h"
+#include "editor/copybuffer.h"
+#include "editor/editor.h"
 #include "gui.h"
 #include "game/monster.h"
 #include "game/npc.h"

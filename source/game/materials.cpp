@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "editor.h"
+#include "editor/editor.h"
 #include "game/items.h"
 #include "game/monsters.h"
 #include <algorithm>

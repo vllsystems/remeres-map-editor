@@ -22,7 +22,7 @@
 #include "io/client_assets.h"
 #include "artprovider.h"
 #include "io/filehandle.h"
-#include "settings.h"
+#include "editor/settings.h"
 #include "gui.h"
 #include "util/otml.h"
 #include "io/sprite_appearances.h"

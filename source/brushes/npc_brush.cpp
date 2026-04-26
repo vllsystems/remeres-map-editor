@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "brushes/npc_brush.h"
-#include "settings.h"
+#include "editor/settings.h"
 #include "map/tile.h"
 #include "game/npc.h"
 #include "map/basemap.h"
