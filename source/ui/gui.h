@@ -25,6 +25,7 @@
 #include "ui/dcbutton.h"
 #include "brushes/brush_enums.h"
 #include "ui/gui_ids.h"
+#include "ui/hotkey.h"
 #include "ui/editor_tabs.h"
 #include "ui/map_tab.h"
 #include "ui/palette_window.h"
@@ -87,45 +88,6 @@ extern const wxEventType EVT_UPDATE_ACTIONS;
 		(wxObject*)nullptr                                                                      \
 	),
 
-class Hotkey {
-public:
-	Hotkey();
-	Hotkey(Position pos);
-	Hotkey(Brush* brush);
-	Hotkey(std::string _brushname);
-	~Hotkey();
-
-	bool IsPosition() const {
-		return type == POSITION;
-	}
-	bool IsBrush() const {
-		return type == BRUSH;
-	}
-	Position GetPosition() const {
-		ASSERT(IsPosition());
-		return pos;
-	}
-	std::string GetBrushname() const {
-		ASSERT(IsBrush());
-		return brushname;
-	}
-
-private:
-	enum {
-		NONE,
-		POSITION,
-		BRUSH,
-	} type;
-
-	Position pos;
-	std::string brushname;
-
-	friend std::ostream &operator<<(std::ostream &os, const Hotkey &hotkey);
-	friend std::istream &operator>>(std::istream &os, Hotkey &hotkey);
-};
-
-std::ostream &operator<<(std::ostream &os, const Hotkey &hotkey);
-std::istream &operator>>(std::istream &os, Hotkey &hotkey);
 
 class GUI {
 public: // dtor and ctor
