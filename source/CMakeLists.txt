@@ -255,6 +255,7 @@ target_sources(${PROJECT_NAME}
 	templates/templatemap854.cpp
 	templates/templatemapclassic.cpp
 	map/tile.cpp
+	map/tile_operations.cpp
 	game/tileset.cpp
 	ui/windows/tileset_window.cpp
 	game/town.cpp

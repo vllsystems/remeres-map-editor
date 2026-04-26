@@ -21,6 +21,7 @@
 #include "brushes/brush.h"
 
 #include "map/tile.h"
+#include "map/tile_operations.h"
 #include "game/monster.h"
 #include "game/house.h"
 #include "map/basemap.h"
@@ -603,15 +604,11 @@ void Tile::update() {
 }
 
 void Tile::borderize(BaseMap* parent) {
-	GroundBrush::doBorders(parent, this);
+	TileOperations::borderize(this, parent);
 }
 
 void Tile::addBorderItem(Item* item) {
-	if (!item) {
-		return;
-	}
-	ASSERT(item->isBorder());
-	items.insert(items.begin(), item);
+	TileOperations::addBorderItem(this, item);
 }
 
 GroundBrush* Tile::getGroundBrush() const {
@@ -622,24 +619,11 @@ GroundBrush* Tile::getGroundBrush() const {
 }
 
 void Tile::cleanBorders() {
-	if (items.empty()) {
-		return;
-	}
-
-	for (auto it = items.begin(); it != items.end();) {
-		Item* item = (*it);
-		// Borders should only be on the bottom, we can ignore the rest of the items
-		if (!item->isBorder()) {
-			break;
-		}
-
-		delete item;
-		it = items.erase(it);
-	}
+	TileOperations::cleanBorders(this);
 }
 
 void Tile::wallize(BaseMap* parent) {
-	WallBrush::doWalls(parent, this);
+	TileOperations::wallize(this, parent);
 }
 
 Item* Tile::getWall() const {
@@ -670,70 +654,27 @@ Item* Tile::getTable() const {
 }
 
 void Tile::addWallItem(Item* item) {
-	if (!item) {
-		return;
-	}
-	ASSERT(item->isWall());
-
-	addItem(item);
+	TileOperations::addWallItem(this, item);
 }
 
 void Tile::cleanWalls(bool dontdelete) {
-	if (items.empty()) {
-		return;
-	}
-
-	for (auto it = items.begin(); it != items.end();) {
-		Item* item = (*it);
-		if (item && item->isWall()) {
-			if (!dontdelete) {
-				delete item;
-			}
-			it = items.erase(it);
-		} else {
-			++it;
-		}
-	}
+	TileOperations::cleanWalls(this, dontdelete);
 }
 
 void Tile::cleanWalls(WallBrush* brush) {
-	ItemVector::iterator it;
-
-	for (auto it = items.begin(); it != items.end();) {
-		Item* item = (*it);
-		if (item && item->isWall() && brush->hasWall(item)) {
-			delete item;
-			it = items.erase(it);
-		} else {
-			++it;
-		}
-	}
+	TileOperations::cleanWalls(this, brush);
 }
 
 void Tile::cleanTables(bool dontdelete) {
-	if (items.empty()) {
-		return;
-	}
-
-	for (auto it = items.begin(); it != items.end();) {
-		Item* item = (*it);
-		if (item && item->isTable()) {
-			if (!dontdelete) {
-				delete item;
-			}
-			it = items.erase(it);
-		} else {
-			++it;
-		}
-	}
+	TileOperations::cleanTables(this, dontdelete);
 }
 
 void Tile::tableize(BaseMap* parent) {
-	TableBrush::doTables(parent, this);
+	TileOperations::tableize(this, parent);
 }
 
 void Tile::carpetize(BaseMap* parent) {
-	CarpetBrush::doCarpets(parent, this);
+	TileOperations::carpetize(this, parent);
 }
 
 void Tile::selectGround() {
