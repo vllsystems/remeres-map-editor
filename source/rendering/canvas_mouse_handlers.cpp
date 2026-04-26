@@ -56,7 +56,6 @@
 #include "brushes/spawn_npc_brush.h"
 #include "brushes/npc_brush.h"
 
-
 void MapCanvas::OnMouseMove(wxMouseEvent &event) {
 	if (screendragging) {
 		GetMapWindow()->ScrollRelative(int(g_settings.getFloat(Config::SCROLL_SPEED) * zoom * (event.GetX() - cursor_x)), int(g_settings.getFloat(Config::SCROLL_SPEED) * zoom * (event.GetY() - cursor_y)));

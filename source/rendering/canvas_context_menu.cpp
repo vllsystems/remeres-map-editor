@@ -56,7 +56,6 @@
 #include "brushes/spawn_npc_brush.h"
 #include "brushes/npc_brush.h"
 
-
 void MapCanvas::OnCopy(wxCommandEvent &WXUNUSED(event)) {
 	if (g_gui.IsSelectionMode()) {
 		editor.copybuffer.copy(editor, GetFloor());

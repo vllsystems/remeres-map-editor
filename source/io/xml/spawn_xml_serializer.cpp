@@ -1,17 +1,17 @@
 \  
-#include "app/main.h"  
-  
-#include "io/xml/spawn_xml_serializer.h"  
-#include "editor/settings.h"  
-#include "game/monsters.h"  
-#include "game/monster.h"  
-#include "game/npcs.h"  
-#include "game/npc.h"  
-#include "game/spawn_monster.h"  
-#include "game/spawn_npc.h"  
-#include "map/map.h"  
-#include "map/tile.h"  
-  
+#include "app/main.h"
+
+#include "io/xml/spawn_xml_serializer.h"
+#include "editor/settings.h"
+#include "game/monsters.h"
+#include "game/monster.h"
+#include "game/npcs.h"
+#include "game/npc.h"
+#include "game/spawn_monster.h"
+#include "game/spawn_npc.h"
+#include "map/map.h"
+#include "map/tile.h"
+
 bool SpawnXmlSerializer::loadMonsters(Map &map, const FileName &dir, wxArrayString &warnings) {
 	std::string fn = (const char*)(dir.GetPath(wxPATH_GET_SEPARATOR | wxPATH_GET_VOLUME).mb_str(wxConvUTF8));
 	fn += map.spawnmonsterfile;

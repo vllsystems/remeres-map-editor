@@ -56,7 +56,6 @@
 #include "brushes/spawn_npc_brush.h"
 #include "brushes/npc_brush.h"
 
-
 #include "editor/hotkey_manager.h"
 #include "ui/menubar/main_menubar.h"
 

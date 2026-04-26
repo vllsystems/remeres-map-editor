@@ -1,10 +1,10 @@
 \  
-#include "app/main.h"  
-  
-#include "io/xml/zone_xml_serializer.h"  
-#include "game/zones.h"  
-#include "map/map.h"  
-  
+#include "app/main.h"
+
+#include "io/xml/zone_xml_serializer.h"
+#include "game/zones.h"
+#include "map/map.h"
+
 bool ZoneXmlSerializer::load(Map &map, const FileName &dir, wxArrayString &warnings) {
 	std::string fn = (const char*)(dir.GetPath(wxPATH_GET_SEPARATOR | wxPATH_GET_VOLUME).mb_str(wxConvUTF8));
 	fn += map.zonefile;

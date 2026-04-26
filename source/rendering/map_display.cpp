@@ -464,8 +464,6 @@ void MapCanvas::UpdateZoomStatus() {
 	g_gui.root->SetStatusText(ss, 3);
 }
 
-
-
 void MapCanvas::ChangeFloor(int new_floor) {
 	ASSERT(new_floor >= 0 || new_floor <= rme::MapMaxLayer);
 	int old_floor = floor;
@@ -535,7 +533,6 @@ void MapCanvas::Reset() {
 	editor.getSelection().clear();
 	editor.clearActions();
 }
-
 
 void MapCanvas::getTilesToDraw(int mouse_map_x, int mouse_map_y, int floor, PositionVector* tilestodraw, PositionVector* tilestoborder, bool fill /*= false*/) {
 	if (fill) {
