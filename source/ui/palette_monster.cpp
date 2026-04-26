@@ -16,6 +16,8 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <ranges>
+#include <regex>
 
 #include "editor/settings.h"
 #include "brushes/brush.h"

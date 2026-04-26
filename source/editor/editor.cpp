@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <ranges>
 
 #include "editor/editor.h"
 #include "game/materials.h"

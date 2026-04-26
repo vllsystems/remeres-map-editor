@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <ranges>
 
 #include "brushes/monster_brush.h"
 #include "editor/settings.h"

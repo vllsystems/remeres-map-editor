@@ -17,6 +17,7 @@
 
 #ifndef RME_ADD_TILESET_WINDOW_H_
 #define RME_ADD_TILESET_WINDOW_H_
+#include <wx/spinctrl.h>
 
 #include "main.h"
 

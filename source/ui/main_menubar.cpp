@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <ranges>
 
 #include "ui/main_menubar.h"
 #include "app/application.h"

@@ -16,6 +16,8 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <archive.h>
+#include <archive_entry.h>
 
 #include "io/iomap_otbm.h"
 

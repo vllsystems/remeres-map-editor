@@ -17,6 +17,7 @@
 
 #ifndef RME_OLD_PROPERTIES_WINDOW_H_
 #define RME_OLD_PROPERTIES_WINDOW_H_
+#include <wx/spinctrl.h>
 
 #include "main.h"
 

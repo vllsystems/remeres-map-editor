@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <wx/cmdline.h>
 
 #include "app/application.h"
 #include "rendering/sprites.h"

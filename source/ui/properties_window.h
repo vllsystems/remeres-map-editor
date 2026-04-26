@@ -21,6 +21,7 @@
 #include "main.h"
 #include <wx/grid.h>
 #include <wx/notebook.h>
+#include <wx/spinctrl.h>
 
 #include "ui/common_windows.h"
 #include "map/map.h"

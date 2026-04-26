@@ -17,6 +17,7 @@
 
 #ifndef RME_BITMAP_TO_MAP_WINDOW_H_
 #define RME_BITMAP_TO_MAP_WINDOW_H_
+#include <wx/spinctrl.h>
 
 #include "main.h"
 #include <wx/listctrl.h>

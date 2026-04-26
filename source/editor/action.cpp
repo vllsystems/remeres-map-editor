@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <ranges>
 
 #include "editor/action.h"
 #include "editor/settings.h"

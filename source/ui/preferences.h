@@ -20,6 +20,7 @@
 
 #include "main.h"
 #include <wx/collpane.h>
+#include <wx/spinctrl.h>
 #include <wx/notebook.h>
 #include <wx/filepicker.h>
 #include <wx/clrpicker.h>

@@ -16,6 +16,8 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <ranges>
+#include <span>
 #include <nlohmann/json.hpp>
 
 #include "io/sprite_appearances.h"

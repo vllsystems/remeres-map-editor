@@ -17,6 +17,7 @@
 
 #ifndef OTML_H
 #define OTML_H
+#include <regex>
 
 #include <sstream>
 #include <fstream>

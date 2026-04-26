@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <ranges>
 #include <wx/tglbtn.h>
 
 #include "ui/palette_brushlist.h"

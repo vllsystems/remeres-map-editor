@@ -20,6 +20,7 @@
 
 #include "main.h"
 #include <wx/vlbox.h>
+#include <wx/spinctrl.h>
 
 #include "ui/dcbutton.h"
 #include "ui/positionctrl.h"

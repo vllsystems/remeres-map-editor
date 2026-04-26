@@ -16,6 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
+#include <ranges>
 #include <fmt/args.h>
 
 #include "editor/copybuffer.h"

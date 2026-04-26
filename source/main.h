@@ -58,10 +58,8 @@ _Ret_bytecap_(_Size) inline void* __CRTDECL operator new[](size_t _Size, const c
 #include <wx/defs.h>
 #include <wx/thread.h>
 #include <wx/utils.h>
-#include <wx/cmdline.h>
 #include <wx/filename.h>
 #include <wx/arrstr.h>
-#include <wx/spinctrl.h>
 #include <wx/stdpaths.h>
 #include <wx/event.h>
 #include <wx/chartype.h>
@@ -73,8 +71,6 @@ _Ret_bytecap_(_Size) inline void* __CRTDECL operator new[](size_t _Size, const c
 
 // Libarchive, for OTGZ
 #if OTGZ_SUPPORT > 0
-	#include <archive.h>
-	#include <archive_entry.h>
 #endif
 
 // This has annoyed me one time too many
@@ -110,10 +106,6 @@ _Ret_bytecap_(_Size) inline void* __CRTDECL operator new[](size_t _Size, const c
 #include <stdexcept>
 #include <time.h>
 #include <fstream>
-#include <ranges>
-#include <regex>
-#include <random>
-#include <span>
 
 typedef std::vector<std::string> StringVector;
 typedef wxFileName FileName;
