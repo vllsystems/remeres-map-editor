@@ -218,6 +218,9 @@ target_sources(${PROJECT_NAME}
 	map/map.cpp
 	rendering/map_display.cpp
 	rendering/map_drawer.cpp
+	rendering/draw_brush.cpp
+	rendering/draw_tile_detail.cpp
+	rendering/draw_tooltips.cpp
 	map/map_region.cpp
 	ui/map_tab.cpp
 	rendering/map_window.cpp

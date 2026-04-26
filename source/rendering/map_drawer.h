@@ -83,6 +83,15 @@ protected:
 #else
 	uint64_t last_total_time = 0;
 	uint64_t last_process_time = 0;
+
+	inline int getFloorAdjustment(int floor) {
+		if (floor > rme::MapGroundLayer) {
+			return 0;
+		} else {
+			return rme::TileSize * (rme::MapGroundLayer - floor);
+		}
+	}
+
 #endif
 
 public:
