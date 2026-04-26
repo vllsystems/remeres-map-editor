@@ -172,6 +172,7 @@ target_sources(${PROJECT_NAME}
 	rendering/light_drawer.cpp
 	io/iomap.cpp
 	io/otbm/iomap_otbm.cpp
+	io/otbm/otbm_item_serialization.cpp
 	io/otbm/otbm_spawns.cpp
 	io/otbm/otbm_houses.cpp
 	io/otbm/otbm_zones.cpp
