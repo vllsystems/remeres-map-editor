@@ -127,42 +127,42 @@ endif()
 
 target_sources(${PROJECT_NAME}
 	PRIVATE
-	about_window.cpp
+	ui/about_window.cpp
 	editor/action.cpp
-	actions_history_window.cpp
-	add_item_window.cpp
-	add_tileset_window.cpp
+	ui/actions_history_window.cpp
+	ui/add_item_window.cpp
+	ui/add_tileset_window.cpp
 	application.cpp
-	artprovider.cpp
+	ui/artprovider.cpp
 	map/basemap.cpp
-	bitmap_to_map_window.cpp
-	bitmap_to_map_converter.cpp
+	ui/bitmap_to_map_window.cpp
+	ui/bitmap_to_map_converter.cpp
 	brushes/brush.cpp
 	brushes/brush_tables.cpp
-	browse_tile_window.cpp
-	positionctrl.cpp
+	ui/browse_tile_window.cpp
+	ui/positionctrl.cpp
 	brushes/carpet_brush.cpp
 	io/client_assets.cpp
 	util/common.cpp
-	common_windows.cpp
+	ui/common_windows.cpp
 	game/complexitem.cpp
-	container_properties_window.cpp
+	ui/container_properties_window.cpp
 	editor/copybuffer.cpp
 	brushes/monster_brush.cpp
 	game/monster.cpp
 	game/monsters.cpp
-	dat_debug_view.cpp
-	dcbutton.cpp
+	ui/dat_debug_view.cpp
+	ui/dcbutton.cpp
 	brushes/doodad_brush.cpp
 	editor/editor.cpp
-	editor_tabs.cpp
+	ui/editor_tabs.cpp
 	brushes/eraser_brush.cpp
-	find_item_window.cpp
+	ui/find_item_window.cpp
 	io/filehandle.cpp
 	rendering/graphics.cpp
 	rendering/gl_renderer.cpp
 	brushes/ground_brush.cpp
-	gui.cpp
+	ui/gui.cpp
 	brushes/house_brush.cpp
 	game/house.cpp
 	brushes/house_exit_brush.cpp
@@ -200,39 +200,39 @@ target_sources(${PROJECT_NAME}
 	lua/lua_api_json.cpp
 	lua/lua_api_algo.cpp
 	lua/lua_scripts_window.cpp
-	main_menubar.cpp
-	main_toolbar.cpp
+	ui/main_menubar.cpp
+	ui/main_toolbar.cpp
 	map/map.cpp
 	rendering/map_display.cpp
 	rendering/map_drawer.cpp
 	map/map_region.cpp
-	map_tab.cpp
+	ui/map_tab.cpp
 	rendering/map_window.cpp
 	game/materials.cpp
-	minimap_window.cpp
+	ui/minimap_window.cpp
 	util/mkpch.cpp
 	util/mt_rand.cpp
 	net/net_connection.cpp
 	game/npc.cpp
 	brushes/npc_brush.cpp
 	game/npcs.cpp
-	numbertextctrl.cpp
-	old_properties_window.cpp
-	palette_brushlist.cpp
-	palette_common.cpp
-	palette_monster.cpp
-	palette_house.cpp
-	palette_npc.cpp
-	palette_waypoints.cpp
-	palette_zones.cpp
-	palette_window.cpp
-	pngfiles.cpp
-	preferences.cpp
+	ui/numbertextctrl.cpp
+	ui/old_properties_window.cpp
+	ui/palette_brushlist.cpp
+	ui/palette_common.cpp
+	ui/palette_monster.cpp
+	ui/palette_house.cpp
+	ui/palette_npc.cpp
+	ui/palette_waypoints.cpp
+	ui/palette_zones.cpp
+	ui/palette_window.cpp
+	ui/pngfiles.cpp
+	ui/preferences.cpp
 	process_com.cpp
-	properties_window.cpp
+	ui/properties_window.cpp
 	brushes/raw_brush.cpp
-	replace_items_window.cpp
-	result_window.cpp
+	ui/replace_items_window.cpp
+	ui/result_window.cpp
 	net/rme_net.cpp
 	editor/selection.cpp
 	editor/settings.cpp
@@ -249,13 +249,13 @@ target_sources(${PROJECT_NAME}
 	templatemapclassic.cpp
 	map/tile.cpp
 	game/tileset.cpp
-	tileset_window.cpp
+	ui/tileset_window.cpp
 	game/town.cpp
 	updater.cpp
 	brushes/wall_brush.cpp
 	brushes/waypoint_brush.cpp
 	game/waypoints.cpp
-	welcome_dialog.cpp
+	ui/welcome_dialog.cpp
 	brushes/zone_brush.cpp
 	game/zones.cpp
 )

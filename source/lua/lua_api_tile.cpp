@@ -32,7 +32,7 @@
 #include "brushes/ground_brush.h"
 #include "brushes/doodad_brush.h"
 #include "brushes/wall_brush.h"
-#include "../gui.h"
+#include "ui/gui.h"
 #include "editor/editor.h"
 #include "map/map.h"
 

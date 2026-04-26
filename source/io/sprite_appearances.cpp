@@ -21,7 +21,7 @@
 #include "rendering/graphics.h"
 #include "editor/settings.h"
 #include "io/filehandle.h"
-#include "gui.h"
+#include "ui/gui.h"
 #include "rendering/gl_renderer.h"
 
 #include <lzma.h>

@@ -16,7 +16,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "main.h"
-#include "gui.h"
+#include "ui/gui.h"
 
 void IOMap::error(const wxString format, ...) {
 	va_list argp;

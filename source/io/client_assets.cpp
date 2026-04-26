@@ -21,9 +21,9 @@
 
 #include "editor/settings.h"
 #include "io/filehandle.h"
-#include "preferences.h"
+#include "ui/preferences.h"
 #include "io/sprite_appearances.h"
-#include "gui.h"
+#include "ui/gui.h"
 #include "util/otml.h"
 
 #include <appearances.pb.h>

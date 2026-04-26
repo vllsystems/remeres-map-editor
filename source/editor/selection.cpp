@@ -23,7 +23,7 @@
 #include "game/npc.h"
 #include "game/item.h"
 #include "editor/editor.h"
-#include "gui.h"
+#include "ui/gui.h"
 
 Selection::Selection(Editor &editor) :
 	editor(editor),

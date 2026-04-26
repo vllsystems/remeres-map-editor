@@ -22,7 +22,7 @@
 #include "map/tile.h"
 #include "io/filehandle.h"
 #include "editor/editor.h"
-#include "gui.h"
+#include "ui/gui.h"
 
 #include <wx/image.h>
 #include <zlib.h>

@@ -22,7 +22,7 @@
 #include "game/monsters.h"
 #include <algorithm>
 
-#include "gui.h"
+#include "ui/gui.h"
 #include "game/materials.h"
 #include "brushes/brush.h"
 #include "brushes/monster_brush.h"

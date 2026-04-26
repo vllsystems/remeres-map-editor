@@ -20,7 +20,7 @@
 
 #include "main.h"
 
-#include "editor_tabs.h"
+#include "ui/editor_tabs.h"
 #include "application.h"
 #include "live/live_server.h"
 

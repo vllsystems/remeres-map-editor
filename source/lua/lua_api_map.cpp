@@ -21,7 +21,7 @@
 #include "map/basemap.h"
 #include "map/tile.h"
 #include "util/position.h"
-#include "../gui.h"
+#include "ui/gui.h"
 #include "editor/editor.h"
 
 namespace LuaAPI {

@@ -19,7 +19,7 @@
 #include "lua_script_manager.h"
 #include "lua_api.h"
 #include "lua_api_image.h"
-#include "../gui.h"
+#include "ui/gui.h"
 #include "map/tile.h"
 
 #include <wx/dir.h>

@@ -45,7 +45,7 @@
 #include "game/npc.h"
 #include "map/map.h"
 
-#include "gui.h"
+#include "ui/gui.h"
 
 Brushes g_brushes;
 

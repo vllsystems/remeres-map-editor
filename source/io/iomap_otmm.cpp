@@ -23,7 +23,7 @@
 #include "io/iomap_otmm.h"
 #include "io/filehandle.h"
 #include "map/map.h"
-#include "gui.h"
+#include "ui/gui.h"
 
 // ============================================================================
 // Item

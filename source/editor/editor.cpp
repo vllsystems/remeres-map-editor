@@ -23,7 +23,7 @@
 #include "io/client_assets.h"
 #include "game/complexitem.h"
 #include "editor/settings.h"
-#include "gui.h"
+#include "ui/gui.h"
 #include "rendering/map_display.h"
 #include "brushes/brush.h"
 #include "brushes/ground_brush.h"
@@ -37,7 +37,7 @@
 #include "brushes/npc_brush.h"
 #include "brushes/spawn_monster_brush.h"
 #include "brushes/spawn_npc_brush.h"
-#include "preferences.h"
+#include "ui/preferences.h"
 
 #include "live/live_server.h"
 #include "live/live_client.h"

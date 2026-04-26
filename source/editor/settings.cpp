@@ -19,7 +19,7 @@
 
 #include "editor/settings.h"
 
-#include "gui_ids.h"
+#include "ui/gui_ids.h"
 #include "io/client_assets.h"
 
 Settings g_settings;

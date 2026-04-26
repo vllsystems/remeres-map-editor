@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "game/materials.h"
-#include "gui.h"
+#include "ui/gui.h"
 
 #include "game/items.h"
 #include "game/item.h"

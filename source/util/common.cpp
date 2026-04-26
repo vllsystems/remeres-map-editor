@@ -20,7 +20,7 @@
 #include "util/common.h"
 #include "math.h"
 #include "util/position.h"
-#include "numbertextctrl.h"
+#include "ui/numbertextctrl.h"
 
 // random generator
 std::mt19937 &getRandomGenerator() {

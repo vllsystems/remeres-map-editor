@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "rendering/map_window.h"
-#include "gui.h"
+#include "ui/gui.h"
 #include "sprites.h"
 #include "editor/editor.h"
 

@@ -18,14 +18,14 @@
 #ifndef RME_APPLICATION_H_
 #define RME_APPLICATION_H_
 
-#include "gui.h"
-#include "main_toolbar.h"
+#include "ui/gui.h"
+#include "ui/main_toolbar.h"
 #include "editor/action.h"
 #include "editor/settings.h"
 
 #include "process_com.h"
 #include "rendering/map_display.h"
-#include "welcome_dialog.h"
+#include "ui/welcome_dialog.h"
 
 class Item;
 class Monster;

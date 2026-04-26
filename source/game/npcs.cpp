@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "gui.h"
+#include "ui/gui.h"
 #include "game/materials.h"
 #include "brushes/brush.h"
 #include "game/npcs.h"

@@ -17,7 +17,7 @@
 
 #include "main.h"
 #include "lua_api_image.h"
-#include "../gui.h"
+#include "ui/gui.h"
 #include "rendering/graphics.h"
 #include "game/items.h"
 #include <filesystem>

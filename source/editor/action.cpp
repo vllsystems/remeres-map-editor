@@ -21,7 +21,7 @@
 #include "editor/settings.h"
 #include "map/map.h"
 #include "editor/editor.h"
-#include "gui.h"
+#include "ui/gui.h"
 
 Change::Change() :
 	type(CHANGE_NONE), data(nullptr) {

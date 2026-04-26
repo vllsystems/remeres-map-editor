@@ -19,7 +19,7 @@
 
 #include "brushes/brush.h"
 #include "rendering/graphics.h"
-#include "gui.h"
+#include "ui/gui.h"
 #include "map/tile.h"
 #include "game/complexitem.h"
 #include "io/iomap.h"

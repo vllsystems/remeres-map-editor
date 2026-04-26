@@ -20,14 +20,14 @@
 #include "rendering/graphics.h"
 
 #include "io/client_assets.h"
-#include "artprovider.h"
+#include "ui/artprovider.h"
 #include "io/filehandle.h"
 #include "editor/settings.h"
-#include "gui.h"
+#include "ui/gui.h"
 #include "util/otml.h"
 #include "io/sprite_appearances.h"
 #include "sprites.h"
-#include "pngfiles.h"
+#include "ui/pngfiles.h"
 
 #include "gl_compat.h"
 

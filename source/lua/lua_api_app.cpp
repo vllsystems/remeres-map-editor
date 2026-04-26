@@ -18,7 +18,7 @@
 #include "main.h"
 #include "lua_api_app.h"
 #include "lua_script_manager.h"
-#include "../gui.h"
+#include "ui/gui.h"
 #include "editor/editor.h"
 #include "map/map.h"
 #include "brushes/brush.h"

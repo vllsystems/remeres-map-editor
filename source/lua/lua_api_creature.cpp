@@ -24,7 +24,7 @@
 #include "map/tile.h"
 #include "map/map.h"
 #include "editor/editor.h"
-#include "../gui.h"
+#include "ui/gui.h"
 
 namespace LuaAPI {
 
