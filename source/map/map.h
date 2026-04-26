@@ -26,7 +26,7 @@
 #include "game/complexitem.h"
 #include "game/waypoints.h"
 #include "game/zones.h"
-#include "templates.h"
+#include "templates/templates.h"
 #include "game/spawn_npc.h"
 
 class Map : public BaseMap {

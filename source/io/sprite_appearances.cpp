@@ -26,7 +26,7 @@
 
 #include <lzma.h>
 
-#include "gl_compat.h"
+#include "rendering/gl_compat.h"
 
 namespace fs = std::filesystem;
 

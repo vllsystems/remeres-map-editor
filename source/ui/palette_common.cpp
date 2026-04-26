@@ -19,7 +19,7 @@
 
 #include "ui/palette_common.h"
 #include "brushes/brush.h"
-#include "sprites.h"
+#include "rendering/sprites.h"
 #include "ui/gui.h"
 #include "ui/common_windows.h"
 #include "app/application.h"

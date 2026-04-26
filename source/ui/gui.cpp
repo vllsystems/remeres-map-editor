@@ -26,7 +26,7 @@
 #include "editor/editor.h"
 #include "brushes/brush.h"
 #include "map/map.h"
-#include "sprites.h"
+#include "rendering/sprites.h"
 #include "game/materials.h"
 #include "brushes/doodad_brush.h"
 #include "brushes/spawn_monster_brush.h"

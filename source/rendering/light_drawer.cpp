@@ -19,7 +19,7 @@
 #include "rendering/light_drawer.h"
 #include "rendering/gl_renderer.h"
 
-#include "gl_compat.h"
+#include "rendering/gl_compat.h"
 
 LightDrawer::LightDrawer() {
 	texture = 0;

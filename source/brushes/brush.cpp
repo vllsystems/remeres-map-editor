@@ -35,7 +35,7 @@
 
 #include "editor/settings.h"
 
-#include "sprites.h"
+#include "rendering/sprites.h"
 
 #include "game/item.h"
 #include "game/complexitem.h"

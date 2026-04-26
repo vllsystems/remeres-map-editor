@@ -17,7 +17,7 @@
 
 #include "main.h"
 
-#include "templates.h"
+#include "templates/templates.h"
 
 ConversionMap getReplacementMapClassic() {
 	ConversionMap replacement_map;

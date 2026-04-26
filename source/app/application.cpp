@@ -18,7 +18,7 @@
 #include "main.h"
 
 #include "app/application.h"
-#include "sprites.h"
+#include "rendering/sprites.h"
 #include "editor/editor.h"
 #include "ui/common_windows.h"
 #include "ui/palette_window.h"

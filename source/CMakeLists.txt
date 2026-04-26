@@ -243,10 +243,10 @@ target_sources(${PROJECT_NAME}
 	io/sprite_appearances.cpp
 	util/stb_truetype_impl.cpp
 	brushes/table_brush.cpp
-	templatemap76-74.cpp
-	templatemap81.cpp
-	templatemap854.cpp
-	templatemapclassic.cpp
+	templates/templatemap76-74.cpp
+	templates/templatemap81.cpp
+	templates/templatemap854.cpp
+	templates/templatemapclassic.cpp
 	map/tile.cpp
 	game/tileset.cpp
 	ui/tileset_window.cpp

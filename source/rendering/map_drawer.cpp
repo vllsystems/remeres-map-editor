@@ -36,7 +36,7 @@
 
 #include "editor/editor.h"
 #include "ui/gui.h"
-#include "sprites.h"
+#include "rendering/sprites.h"
 #include "rendering/map_drawer.h"
 #include <unordered_set>
 #include "rendering/map_display.h"

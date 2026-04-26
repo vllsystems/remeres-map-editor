@@ -26,10 +26,10 @@
 #include "ui/gui.h"
 #include "util/otml.h"
 #include "io/sprite_appearances.h"
-#include "sprites.h"
+#include "rendering/sprites.h"
 #include "ui/pngfiles.h"
 
-#include "gl_compat.h"
+#include "rendering/gl_compat.h"
 
 #include "rendering/gl_renderer.h"
 

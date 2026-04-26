@@ -21,7 +21,7 @@
 #include "ui/gui.h"
 #include "editor/editor.h"
 #include "brushes/brush.h"
-#include "sprites.h"
+#include "rendering/sprites.h"
 #include "map/map.h"
 #include "map/tile.h"
 #include "ui/old_properties_window.h"

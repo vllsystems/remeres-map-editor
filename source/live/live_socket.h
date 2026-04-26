@@ -20,7 +20,7 @@
 
 #include "util/position.h"
 #include "net/net_connection.h"
-#include "live_packets.h"
+#include "live/live_packets.h"
 #include "io/filehandle.h"
 #include "io/iomap.h"
 

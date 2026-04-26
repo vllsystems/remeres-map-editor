@@ -24,7 +24,7 @@
 #include "ui/gui.h"
 #include "editor/editor.h"
 #include "map/map.h"
-#include "sprites.h"
+#include "rendering/sprites.h"
 #include "ui/map_tab.h"
 #include "ui/editor_tabs.h"
 #include "rendering/map_display.h"
