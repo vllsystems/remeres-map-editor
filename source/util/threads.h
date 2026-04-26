@@ -18,7 +18,7 @@
 #ifndef RME_THREAD_H_
 #define RME_THREAD_H_
 
-#include "main.h"
+#include "app/main.h"
 
 class Thread : public wxThread {
 public:

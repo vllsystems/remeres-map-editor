@@ -15,21 +15,21 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <wx/cmdline.h>
 
 #include "app/application.h"
 #include "rendering/sprites.h"
 #include "editor/editor.h"
-#include "ui/common_windows.h"
-#include "ui/palette_window.h"
-#include "ui/preferences.h"
-#include "ui/result_window.h"
-#include "ui/minimap_window.h"
-#include "ui/about_window.h"
-#include "ui/main_menubar.h"
+#include "ui/dialogs/common_windows.h"
+#include "ui/palette/palette_window.h"
+#include "ui/dialogs/preferences.h"
+#include "ui/windows/result_window.h"
+#include "ui/windows/minimap_window.h"
+#include "ui/dialogs/about_window.h"
+#include "ui/menubar/main_menubar.h"
 #include "app/updater.h"
-#include "ui/artprovider.h"
+#include "app/artprovider.h"
 
 #include "game/materials.h"
 #include "map/map.h"

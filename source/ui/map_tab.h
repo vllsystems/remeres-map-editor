@@ -18,7 +18,7 @@
 #ifndef RME_MAP_TAB_H_
 #define RME_MAP_TAB_H_
 
-#include "ui/editor_tabs.h"
+#include "editor/editor_tabs.h"
 #include "app/application.h"
 #include "rendering/map_window.h"
 

@@ -15,12 +15,12 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include "live/live_socket.h"
 
-#include "io/client_assets.h"
+#include "client_assets.h"
 #include "map/map_region.h"
-#include "io/iomap_otbm.h"
+#include "io/otbm/iomap_otbm.h"
 #include "live/live_tab.h"
 #include "editor/editor.h"
 

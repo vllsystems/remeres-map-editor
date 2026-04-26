@@ -15,12 +15,12 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 
 #include "ui/gui.h"
 #include "map/map.h"
 
-#include "io/client_assets.h"
+#include "client_assets.h"
 
 Map::Map() :
 	BaseMap(),

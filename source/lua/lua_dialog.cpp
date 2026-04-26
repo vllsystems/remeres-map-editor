@@ -15,7 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include "lua_dialog.h"
 #include "lua_api_image.h"
 #include "ui/gui.h"
@@ -24,8 +24,8 @@
 #include "rendering/map_drawer.h"
 #include "editor/editor.h"
 #include <wx/msgdlg.h>
-#include "ui/common_windows.h"
-#include "ui/find_item_window.h"
+#include "ui/dialogs/common_windows.h"
+#include "ui/windows/find_item_window.h"
 #include "ui/dcbutton.h"
 #include <wx/statline.h>
 #include <wx/valgen.h>

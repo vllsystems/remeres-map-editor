@@ -15,7 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include "lua_api_tile.h"
 #include "lua_api.h"
 #include <algorithm>
@@ -24,7 +24,7 @@
 #include "game/item.h"
 #include "game/monster.h"
 #include "game/monsters.h"
-#include "editor/settings.h"
+#include "app/settings.h"
 #include "game/npc.h"
 #include "game/spawn_monster.h"
 #include "game/spawn_npc.h"

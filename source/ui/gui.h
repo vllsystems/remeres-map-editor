@@ -28,9 +28,9 @@
 #include "brushes/brush_enums.h"
 #include "ui/gui_ids.h"
 #include "ui/hotkey.h"
-#include "ui/editor_tabs.h"
+#include "editor/editor_tabs.h"
 #include "ui/map_tab.h"
-#include "ui/palette_window.h"
+#include "ui/palette/palette_window.h"
 #include "brushes/zone_brush.h"
 
 namespace canary {

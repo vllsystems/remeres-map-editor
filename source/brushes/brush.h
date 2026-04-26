@@ -17,7 +17,7 @@
 
 #ifndef RME_BRUSH_H_
 #define RME_BRUSH_H_
-#include "main.h"
+#include "app/main.h"
 
 #include "util/position.h"
 

@@ -15,11 +15,11 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <wx/dcbuffer.h>
 #include <wx/tglbtn.h>
 
-#include "editor/settings.h"
+#include "app/settings.h"
 
 #include "ui/dcbutton.h"
 #include "rendering/sprites.h"

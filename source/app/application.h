@@ -19,13 +19,13 @@
 #define RME_APPLICATION_H_
 
 #include "ui/gui.h"
-#include "ui/main_toolbar.h"
+#include "ui/toolbar/main_toolbar.h"
 #include "editor/action.h"
-#include "editor/settings.h"
+#include "app/settings.h"
 
 #include "app/process_com.h"
 #include "rendering/map_display.h"
-#include "ui/welcome_dialog.h"
+#include "ui/windows/welcome_dialog.h"
 
 class Item;
 class Monster;

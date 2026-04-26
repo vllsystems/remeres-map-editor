@@ -18,7 +18,7 @@
 #ifndef RME_COMMONS_H_
 #define RME_COMMONS_H_
 
-#include "main.h"
+#include "app/main.h"
 
 #include "util/mt_rand.h"
 

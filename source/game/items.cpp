@@ -15,14 +15,14 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 
 #include "game/materials.h"
 #include "ui/gui.h"
 
 #include "game/items.h"
 #include "game/item.h"
-#include "io/sprite_appearances.h"
+#include "rendering/sprite_appearances.h"
 
 #include <appearances.pb.h>
 

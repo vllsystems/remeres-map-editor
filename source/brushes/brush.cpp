@@ -15,7 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 
 #include "brushes/brush.h"
 #include "brushes/carpet_brush.h"
@@ -33,7 +33,7 @@
 #include "brushes/waypoint_brush.h"
 #include "brushes/zone_brush.h"
 
-#include "editor/settings.h"
+#include "app/settings.h"
 
 #include "rendering/sprites.h"
 

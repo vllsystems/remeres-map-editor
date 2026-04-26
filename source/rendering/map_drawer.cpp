@@ -15,7 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 
 #ifdef __WINDOWS__
 	#include <windows.h>
@@ -49,7 +49,7 @@
 #include "brushes/house_exit_brush.h"
 #include "brushes/house_brush.h"
 #include "brushes/spawn_monster_brush.h"
-#include "io/sprite_appearances.h"
+#include "rendering/sprite_appearances.h"
 #include "brushes/npc_brush.h"
 #include "brushes/spawn_npc_brush.h"
 #include "brushes/wall_brush.h"

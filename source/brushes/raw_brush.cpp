@@ -15,10 +15,10 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 
 #include "brushes/raw_brush.h"
-#include "editor/settings.h"
+#include "app/settings.h"
 #include "game/items.h"
 #include "map/basemap.h"
 

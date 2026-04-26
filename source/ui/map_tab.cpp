@@ -15,7 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <thread>
 #ifdef __linux__
 	#include <malloc.h>
@@ -26,7 +26,7 @@
 #include "map/map.h"
 #include "rendering/sprites.h"
 #include "ui/map_tab.h"
-#include "ui/editor_tabs.h"
+#include "editor/editor_tabs.h"
 #include "rendering/map_display.h"
 
 MapTab::MapTab(MapTabbook* aui, Editor* editor) :

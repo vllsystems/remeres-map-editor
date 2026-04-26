@@ -1,3 +1,4 @@
+// Dead code — not compiled. Kept for reference.
 //////////////////////////////////////////////////////////////////////
 // This file is part of Remere's Map Editor
 //////////////////////////////////////////////////////////////////////
@@ -15,7 +16,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 
 #include "io/iomap_otmm.h"
 #include "game/item.h"
@@ -23,7 +24,7 @@
 #include "io/iomap_otmm.h"
 #include "io/filehandle.h"
 #include "map/map.h"
-#include "ui/gui.h"
+#include "ui/gui.h" // KNOWN_VIOLATION
 
 // ============================================================================
 // Item

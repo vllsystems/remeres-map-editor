@@ -18,9 +18,9 @@
 #ifndef _RME_LIVE_TAB_H_
 #define _RME_LIVE_TAB_H_
 
-#include "main.h"
+#include "app/main.h"
 
-#include "ui/editor_tabs.h"
+#include "editor/editor_tabs.h"
 #include "app/application.h"
 #include "live/live_server.h"
 

@@ -15,14 +15,14 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 
 #include "io/iominimap.h"
 
 #include "map/tile.h"
 #include "io/filehandle.h"
 #include "editor/editor.h"
-#include "ui/gui.h"
+#include "ui/gui.h" // KNOWN_VIOLATION
 
 #include <wx/image.h>
 #include <zlib.h>

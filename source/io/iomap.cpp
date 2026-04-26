@@ -15,8 +15,8 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
-#include "ui/gui.h"
+#include "app/main.h"
+#include "ui/gui.h" // KNOWN_VIOLATION
 
 void IOMap::error(const wxString format, ...) {
 	va_list argp;

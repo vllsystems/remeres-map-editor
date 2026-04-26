@@ -15,7 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <ranges>
 #include <wx/clipbrd.h>
 #include <wx/wfstream.h>
@@ -29,17 +29,17 @@
 #include "rendering/sprites.h"
 #include "map/map.h"
 #include "map/tile.h"
-#include "ui/old_properties_window.h"
-#include "ui/properties_window.h"
-#include "ui/tileset_window.h"
-#include "ui/palette_window.h"
+#include "ui/dialogs/old_properties_window.h"
+#include "ui/dialogs/properties_window.h"
+#include "ui/windows/tileset_window.h"
+#include "ui/palette/palette_window.h"
 #include "rendering/map_display.h"
 #include "rendering/map_drawer.h"
 #include "app/application.h"
 #include "live/live_server.h"
-#include "ui/browse_tile_window.h"
+#include "ui/windows/browse_tile_window.h"
 
-#include "ui/main_menubar.h"
+#include "ui/menubar/main_menubar.h"
 
 #include "brushes/doodad_brush.h"
 #include "brushes/house_exit_brush.h"

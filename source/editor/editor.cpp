@@ -15,15 +15,15 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <ranges>
 
 #include "editor/editor.h"
 #include "game/materials.h"
 #include "map/map.h"
-#include "io/client_assets.h"
+#include "client_assets.h"
 #include "game/complexitem.h"
-#include "editor/settings.h"
+#include "app/settings.h"
 #include "ui/gui.h"
 #include "rendering/map_display.h"
 #include "brushes/brush.h"
@@ -38,7 +38,7 @@
 #include "brushes/npc_brush.h"
 #include "brushes/spawn_monster_brush.h"
 #include "brushes/spawn_npc_brush.h"
-#include "ui/preferences.h"
+#include "ui/dialogs/preferences.h"
 
 #include "live/live_server.h"
 #include "live/live_client.h"

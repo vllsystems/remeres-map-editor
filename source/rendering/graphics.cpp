@@ -15,20 +15,20 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <wx/mstream.h>
 
 #include "rendering/graphics.h"
 
-#include "io/client_assets.h"
-#include "ui/artprovider.h"
+#include "client_assets.h"
+#include "app/artprovider.h"
 #include "io/filehandle.h"
-#include "editor/settings.h"
+#include "app/settings.h"
 #include "ui/gui.h"
 #include "util/otml.h"
-#include "io/sprite_appearances.h"
+#include "rendering/sprite_appearances.h"
 #include "rendering/sprites.h"
-#include "ui/pngfiles.h"
+#include "io/pngfiles.h"
 
 #include "rendering/gl_compat.h"
 

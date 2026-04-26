@@ -15,7 +15,7 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <wx/mstream.h>
 #include <wx/display.h>
 #include <wx/stopwatch.h>
@@ -25,8 +25,8 @@
 #include "ui/gui.h"
 
 #include "app/application.h"
-#include "io/client_assets.h"
-#include "ui/main_menubar.h"
+#include "client_assets.h"
+#include "ui/menubar/main_menubar.h"
 
 #include "editor/editor.h"
 #include "brushes/brush.h"
@@ -36,18 +36,18 @@
 #include "brushes/doodad_brush.h"
 #include "brushes/spawn_monster_brush.h"
 
-#include "ui/common_windows.h"
-#include "ui/result_window.h"
-#include "ui/minimap_window.h"
-#include "ui/palette_window.h"
+#include "ui/dialogs/common_windows.h"
+#include "ui/windows/result_window.h"
+#include "ui/windows/minimap_window.h"
+#include "ui/palette/palette_window.h"
 #include "rendering/map_display.h"
 #include "app/application.h"
-#include "ui/welcome_dialog.h"
+#include "ui/windows/welcome_dialog.h"
 #include "brushes/spawn_npc_brush.h"
-#include "ui/actions_history_window.h"
+#include "ui/windows/actions_history_window.h"
 #include "lua/lua_scripts_window.h"
-#include "io/sprite_appearances.h"
-#include "ui/preferences.h"
+#include "rendering/sprite_appearances.h"
+#include "ui/dialogs/preferences.h"
 
 #include "live/live_client.h"
 #include "live/live_tab.h"

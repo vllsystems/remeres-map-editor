@@ -15,11 +15,11 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <ranges>
 
 #include "brushes/monster_brush.h"
-#include "editor/settings.h"
+#include "app/settings.h"
 #include "map/tile.h"
 #include "game/monster.h"
 #include "map/basemap.h"

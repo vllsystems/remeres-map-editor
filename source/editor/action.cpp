@@ -15,11 +15,11 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 //////////////////////////////////////////////////////////////////////
 
-#include "main.h"
+#include "app/main.h"
 #include <ranges>
 
 #include "editor/action.h"
-#include "editor/settings.h"
+#include "app/settings.h"
 #include "map/map.h"
 #include "editor/editor.h"
 #include "ui/gui.h"

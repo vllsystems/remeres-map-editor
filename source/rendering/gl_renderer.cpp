@@ -9,7 +9,7 @@
 	#include <dlfcn.h>
 #endif
 
-#include "main.h"
+#include "app/main.h"
 #include "rendering/gl_renderer.h"
 #include <array>
 #include <cstring>
