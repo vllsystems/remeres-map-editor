@@ -170,6 +170,9 @@ target_sources(${PROJECT_NAME}
 	rendering/light_drawer.cpp
 	io/iomap.cpp
 	io/iomap_otbm.cpp
+	io/otbm_spawns.cpp
+	io/otbm_houses.cpp
+	io/otbm_zones.cpp
 	io/iominimap.cpp
 	game/item_attributes.cpp
 	game/item.cpp
