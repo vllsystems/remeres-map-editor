@@ -21,7 +21,12 @@
 struct Outfit {
 	Outfit() :
 		lookType(0), lookItem(0), lookMount(0), lookAddon(0), lookHead(0), lookBody(0), lookLegs(0), lookFeet(0) { }
-	~Outfit() { }
+	~Outfit() = default;
+	Outfit(const Outfit &) = default;
+	Outfit &operator=(const Outfit &) = default;
+	Outfit(Outfit &&) noexcept = default;
+	Outfit &operator=(Outfit &&) noexcept = default;
+
 	std::string name;
 	int lookType;
 	int lookItem;

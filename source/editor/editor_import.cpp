@@ -50,7 +50,7 @@
 
 namespace fs = std::filesystem;
 
-bool Editor::importMiniMap(FileName filename, int import, int import_x_offset, int import_y_offset, int import_z_offset) {
+bool Editor::importMiniMap(FileName filename, int import_type, int import_x_offset, int import_y_offset, int import_z_offset) {
 	return false;
 }
 

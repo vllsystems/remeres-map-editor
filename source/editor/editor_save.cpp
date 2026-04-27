@@ -46,6 +46,7 @@
 
 #include <filesystem>
 #include <chrono>
+#include <fmt/chrono.h>
 #include <iostream>
 
 namespace fs = std::filesystem;
@@ -216,50 +217,36 @@ void Editor::saveMap(FileName filename, bool showdialog) {
 		ensureBackupDirectoryExists(backup_path);
 		// Move temporary backups to their proper files
 		time_t t = time(nullptr);
-		tm* current_time = localtime(&t);
-		ASSERT(current_time);
-
-		std::ostringstream date;
-		date << (1900 + current_time->tm_year);
-		if (current_time->tm_mon < 9) {
-			date << "-"
-				 << "0" << current_time->tm_mon + 1;
-		} else {
-			date << "-" << current_time->tm_mon + 1;
-		}
-		date << "-" << current_time->tm_mday;
-		date << "-" << current_time->tm_hour;
-		date << "-" << current_time->tm_min;
-		date << "-" << current_time->tm_sec;
+		auto date = fmt::format("{:%Y-%m-%d-%H-%M-%S}", fmt::localtime(std::time(nullptr)));
 
 		if (!backup_otbm.empty()) {
 			converter.SetFullName(wxstr(savefile));
 			std::string otbm_filename = backup_path + nstr(converter.GetName());
-			std::rename(backup_otbm.c_str(), std::string(otbm_filename + "." + date.str() + (save_otgz ? ".otgz" : ".otbm")).c_str());
+			std::rename(backup_otbm.c_str(), (otbm_filename + "." + date + (save_otgz ? ".otgz" : ".otbm")).c_str());
 		}
 
 		if (!backup_house.empty()) {
 			converter.SetFullName(wxstr(map.housefile));
 			std::string house_filename = backup_path + nstr(converter.GetName());
-			std::rename(backup_house.c_str(), std::string(house_filename + "." + date.str() + ".xml").c_str());
+			std::rename(backup_house.c_str(), (house_filename + "." + date + ".xml").c_str());
 		}
 
 		if (!backup_spawn.empty()) {
 			converter.SetFullName(wxstr(map.spawnmonsterfile));
 			std::string spawn_filename = backup_path + nstr(converter.GetName());
-			std::rename(backup_spawn.c_str(), std::string(spawn_filename + "." + date.str() + ".xml").c_str());
+			std::rename(backup_spawn.c_str(), (spawn_filename + "." + date + ".xml").c_str());
 		}
 
 		if (!backup_spawn_npc.empty()) {
 			converter.SetFullName(wxstr(map.spawnnpcfile));
 			std::string spawnnpc_filename = backup_path + nstr(converter.GetName());
-			std::rename(backup_spawn_npc.c_str(), std::string(spawnnpc_filename + "." + date.str() + ".xml").c_str());
+			std::rename(backup_spawn_npc.c_str(), (spawnnpc_filename + "." + date + ".xml").c_str());
 		}
 
 		if (!backup_zones.empty()) {
 			converter.SetFullName(wxstr(map.zonefile));
 			std::string zones_filename = backup_path + nstr(converter.GetName());
-			std::rename(backup_zones.c_str(), std::string(zones_filename + "." + date.str() + ".xml").c_str());
+			std::rename(backup_zones.c_str(), (zones_filename + "." + date + ".xml").c_str());
 		}
 	} else {
 		// Delete the temporary files

@@ -25,8 +25,11 @@ namespace OnSearchForStuff {
 			if (done % 0x8000 == 0) {
 				g_gui.SetLoadDone((unsigned int)(100 * done / map.getTileCount()));
 			}
-			Container* container;
-			if ((search_unique && item->getUniqueID() > 0) || (search_action && item->getActionID() > 0) || (search_container && ((container = dynamic_cast<Container*>(item)) && container->getItemCount())) || (search_writeable && item && item->getText().length() > 0)) {
+			auto hasContainer = [&]() {
+				Container* container = dynamic_cast<Container*>(item);
+				return container && container->getItemCount();
+			};
+			if ((search_unique && item->getUniqueID() > 0) || (search_action && item->getActionID() > 0) || (search_container && hasContainer()) || (search_writeable && item && item->getText().length() > 0)) {
 				found.push_back(std::make_pair(tile, item));
 			}
 		}
