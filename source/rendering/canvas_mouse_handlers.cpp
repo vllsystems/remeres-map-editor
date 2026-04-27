@@ -314,133 +314,131 @@ void MapCanvas::OnMouseActionClick(wxMouseEvent &event) {
 			drag_start_y = mouse_map_y;
 			drag_start_z = floor;
 		} else {
-			do {
-				boundbox_selection = false;
-				if (event.ShiftDown()) {
-					boundbox_selection = true;
+			boundbox_selection = false;
+			if (event.ShiftDown()) {
+				boundbox_selection = true;
 
-					if (!event.ControlDown()) {
-						selection.start(Selection::NONE, ACTION_UNSELECT); // Start selection session
-						selection.clear(); // Clear out selection
-						selection.finish(); // End selection session
-						selection.updateSelectionCount();
-					}
-				} else if (event.ControlDown()) {
-					Tile* tile = editor.getMap().getTile(mouse_map_x, mouse_map_y, floor);
-					if (tile) {
-						const auto monster = tile->getTopMonster();
-						// Show monster spawn
-						if (tile->spawnMonster && g_settings.getInteger(Config::SHOW_SPAWNS_MONSTER)) {
-							selection.start(); // Start selection session
-							if (tile->spawnMonster->isSelected()) {
-								selection.remove(tile, tile->spawnMonster);
-							} else {
-								selection.add(tile, tile->spawnMonster);
-							}
-							selection.finish(); // Finish selection session
-							selection.updateSelectionCount();
-							// Show monsters
-						} else if (monster && g_settings.getInteger(Config::SHOW_MONSTERS)) {
-							selection.start(); // Start selection session
-							if (monster->isSelected()) {
-								selection.remove(tile, monster);
-							} else {
-								selection.add(tile, monster);
-							}
-							selection.finish();
-							selection.updateSelectionCount();
-						} else if (tile->spawnNpc && g_settings.getInteger(Config::SHOW_SPAWNS_NPC)) {
-							selection.start(); // Start selection session
-							if (tile->spawnNpc->isSelected()) {
-								selection.remove(tile, tile->spawnNpc);
-							} else {
-								selection.add(tile, tile->spawnNpc);
-							}
-							selection.finish(); // Finish selection session
-							selection.updateSelectionCount();
-						} else if (tile->npc && g_settings.getInteger(Config::SHOW_NPCS)) {
-							selection.start(); // Start selection session
-							if (tile->npc->isSelected()) {
-								selection.remove(tile, tile->npc);
-							} else {
-								selection.add(tile, tile->npc);
-							}
-							selection.finish(); // Finish selection session
-							selection.updateSelectionCount();
-							// Show npc spawn
+				if (!event.ControlDown()) {
+					selection.start(Selection::NONE, ACTION_UNSELECT); // Start selection session
+					selection.clear(); // Clear out selection
+					selection.finish(); // End selection session
+					selection.updateSelectionCount();
+				}
+			} else if (event.ControlDown()) {
+				Tile* tile = editor.getMap().getTile(mouse_map_x, mouse_map_y, floor);
+				if (tile) {
+					const auto monster = tile->getTopMonster();
+					// Show monster spawn
+					if (tile->spawnMonster && g_settings.getInteger(Config::SHOW_SPAWNS_MONSTER)) {
+						selection.start(); // Start selection session
+						if (tile->spawnMonster->isSelected()) {
+							selection.remove(tile, tile->spawnMonster);
 						} else {
-							Item* item = tile->getTopItem();
-							if (item) {
-								selection.start(); // Start selection session
-								if (item->isSelected()) {
-									selection.remove(tile, item);
-								} else {
-									selection.add(tile, item);
-								}
-								selection.finish(); // Finish selection session
-								selection.updateSelectionCount();
+							selection.add(tile, tile->spawnMonster);
+						}
+						selection.finish(); // Finish selection session
+						selection.updateSelectionCount();
+						// Show monsters
+					} else if (monster && g_settings.getInteger(Config::SHOW_MONSTERS)) {
+						selection.start(); // Start selection session
+						if (monster->isSelected()) {
+							selection.remove(tile, monster);
+						} else {
+							selection.add(tile, monster);
+						}
+						selection.finish();
+						selection.updateSelectionCount();
+					} else if (tile->spawnNpc && g_settings.getInteger(Config::SHOW_SPAWNS_NPC)) {
+						selection.start(); // Start selection session
+						if (tile->spawnNpc->isSelected()) {
+							selection.remove(tile, tile->spawnNpc);
+						} else {
+							selection.add(tile, tile->spawnNpc);
+						}
+						selection.finish(); // Finish selection session
+						selection.updateSelectionCount();
+					} else if (tile->npc && g_settings.getInteger(Config::SHOW_NPCS)) {
+						selection.start(); // Start selection session
+						if (tile->npc->isSelected()) {
+							selection.remove(tile, tile->npc);
+						} else {
+							selection.add(tile, tile->npc);
+						}
+						selection.finish(); // Finish selection session
+						selection.updateSelectionCount();
+						// Show npc spawn
+					} else {
+						Item* item = tile->getTopItem();
+						if (item) {
+							selection.start(); // Start selection session
+							if (item->isSelected()) {
+								selection.remove(tile, item);
+							} else {
+								selection.add(tile, item);
 							}
+							selection.finish(); // Finish selection session
+							selection.updateSelectionCount();
 						}
 					}
+				}
+			} else {
+				Tile* tile = editor.getMap().getTile(mouse_map_x, mouse_map_y, floor);
+				if (!tile) {
+					selection.start(Selection::NONE, ACTION_UNSELECT); // Start selection session
+					selection.clear(); // Clear out selection
+					selection.finish(); // End selection session
+					selection.updateSelectionCount();
+				} else if (tile->isSelected()) {
+					dragging = true;
+					drag_start_x = mouse_map_x;
+					drag_start_y = mouse_map_y;
+					drag_start_z = floor;
 				} else {
-					Tile* tile = editor.getMap().getTile(mouse_map_x, mouse_map_y, floor);
-					if (!tile) {
-						selection.start(Selection::NONE, ACTION_UNSELECT); // Start selection session
-						selection.clear(); // Clear out selection
-						selection.finish(); // End selection session
-						selection.updateSelectionCount();
-					} else if (tile->isSelected()) {
+					selection.start(); // Start a selection session
+					selection.clear();
+					selection.commit();
+					// Show monster spawn
+					if (tile->spawnMonster && g_settings.getInteger(Config::SHOW_SPAWNS_MONSTER)) {
+						selection.add(tile, tile->spawnMonster);
+						dragging = true;
+						drag_start_x = mouse_map_x;
+						drag_start_y = mouse_map_y;
+						drag_start_z = floor;
+						// Show monsters
+					} else if (const auto monster = tile->getTopMonster(); monster && g_settings.getInteger(Config::SHOW_MONSTERS)) {
+						selection.add(tile, monster);
+						dragging = true;
+						drag_start_x = mouse_map_x;
+						drag_start_y = mouse_map_y;
+						drag_start_z = floor;
+						// Show npc spawns
+					} else if (tile->spawnNpc && g_settings.getInteger(Config::SHOW_SPAWNS_NPC)) {
+						selection.add(tile, tile->spawnNpc);
+						dragging = true;
+						drag_start_x = mouse_map_x;
+						drag_start_y = mouse_map_y;
+						drag_start_z = floor;
+						// Show npcs
+					} else if (tile->npc && g_settings.getInteger(Config::SHOW_NPCS)) {
+						selection.add(tile, tile->npc);
 						dragging = true;
 						drag_start_x = mouse_map_x;
 						drag_start_y = mouse_map_y;
 						drag_start_z = floor;
 					} else {
-						selection.start(); // Start a selection session
-						selection.clear();
-						selection.commit();
-						// Show monster spawn
-						if (tile->spawnMonster && g_settings.getInteger(Config::SHOW_SPAWNS_MONSTER)) {
-							selection.add(tile, tile->spawnMonster);
+						Item* item = tile->getTopItem();
+						if (item) {
+							selection.add(tile, item);
 							dragging = true;
 							drag_start_x = mouse_map_x;
 							drag_start_y = mouse_map_y;
 							drag_start_z = floor;
-							// Show monsters
-						} else if (const auto monster = tile->getTopMonster(); monster && g_settings.getInteger(Config::SHOW_MONSTERS)) {
-							selection.add(tile, monster);
-							dragging = true;
-							drag_start_x = mouse_map_x;
-							drag_start_y = mouse_map_y;
-							drag_start_z = floor;
-							// Show npc spawns
-						} else if (tile->spawnNpc && g_settings.getInteger(Config::SHOW_SPAWNS_NPC)) {
-							selection.add(tile, tile->spawnNpc);
-							dragging = true;
-							drag_start_x = mouse_map_x;
-							drag_start_y = mouse_map_y;
-							drag_start_z = floor;
-							// Show npcs
-						} else if (tile->npc && g_settings.getInteger(Config::SHOW_NPCS)) {
-							selection.add(tile, tile->npc);
-							dragging = true;
-							drag_start_x = mouse_map_x;
-							drag_start_y = mouse_map_y;
-							drag_start_z = floor;
-						} else {
-							Item* item = tile->getTopItem();
-							if (item) {
-								selection.add(tile, item);
-								dragging = true;
-								drag_start_x = mouse_map_x;
-								drag_start_y = mouse_map_y;
-								drag_start_z = floor;
-							}
 						}
-						selection.finish(); // Finish the selection session
-						selection.updateSelectionCount();
 					}
+					selection.finish(); // Finish the selection session
+					selection.updateSelectionCount();
 				}
-			} while (false);
+			}
 		}
 	} else if (g_gui.GetCurrentBrush()) { // Drawing mode
 		Brush* brush = g_gui.GetCurrentBrush();

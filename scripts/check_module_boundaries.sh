@@ -8,14 +8,14 @@ check_no_include() {
     shift
     local forbidden_patterns=("$@")
 
-    if [ ! -d "$dir" ]; then
+    if [[ ! -d "$dir" ]]; then
         return
     fi
 
     for pattern in "${forbidden_patterns[@]}"; do
         matches=$(grep -rn "#include.*\"${pattern}" "$dir" --include="*.cpp" --include="*.h" \
             | grep -v "// KNOWN_VIOLATION" || true)
-        if [ -n "$matches" ]; then
+        if [[ -n "$matches" ]]; then
             echo "VIOLATION: Files in $dir include '$pattern':"
             echo "$matches"
             ERRORS=$((ERRORS + 1))
@@ -34,13 +34,13 @@ check_no_include "source/io" "rendering/"
 IO_UI_VIOLATIONS=$(grep -rn '#include.*"ui/' source/io --include="*.cpp" --include="*.h" \
     | grep -v "// KNOWN_VIOLATION" \
     | grep -v "iomap_otbm.cpp" || true)
-if [ -n "$IO_UI_VIOLATIONS" ]; then
+if [[ -n "$IO_UI_VIOLATIONS" ]]; then
     echo "VIOLATION: Files in source/io include ui/ headers (excluding known iomap_otbm.cpp):"
     echo "$IO_UI_VIOLATIONS"
     ERRORS=$((ERRORS + 1))
 fi
 
-if [ "$ERRORS" -gt 0 ]; then
+if [[ "$ERRORS" -gt 0 ]]; then
     echo ""
     echo "Found $ERRORS module boundary violation(s)."
     exit 1

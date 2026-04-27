@@ -1,4 +1,3 @@
-\  
 #ifndef RME_SPAWN_XML_SERIALIZER_H_
 #define RME_SPAWN_XML_SERIALIZER_H_
 

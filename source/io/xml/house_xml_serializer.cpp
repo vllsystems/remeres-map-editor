@@ -1,4 +1,3 @@
-\  
 #include "app/main.h"
 
 #include "io/xml/house_xml_serializer.h"

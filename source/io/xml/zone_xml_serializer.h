@@ -1,4 +1,3 @@
-\  
 #ifndef RME_ZONE_XML_SERIALIZER_H_
 #define RME_ZONE_XML_SERIALIZER_H_
 

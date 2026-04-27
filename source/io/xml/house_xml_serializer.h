@@ -1,4 +1,3 @@
-\  
 #ifndef RME_HOUSE_XML_SERIALIZER_H_
 #define RME_HOUSE_XML_SERIALIZER_H_
 
